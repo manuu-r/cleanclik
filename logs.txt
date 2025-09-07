@@ -1,0 +1,459 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 85.0.0 (88.0.0 available)
+  analyzer 7.6.0 (8.1.1 available)
+  analyzer_plugin 0.13.4 (0.13.7 available)
+  build 2.5.4 (4.0.0 available)
+  build_config 1.1.2 (1.2.0 available)
+  build_resolvers 2.5.4 (3.0.4 available)
+  build_runner 2.5.4 (2.8.0 available)
+  build_runner_core 9.1.2 (9.3.2 available)
+  characters 1.4.0 (1.4.1 available)
+  custom_lint 0.7.6 (0.8.0 available)
+  custom_lint_builder 0.7.6 (0.8.0 available)
+  custom_lint_core 0.7.5 (0.8.0 available)
+  dart_style 3.1.1 (3.1.2 available)
+  flutter_map 7.0.2 (8.2.1 available)
+  geolocator 12.0.0 (14.0.2 available)
+  geolocator_android 4.6.2 (5.0.2 available)
+  go_router 14.8.1 (16.2.1 available)
+  google_mlkit_commons 0.7.1 (0.11.0 available)
+  google_mlkit_object_detection 0.12.1 (0.15.0 available)
+  material_color_utilities 0.11.1 (0.13.0 available)
+  meta 1.16.0 (1.17.0 available)
+  mime 1.0.6 (2.0.0 available)
+  permission_handler 11.4.0 (12.0.1 available)
+  permission_handler_android 12.1.0 (13.0.1 available)
+  share_plus 7.2.2 (11.1.0 available)
+  share_plus_platform_interface 3.4.0 (6.1.0 available)
+  source_gen 2.0.0 (4.0.1 available)
+  test_api 0.7.6 (0.7.7 available)
+  unicode 0.3.1 (1.1.8 available)
+Got dependencies!
+29 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Launching lib/main.dart on Pixel 8 in debug mode...
+Running Gradle task 'assembleDebug'...                              6.2s
+✓ Built build/app/outputs/flutter-apk/app-debug.apk
+Installing build/app/outputs/flutter-apk/app-debug.apk...          15.8s
+D/FlutterJNI( 9319): Beginning load of flutter...
+D/FlutterJNI( 9319): flutter (null) was loaded normally!
+I/flutter ( 9319): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator( 9319): Attaching Geolocator to activity
+Syncing files to device Pixel 8...                                  40ms
+
+Flutter run key commands.
+r Hot reload. 🔥🔥🔥
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on Pixel 8 is available at: http://127.0.0.1:57759/h6qwKrTipug=/
+I/flutter ( 9319): ✅ [CONSOLIDATED_INVENTORY] Initialized with default values
+The Flutter DevTools debugger and profiler on Pixel 8 is available at: http://127.0.0.1:9100?uri=http://127.0.0.1:57759/h6qwKrTipug=/
+I/flutter ( 9319): User loaded from storage: EcoWarrior
+I/flutter ( 9319): ✅ [CONSOLIDATED_INVENTORY] Loaded 0 items from storage
+I/flutter ( 9319): ✅ [CONSOLIDATED_INVENTORY] Loaded session stats from storage
+I/flutter ( 9319): ✅ [CONSOLIDATED_INVENTORY] Storage load complete: 0 items, 0 points
+D/FlutterGeolocator( 9319): Creating service.
+I/flutter ( 9319): Session saved to local storage
+I/flutter ( 9319): Failed to initialize demo user: Bad state: Cannot add new events after calling close
+I/flutter ( 9319): Failed to initialize demo user: Bad state: Cannot add new events after calling close
+D/FlutterGeolocator( 9319): Binding to location service.
+I/Choreographer( 9319): Skipped 124 frames!  The application may be doing too much work on its main thread.
+I/WindowExtensionsImpl( 9319): Initializing Window Extensions, vendor API level=9, activity embedding enabled=true
+I/.vibe.vibesweep( 9319): Compiler allocated 4970KB to compile void android.view.ViewRootImpl.performTraversals()
+D/WindowOnBackDispatcher( 9319): setTopOnBackInvokedCallback (unwrapped): android.view.ViewRootImpl$$ExternalSyntheticLambda12@759c8d
+D/FlutterGeolocator( 9319): Geolocator foreground service connected
+D/FlutterGeolocator( 9319): Initializing Geolocator services
+D/FlutterGeolocator( 9319): Flutter engine connected. Connected engine count 1
+I/Choreographer( 9319): Skipped 45 frames!  The application may be doing too much work on its main thread.
+D/WindowLayoutComponentImpl( 9319): Register WindowLayoutInfoListener on Context=com.cleancity.vibe.vibesweep.MainActivity@b592af5, of which baseContext=android.app.ContextImpl@1b304cb
+D/ProfileInstaller( 9319): Installing profile for com.cleancity.vibe.vibesweep
+I/HWUI    ( 9319): Using FreeType backend (prop=Auto)
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/InsetsController( 9319): hide(ime())
+I/ImeTracker( 9319): com.cleancity.vibe.vibesweep:3d6c77f5: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+I/flutter ( 9319): 📊 [LEADERBOARD_SERVICE] Getting leaderboard for period: Daily
+I/flutter ( 9319): ✅ [LEADERBOARD_SERVICE] Leaderboard generated with 50 users
+I/flutter ( 9319): User loaded from storage: EcoWarrior
+I/flutter ( 9319): ✅ [LEADERBOARD_SERVICE] Loaded data from storage
+I/flutter ( 9319): 📤 [LEADERBOARD_SCREEN] _showShareOptions() called
+I/flutter ( 9319): ✅ [LEADERBOARD_SCREEN] HighPriorityOverlay.show() called successfully
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Achievement Focus card for Share...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Achievement Focus card for Share
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1080.0x1080.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_achievement_system_1757196580939.png
+I/Choreographer( 9319): Skipped 35 frames!  The application may be doing too much work on its main thread.
+W/WindowOnBackDispatcher( 9319): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 9319): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Achievement Focus card for Share
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Achievement Focus card for Instagram...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Achievement Focus card for Instagram
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1080.0x1080.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_achievement_instagram_1757196584283.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onPlatformChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:238:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Achievement Focus card for Instagram
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Progress & Stats card for Instagram...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Progress & Stats card for Instagram
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1080.0x1080.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_progress_instagram_1757196586078.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onTemplateChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:228:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Progress & Stats card for Instagram
+I/flutter ( 9319): 📤 Falling back to legacy achievement card sharing...
+I/flutter ( 9319): 📱 [SOCIAL_SHARING_SERVICE] shareAchievementCard called for platform: instagram
+I/flutter ( 9319): 📱 [SOCIAL_SHARING_SERVICE] Card details - ID: card_points_1250_1757196586075, shareText length: 99
+I/flutter ( 9319): ✅ [SOCIAL_SHARING_SERVICE] Share completed for instagram
+I/flutter ( 9319): ✅ Legacy achievement card shared successfully
+D/ImeBackDispatcher( 9319): Clear (mImeCallbacks.size=0)
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/InsetsController( 9319): hide(ime())
+I/ImeTracker( 9319): com.cleancity.vibe.vibesweep:8ccc0b4c: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+I/flutter ( 9319): 📤 [LEADERBOARD_SCREEN] _showShareOptions() called
+I/flutter ( 9319): ✅ [LEADERBOARD_SCREEN] HighPriorityOverlay.show() called successfully
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Achievement Focus card for Share...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Achievement Focus card for Share
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1080.0x1080.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_achievement_system_1757196592864.png
+W/WindowOnBackDispatcher( 9319): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 9319): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Achievement Focus card for Share
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Environmental Impact card for Share...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Environmental Impact card for Share
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1080.0x1080.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_impact_system_1757196595697.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onTemplateChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:228:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Environmental Impact card for Share
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Progress & Stats card for Share...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Progress & Stats card for Share
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1080.0x1080.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_progress_system_1757196597324.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onTemplateChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:228:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Progress & Stats card for Share
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Progress & Stats card for Instagram...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Progress & Stats card for Instagram
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1080.0x1080.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_progress_instagram_1757196600086.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onPlatformChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:238:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Progress & Stats card for Instagram
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Progress & Stats card for Twitter...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Progress & Stats card for Twitter
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1200.0x675.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_progress_twitter_1757196601422.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onPlatformChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:238:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Progress & Stats card for Twitter
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Progress & Stats card for Facebook...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Progress & Stats card for Facebook
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1200.0x630.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_progress_facebook_1757196603444.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onPlatformChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:238:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Progress & Stats card for Facebook
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Progress & Stats card for Twitter...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Progress & Stats card for Twitter
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1200.0x675.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_progress_twitter_1757196605130.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onPlatformChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:238:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Progress & Stats card for Twitter
+I/flutter ( 9319): 🔄 Starting card generation...
+I/flutter ( 9319): 👤 Current user found: EcoWarrior
+I/flutter ( 9319): ✅ Preview card generated successfully
+I/flutter ( 9319): 📊 Aggregating user data...
+I/flutter ( 9319): 🔍 SocialCardGenerationService: Starting user data aggregation
+I/flutter ( 9319): 👤 SocialCardGenerationService: User found - EcoWarrior, Points: 1250
+I/flutter ( 9319): ✅ SocialCardGenerationService: Card data aggregated successfully
+I/flutter ( 9319): ✅ User data aggregated
+I/flutter ( 9319): 🎨 Generating Progress & Stats card for Instagram...
+I/flutter ( 9319): 🎨 SocialCardGenerationService: Generating Progress & Stats card for Instagram
+I/flutter ( 9319): 📐 SocialCardGenerationService: Card dimensions - 1080.0x1080.0
+I/flutter ( 9319): 🔧 SocialCardGenerationService: Widget built successfully
+I/flutter ( 9319): 📁 SocialCardGenerationService: Rendering to file: vibesweep_progress_instagram_1757196609849.png
+I/flutter ( 9319): ❌ SocialCardGenerationService: Failed to generate card: CardRenderingException: Failed to render widget to image
+I/flutter ( 9319): 📍 SocialCardGenerationService: Stack trace: #0      CardRenderer.renderWidget (package:vibesweep/core/services/card_renderer.dart:64:7)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #1      CardRenderer.renderAndSave (package:vibesweep/core/services/card_renderer.dart:116:28)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #2      SocialCardGenerationService.generateCard (package:vibesweep/core/services/social_card_generation_service.dart:75:20)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #3      _FloatingShareOverlayState._generatePreviewCard (package:vibesweep/presentation/widgets/floating_share_overlay.dart:123:30)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): #4      _FloatingShareOverlayState._onPlatformChanged (package:vibesweep/presentation/widgets/floating_share_overlay.dart:238:5)
+I/flutter ( 9319): <asynchronous suspension>
+I/flutter ( 9319): ⚠️ Social card generation failed (preview still available): SocialCardGenerationException: Failed to generate Progress & Stats card for Instagram
+I/flutter ( 9319): 📤 Falling back to legacy achievement card sharing...
+I/flutter ( 9319): 📱 [SOCIAL_SHARING_SERVICE] shareAchievementCard called for platform: instagram
+I/flutter ( 9319): 📱 [SOCIAL_SHARING_SERVICE] Card details - ID: card_points_1250_1757196609847, shareText length: 99
+I/flutter ( 9319): ✅ [SOCIAL_SHARING_SERVICE] Share completed for instagram
+I/flutter ( 9319): ✅ Legacy achievement card shared successfully
+D/ImeBackDispatcher( 9319): Clear (mImeCallbacks.size=0)
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/InsetsController( 9319): hide(ime())
+I/ImeTracker( 9319): com.cleancity.vibe.vibesweep:8481d1f0: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+I/flutter ( 9319): 📊 [LEADERBOARD_SERVICE] Getting leaderboard for period: Weekly
+I/flutter ( 9319): 📈 [LEADERBOARD_SERVICE] Rank changed from 16 to 51
+I/flutter ( 9319): 💾 [LEADERBOARD_SERVICE] Saved data to storage
+I/flutter ( 9319): ✅ [LEADERBOARD_SERVICE] Leaderboard generated with 51 users
+I/flutter ( 4628): [AbstractDBManager] begin transaction AndroidNotificationRepository save
+I/flutter ( 4628): [AbstractDBManager] end transaction AndroidNotificationRepository save
+I/flutter ( 9319): 📊 [LEADERBOARD_SERVICE] Getting leaderboard for period: Weekly
+I/flutter ( 9319): 💾 [LEADERBOARD_SERVICE] Saved data to storage
+I/flutter ( 9319): ✅ [LEADERBOARD_SERVICE] Leaderboard generated with 51 users
+I/flutter ( 9319): 📊 [LEADERBOARD_SERVICE] Getting leaderboard for period: Weekly
+I/flutter ( 9319): 💾 [LEADERBOARD_SERVICE] Saved data to storage
+I/flutter ( 9319): ✅ [LEADERBOARD_SERVICE] Leaderboard generated with 51 users
+I/flutter ( 9319): 📊 [LEADERBOARD_SERVICE] Getting leaderboard for period: Monthly
+I/flutter ( 9319): 💾 [LEADERBOARD_SERVICE] Saved data to storage
+I/flutter ( 9319): ✅ [LEADERBOARD_SERVICE] Leaderboard generated with 51 users
+I/flutter ( 9319): 📊 [LEADERBOARD_SERVICE] Getting leaderboard for period: All Time
+I/flutter ( 9319): 💾 [LEADERBOARD_SERVICE] Saved data to storage
+I/flutter ( 9319): ✅ [LEADERBOARD_SERVICE] Leaderboard generated with 51 users
+D/ImeBackDispatcher( 9319): Clear (mImeCallbacks.size=0)
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/FlutterGeolocator( 9319): Detaching Geolocator from activity
+D/FlutterGeolocator( 9319): Flutter engine disconnected. Connected engine count 0
+D/FlutterGeolocator( 9319): Disposing Geolocator services
+E/FlutterGeolocator( 9319): Geolocator position updates stopped
+D/FlutterGeolocator( 9319): Stopping location service.
+D/WindowOnBackDispatcher( 9319): setTopOnBackInvokedCallback (unwrapped): null
+D/ViewRootImpl( 9319): Skipping stats log for color mode
+I/Choreographer( 9319): Skipped 162 frames!  The application may be doing too much work on its main thread.
+D/FlutterGeolocator( 9319): Unbinding from location service.
+D/FlutterGeolocator( 9319): Destroying location service.
+D/FlutterGeolocator( 9319): Stopping location service.
+D/FlutterGeolocator( 9319): Destroyed location service.
+I/flutter ( 4628): [AbstractDBManager] begin transaction AndroidNotificationRepository delete
+I/flutter ( 4628): [AbstractDBManager] end transaction AndroidNotificationRepository delete
+I/flutter ( 9319): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator( 9319): Attaching Geolocator to activity
+I/ContentCaptureHelper( 9319): Setting logging level to OFF
+I/flutter ( 9319): ✅ [CONSOLIDATED_INVENTORY] Initialized with default values
+I/flutter ( 9319): User loaded from storage: EcoWarrior
+I/flutter ( 9319): ✅ [CONSOLIDATED_INVENTORY] Loaded 0 items from storage
+I/flutter ( 9319): ✅ [CONSOLIDATED_INVENTORY] Loaded session stats from storage
+I/flutter ( 9319): ✅ [CONSOLIDATED_INVENTORY] Storage load complete: 0 items, 0 points
+D/FlutterGeolocator( 9319): Creating service.
+I/flutter ( 9319): Session saved to local storage
+I/flutter ( 9319): Failed to initialize demo user: Bad state: Cannot add new events after calling close
+I/flutter ( 9319): Failed to initialize demo user: Bad state: Cannot add new events after calling close
+D/FlutterGeolocator( 9319): Binding to location service.
+I/Choreographer( 9319): Skipped 231 frames!  The application may be doing too much work on its main thread.
+D/WindowOnBackDispatcher( 9319): setTopOnBackInvokedCallback (unwrapped): android.view.ViewRootImpl$$ExternalSyntheticLambda12@377fa12
+D/FlutterGeolocator( 9319): Geolocator foreground service connected
+D/FlutterGeolocator( 9319): Initializing Geolocator services
+D/FlutterGeolocator( 9319): Flutter engine connected. Connected engine count 1
+D/WindowLayoutComponentImpl( 9319): Register WindowLayoutInfoListener on Context=com.cleancity.vibe.vibesweep.MainActivity@b3faee5, of which baseContext=android.app.ContextImpl@ed7a55e
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/InsetsController( 9319): hide(ime())
+I/ImeTracker( 9319): com.cleancity.vibe.vibesweep:ca641793: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+D/InsetsController( 9319): hide(ime())
+I/ImeTracker( 9319): com.cleancity.vibe.vibesweep:80b6b4bc: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+I/flutter ( 4628): [AbstractDBManager] begin transaction AndroidNotificationRepository delete
+I/flutter ( 4628): [AbstractDBManager] end transaction AndroidNotificationRepository delete
+D/VRI[MainActivity]( 9319): visibilityChanged oldVisibility=true newVisibility=false
+D/ImeBackDispatcher( 9319): Clear (mImeCallbacks.size=0)
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/ViewRootImpl( 9319): Skipping stats log for color mode
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/InsetsController( 9319): hide(ime())
+I/ImeTracker( 9319): com.cleancity.vibe.vibesweep:dbc295e2: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+D/ImeBackDispatcher( 9319): Clear (mImeCallbacks.size=0)
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/VRI[MainActivity]( 9319): visibilityChanged oldVisibility=true newVisibility=false
+I/flutter ( 4628): [AbstractDBManager] begin transaction AndroidNotificationRepository delete
+I/flutter ( 4628): [AbstractDBManager] end transaction AndroidNotificationRepository delete
+D/ViewRootImpl( 9319): Skipping stats log for color mode
+D/ImeBackDispatcher( 9319): switch root view (mImeCallbacks.size=0)
+D/InsetsController( 9319): hide(ime())
+I/ImeTracker( 9319): com.cleancity.vibe.vibesweep:6ff960d7: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+Lost connection to device.

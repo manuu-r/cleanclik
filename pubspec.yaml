@@ -1,0 +1,88 @@
+name: cleanclik
+description: CleanClik - AR gamification app for urban cleanliness
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Camera & AR
+  camera: ^0.11.0+2
+  google_mlkit_object_detection: ^0.12.0
+  google_mlkit_commons: ^0.7.1
+  ar_flutter_plugin_2: ^0.0.3
+  vector_math: ^2.1.4
+
+  # Cross-Platform Hand Detection
+  hand_landmarker: ^2.1.0 # Android MediaPipe hand detection
+
+  # Platform-specific hand detection will be handled via platform channels
+  # iOS: apple_vision_hand (to be added via platform-specific implementation)
+
+  # Keep TensorFlow Lite as fallback
+  tflite_flutter: ^0.11.0
+
+  # QR Code Scanning
+  qr_code_scanner_plus: ^2.0.10+1
+
+  # Motion & Sensors
+  sensors_plus: ^6.0.1
+
+  # Local Storage
+  shared_preferences: ^2.5.3
+  path_provider: ^2.1.4
+
+  # Sharing
+  share_plus: ^7.2.2
+
+  # Concurrency
+  synchronized: ^3.3.0+3
+
+  # Location & Maps
+  geolocator: ^12.0.0
+  permission_handler: ^11.3.1
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  url_launcher: ^6.3.1
+
+  # Alternative navigation methods
+  android_intent_plus: ^5.3.1
+  maps_launcher: ^3.0.0
+
+  # UI & Theming
+  flutter_svg: ^2.0.16
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  riverpod_generator: ^2.6.2
+  build_runner: ^2.4.13
+  custom_lint: ^0.7.0
+  riverpod_lint: ^2.6.2
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - assets/models/
+    - assets/models/mediapipe/
+    - assets/models/mediapipe/hand_detector.tflite
+    - assets/models/mediapipe/hand_landmarks_detector.tflite
+    - assets/models/mediapipe/hand_landmarker.task

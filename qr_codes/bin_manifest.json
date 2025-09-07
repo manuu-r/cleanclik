@@ -1,0 +1,74 @@
+{
+  "generated_at": "2025-08-19T05:25:51.728253",
+  "total_bins": 5,
+  "categories": [
+    "recycle",
+    "organic",
+    "landfill",
+    "ewaste",
+    "hazardous"
+  ],
+  "locations_count": 10,
+  "bins": [
+    {
+      "bin_id": "TEST_000_RECYCLE",
+      "category": "recycle",
+      "latitude": 37.7749,
+      "longitude": -122.4194,
+      "geohash": "9q8yyk8y",
+      "generated_at": "2025-08-19T05:25:51.483816",
+      "version": "1.0",
+      "location_name": "Downtown SF - Market St",
+      "qr_file": "./qr_codes/test_000_recycle_TEST_000_RECYCLE.png",
+      "filename": "test_000_recycle_TEST_000_RECYCLE"
+    },
+    {
+      "bin_id": "TEST_001_ORGANIC",
+      "category": "organic",
+      "latitude": 37.7849,
+      "longitude": -122.4094,
+      "geohash": "9q8yyw80",
+      "generated_at": "2025-08-19T05:25:51.648485",
+      "version": "1.0",
+      "location_name": "Downtown SF - Union Square",
+      "qr_file": "./qr_codes/test_001_organic_TEST_001_ORGANIC.png",
+      "filename": "test_001_organic_TEST_001_ORGANIC"
+    },
+    {
+      "bin_id": "TEST_002_LANDFILL",
+      "category": "landfill",
+      "latitude": 37.7649,
+      "longitude": -122.4294,
+      "geohash": "9q8yy4cs",
+      "generated_at": "2025-08-19T05:25:51.675251",
+      "version": "1.0",
+      "location_name": "Downtown SF - SOMA",
+      "qr_file": "./qr_codes/test_002_landfill_TEST_002_LANDFILL.png",
+      "filename": "test_002_landfill_TEST_002_LANDFILL"
+    },
+    {
+      "bin_id": "TEST_003_EWASTE",
+      "category": "ewaste",
+      "latitude": 37.8719,
+      "longitude": -122.2585,
+      "geohash": "9q9p3yq5",
+      "generated_at": "2025-08-19T05:25:51.695545",
+      "version": "1.0",
+      "location_name": "UC Berkeley Campus",
+      "qr_file": "./qr_codes/test_003_ewaste_TEST_003_EWASTE.png",
+      "filename": "test_003_ewaste_TEST_003_EWASTE"
+    },
+    {
+      "bin_id": "TEST_004_HAZARDOUS",
+      "category": "hazardous",
+      "latitude": 37.8619,
+      "longitude": -122.2485,
+      "geohash": "9q9p6ht3",
+      "generated_at": "2025-08-19T05:25:51.712486",
+      "version": "1.0",
+      "location_name": "Berkeley Downtown",
+      "qr_file": "./qr_codes/test_004_hazardous_TEST_004_HAZARDOUS.png",
+      "filename": "test_004_hazardous_TEST_004_HAZARDOUS"
+    }
+  ]
+}

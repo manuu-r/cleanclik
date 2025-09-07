@@ -1,0 +1,873 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cleanclik/core/theme/app_colors.dart';
+import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
+import 'package:cleanclik/core/theme/neon_colors.dart';
+import 'package:cleanclik/core/models/leaderboard_user.dart';
+import 'package:cleanclik/core/models/achievement.dart';
+import 'package:cleanclik/core/models/achievement_card.dart';
+import 'package:cleanclik/core/services/leaderboard_service.dart';
+import 'package:cleanclik/core/services/social_sharing_service.dart';
+import 'package:cleanclik/core/services/user_service.dart';
+import 'package:cleanclik/presentation/widgets/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/particle_system.dart';
+
+import 'package:cleanclik/presentation/widgets/floating_share_overlay.dart';
+import 'package:cleanclik/presentation/widgets/high_priority_overlay.dart';
+
+class LeaderboardScreen extends ConsumerStatefulWidget {
+  const LeaderboardScreen({super.key});
+
+  @override
+  ConsumerState<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+  late AnimationController _particleController;
+  late AnimationController _celebrationController;
+  bool _showCelebration = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _particleController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    _celebrationController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
+
+    // Listen for achievement unlocks
+    _listenForAchievements();
+
+    // Listen for tab changes
+    _tabController.addListener(_onTabChanged);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _particleController.dispose();
+    _celebrationController.dispose();
+    super.dispose();
+  }
+
+  void _listenForAchievements() {
+    final leaderboardService = ref.read(leaderboardServiceProvider);
+    leaderboardService.achievementUnlockedStream.listen((achievement) {
+      _showAchievementCelebration(achievement);
+    });
+  }
+
+  void _onTabChanged() {
+    // Tab change handling can be added here if needed
+  }
+
+  void _showAchievementCelebration(Achievement achievement) {
+    setState(() {
+      _showCelebration = true;
+    });
+
+    _celebrationController.forward().then((_) {
+      setState(() {
+        _showCelebration = false;
+      });
+      _celebrationController.reset();
+    });
+
+    // Show achievement dialog
+    _showAchievementDialog(achievement);
+  }
+
+  void _showAchievementDialog(Achievement achievement) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) =>
+          _AchievementUnlockedDialog(achievement: achievement),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final arTheme = theme.arTheme;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: ShaderMask(
+          shaderCallback: (bounds) => arTheme.neonGradient.createShader(bounds),
+          child: const Text(
+            'Leaderboard',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: NeonColors.electricGreen,
+          labelColor: NeonColors.electricGreen,
+          unselectedLabelColor: Colors.white.withOpacity(0.6),
+          tabs: const [
+            Tab(text: 'Daily'),
+            Tab(text: 'Weekly'),
+            Tab(text: 'Monthly'),
+            Tab(text: 'All Time'),
+          ],
+        ),
+      ),
+      body: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black,
+                  NeonColors.earthOrange.withAlpha((0.05 * 255).round()),
+                  Colors.black,
+                ],
+              ),
+            ),
+          ),
+
+          // Particle system for celebrations
+          if (_showCelebration)
+            ParticleSystem(
+              type: ParticleType.confetti,
+              isActive: _showCelebration,
+              color: NeonColors.earthOrange,
+            ),
+
+          // Main content
+          Column(
+            children: [
+              // User's Current Rank with dynamic data
+              _buildUserRankCard(),
+
+              // Leaderboard List with real data
+              Expanded(
+                flex: 2,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildLeaderboardList(LeaderboardPeriod.daily),
+                    _buildLeaderboardList(LeaderboardPeriod.weekly),
+                    _buildLeaderboardList(LeaderboardPeriod.monthly),
+                    _buildLeaderboardList(LeaderboardPeriod.allTime),
+                  ],
+                ),
+              ),
+
+              // Achievement Cards and Social Sharing
+              _buildAchievementCardsSection(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserRankCard() {
+    final currentUser = ref.watch(currentUserProvider).value;
+    final leaderboardService = ref.watch(leaderboardServiceProvider);
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: GlassmorphismContainer(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: NeonColors.electricGreen.withOpacity(0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: NeonColors.electricGreen, width: 2),
+              ),
+              child: const Icon(Icons.person, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Rank',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ShaderMask(
+                    shaderCallback: (bounds) => Theme.of(
+                      context,
+                    ).arTheme.neonGradient.createShader(bounds),
+                    child: Text(
+                      currentUser != null
+                          ? '#${currentUser.rank} (${currentUser.totalPoints} points)'
+                          : '#-- (0 points)',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  if (currentUser != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '${leaderboardService.currentStreak} day streak • ${leaderboardService.accuracyPercentage.toStringAsFixed(1)}% accuracy',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: _showShareOptions,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: NeonColors.earthOrange.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.share, color: Colors.white, size: 24),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeaderboardList(LeaderboardPeriod period) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final leaderboardAsync = ref.watch(leaderboardProvider(period: period));
+
+        return leaderboardAsync.when(
+          data: (users) => ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
+            itemCount: users.length,
+            itemBuilder: (context, index) {
+              final user = users[index];
+              return _buildLeaderboardItem(user);
+            },
+          ),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: NeonColors.electricGreen),
+          ),
+          error: (error, stack) => Center(
+            child: Text(
+              'Failed to load leaderboard',
+              style: TextStyle(color: Colors.white.withOpacity(0.7)),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLeaderboardItem(LeaderboardUser user) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: GlassmorphismContainer(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Rank Badge with animation for current user
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: user.isCurrentUser
+                    ? NeonColors.electricGreen.withOpacity(0.3)
+                    : _getRankColor(user.rank).withAlpha((0.15 * 255).round()),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: user.isCurrentUser
+                      ? NeonColors.electricGreen
+                      : _getRankColor(user.rank).withOpacity(0.3),
+                  width: user.isCurrentUser ? 2 : 1,
+                ),
+                boxShadow: user.isCurrentUser
+                    ? [
+                        BoxShadow(
+                          color: NeonColors.electricGreen.withOpacity(0.3),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Center(
+                child: user.rank <= 3
+                    ? Icon(
+                        _getRankIcon(user.rank),
+                        color: user.isCurrentUser
+                            ? Colors.white
+                            : _getRankColor(user.rank),
+                        size: 22,
+                      )
+                    : Text(
+                        '${user.rank}',
+                        style: TextStyle(
+                          color: user.isCurrentUser
+                              ? Colors.white
+                              : _getRankColor(user.rank),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            // User Avatar
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: user.isCurrentUser
+                    ? NeonColors.electricGreen.withOpacity(0.2)
+                    : AppColors.primary.withAlpha((0.15 * 255).round()),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: user.isCurrentUser
+                      ? NeonColors.electricGreen.withOpacity(0.5)
+                      : AppColors.primary.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                Icons.person,
+                color: user.isCurrentUser ? Colors.white : AppColors.primary,
+                size: 22,
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            // User Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        user.username,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: user.isCurrentUser
+                              ? NeonColors.electricGreen
+                              : Colors.white,
+                        ),
+                      ),
+                      if (user.rankChange != 0) ...[
+                        const SizedBox(width: 8),
+                        _buildRankChangeIndicator(user.rankChange),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${user.itemsCollected} items • ${user.accuracyPercentage.toStringAsFixed(1)}% accuracy',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (user.currentStreak > 0) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.local_fire_department,
+                          color: Colors.orange,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${user.currentStreak} day streak',
+                          style: TextStyle(
+                            color: Colors.orange.withOpacity(0.8),
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Points and Badge
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${user.totalPoints}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: user.isCurrentUser
+                        ? NeonColors.electricGreen
+                        : AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'points',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.6),
+                  ),
+                ),
+                if (user.highestBadge.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('🏆', style: const TextStyle(fontSize: 10)),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRankChangeIndicator(int change) {
+    if (change == 0) return const SizedBox.shrink();
+
+    final isPositive = change > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: isPositive
+            ? Colors.green.withOpacity(0.2)
+            : Colors.red.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+            color: isPositive ? Colors.green : Colors.red,
+            size: 10,
+          ),
+          Text(
+            '${change.abs()}',
+            style: TextStyle(
+              color: isPositive ? Colors.green : Colors.red,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementCardsSection() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final cards = ref.watch(achievementCardsProvider);
+
+        if (cards.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          height: 120,
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Recent Achievements',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: cards.length,
+                  itemBuilder: (context, index) {
+                    final card = cards[index];
+                    return GestureDetector(
+                      onTap: () => _showAchievementCardDialog(card),
+                      child: Container(
+                        width: 200,
+                        margin: const EdgeInsets.only(right: 12),
+                        child: GlassmorphismContainer(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                card.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Spacer(),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    card.type.name,
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.6),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.share,
+                                    color: NeonColors.electricGreen,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showShareOptions() {
+    print('📤 [LEADERBOARD_SCREEN] _showShareOptions() called');
+    // Use high-priority overlay to appear above the floating action hub
+    try {
+      HighPriorityOverlay.show(
+        context: context,
+        child: const FloatingShareOverlay(),
+      );
+      print(
+        '✅ [LEADERBOARD_SCREEN] HighPriorityOverlay.show() called successfully',
+      );
+    } catch (e) {
+      print('❌ [LEADERBOARD_SCREEN] Error showing share options: $e');
+    }
+  }
+
+  void _showAchievementCardDialog(AchievementCard card) {
+    showDialog(
+      context: context,
+      builder: (context) => _AchievementCardDialog(card: card),
+    );
+  }
+
+  Color _getRankColor(int rank) {
+    switch (rank) {
+      case 1:
+        return const Color(0xFFFFD700); // Gold
+      case 2:
+        return const Color(0xFFC0C0C0); // Silver
+      case 3:
+        return const Color(0xFFCD7F32); // Bronze
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  IconData _getRankIcon(int rank) {
+    switch (rank) {
+      case 1:
+        return Icons.emoji_events;
+      case 2:
+        return Icons.emoji_events_outlined;
+      case 3:
+        return Icons.emoji_events_outlined;
+      default:
+        return Icons.person;
+    }
+  }
+}
+
+/// Dialog for showing achievement unlock celebration
+class _AchievementUnlockedDialog extends ConsumerWidget {
+  final Achievement achievement;
+
+  const _AchievementUnlockedDialog({required this.achievement});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(achievement.rarity.color).withOpacity(0.9),
+              Color(achievement.rarity.color).withOpacity(0.7),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Achievement icon
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.emoji_events,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Achievement unlocked text
+            const Text(
+              'Achievement Unlocked!',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Achievement name
+            Text(
+              achievement.name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 8),
+
+            // Achievement description
+            Text(
+              achievement.description,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Rarity badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                achievement.rarity.displayName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text(
+                      'Continue',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      // Generate and share achievement card
+                      _shareAchievement(context, ref, achievement);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                    ),
+                    child: const Text(
+                      'Share',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _shareAchievement(
+    BuildContext context,
+    WidgetRef ref,
+    Achievement achievement,
+  ) {
+    // Implementation for sharing achievement
+    // Generate quick card and share
+  }
+}
+
+/// Dialog for showing achievement card with sharing options
+class _AchievementCardDialog extends ConsumerWidget {
+  final AchievementCard card;
+
+  const _AchievementCardDialog({required this.card});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final GlobalKey cardKey = GlobalKey();
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Achievement card
+          RepaintBoundary(
+            key: cardKey,
+            child: Container(
+              width: 300,
+              height: 400,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: card.background.gradientColors,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.emoji_events, color: Colors.white, size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      card.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      card.subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      card.description,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Share button
+          ElevatedButton.icon(
+            onPressed: () async {
+              final socialService = ref.read(socialSharingServiceProvider);
+              await socialService.shareAchievementCard(
+                card,
+                SocialPlatform.system,
+              );
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.share),
+            label: const Text('Share Achievement'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: NeonColors.electricGreen,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

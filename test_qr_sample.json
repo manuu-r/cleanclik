@@ -1,0 +1,10 @@
+{
+  "bin_id": "BIN_001_RECYCLE",
+  "category": "recycle",
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "geohash": "9q8yy",
+  "generated_at": "2025-01-09T10:30:00Z",
+  "version": "1.0",
+  "location_name": "Downtown Recycling Station"
+}

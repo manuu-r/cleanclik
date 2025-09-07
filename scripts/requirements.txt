@@ -1,0 +1,7 @@
+# QR Code Generation Dependencies for VibeSweep
+qrcode[pil]==7.4.2
+geohash2==1.1
+Pillow>=10.0.0
+
+# Optional: For SVG output
+# qrcode[pil,svg]==7.4.2
