@@ -23,19 +23,12 @@ dependencies:
   camera: ^0.11.0+2
   google_mlkit_object_detection: ^0.12.0
   google_mlkit_commons: ^0.7.1
-  ar_flutter_plugin_2: ^0.0.3
   vector_math: ^2.1.4
 
-  # Cross-Platform Hand Detection
-  hand_landmarker: ^2.1.0 # Android MediaPipe hand detection
+  # Hand tracking (used in services)
+  hand_landmarker: ^2.1.0
 
-  # Platform-specific hand detection will be handled via platform channels
-  # iOS: apple_vision_hand (to be added via platform-specific implementation)
-
-  # Keep TensorFlow Lite as fallback
-  tflite_flutter: ^0.11.0
-
-  # QR Code Scanning
+  # QR Code Scanning (used in services)
   qr_code_scanner_plus: ^2.0.10+1
 
   # Motion & Sensors
@@ -54,9 +47,9 @@ dependencies:
   # Location & Maps
   geolocator: ^12.0.0
   permission_handler: ^11.3.1
-  flutter_map: ^7.0.2
-  latlong2: ^0.9.1
   url_launcher: ^6.3.1
+  latlong2: ^0.9.1
+  flutter_map: ^7.0.2
 
   # Alternative navigation methods
   android_intent_plus: ^5.3.1
@@ -76,13 +69,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - assets/images/
-    - assets/icons/
-    - assets/animations/
-    - assets/models/
-    - assets/models/mediapipe/
-    - assets/models/mediapipe/hand_detector.tflite
-    - assets/models/mediapipe/hand_landmarks_detector.tflite
-    - assets/models/mediapipe/hand_landmarker.task

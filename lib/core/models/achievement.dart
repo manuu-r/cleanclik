@@ -165,7 +165,7 @@ class Achievements {
       id: 'first_scan',
       title: 'First Steps',
       description: 'Complete your first item scan',
-      iconPath: 'assets/icons/first_scan.png',
+      iconPath: '', // Use iconUrl or system icons instead
       type: AchievementType.firstScan,
       pointsRequired: 0,
       level: 1,
@@ -176,7 +176,7 @@ class Achievements {
       id: 'streak_master',
       title: 'Streak Master',
       description: 'Maintain a 7-day scanning streak',
-      iconPath: 'assets/icons/streak.png',
+      iconPath: '', // Use iconUrl or system icons instead
       type: AchievementType.streakMaster,
       pointsRequired: 0,
       level: 1,
@@ -187,7 +187,7 @@ class Achievements {
       id: 'eco_warrior',
       title: 'Eco Warrior',
       description: 'Categorize 100 items correctly',
-      iconPath: 'assets/icons/eco_warrior.png',
+      iconPath: '', // Use iconUrl or system icons instead
       type: AchievementType.ecoWarrior,
       pointsRequired: 1000,
       level: 1,
