@@ -45,25 +45,38 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	
+
 	<!-- Camera permission -->
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs camera access to scan and identify objects for the AR experience.</string>
-	
+
 	<!-- Location permissions -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs location access to show nearby cleanup opportunities and track your contributions.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app needs location access to show nearby cleanup opportunities and track your contributions.</string>
-	
+
 	<!-- Photo library permission -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to save photos of your cleanup activities.</string>
-	
+
 	<!-- ARKit support -->
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the camera for AR features to identify objects and provide an immersive experience.</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+
+	<!-- Deep linking URL schemes -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>cleanclik.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>cleanclik</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -9,7 +9,10 @@ import 'package:cleanclik/presentation/screens/camera/ar_camera_screen.dart';
 import 'package:cleanclik/presentation/screens/map/map_screen.dart';
 import 'package:cleanclik/presentation/screens/leaderboard/leaderboard_screen.dart';
 import 'package:cleanclik/presentation/screens/profile/profile_screen.dart';
-
+import 'package:cleanclik/presentation/screens/auth/login_screen.dart';
+import 'package:cleanclik/presentation/screens/auth/signup_screen.dart';
+import 'package:cleanclik/presentation/screens/auth/email_verification_screen.dart';
+import 'package:cleanclik/presentation/screens/auth/auth_wrapper.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -18,7 +21,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       // Prevent navigation loops and invalid states
       final location = state.uri.path;
-      
+
       // Ensure valid routes only
       final validRoutes = [
         Routes.home,
@@ -26,18 +29,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         Routes.leaderboard,
         Routes.profile,
         Routes.camera,
+        Routes.login,
+        Routes.signup,
+        Routes.emailVerification,
       ];
-      
+
       if (!validRoutes.contains(location)) {
         return Routes.home;
       }
-      
+
       return null; // Allow navigation
     },
     routes: [
+      // Authentication routes (not protected)
+      GoRoute(
+        path: Routes.login,
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: Routes.signup,
+        name: 'signup',
+        builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: Routes.emailVerification,
+        name: 'emailVerification',
+        builder: (context, state) {
+          final email = state.extra as String? ?? '';
+          return EmailVerificationScreen(email: email);
+        },
+      ),
+
+      // Protected routes wrapped with AuthWrapper
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          return ARNavigationShell(navigationShell: navigationShell);
+          return AuthWrapper(
+            child: ARNavigationShell(navigationShell: navigationShell),
+          );
         },
         branches: [
           // Home Branch
@@ -86,7 +115,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // Camera Route (full screen, not in shell)
+      // Camera Route (full screen, protected)
       GoRoute(
         path: Routes.camera,
         name: 'camera',
@@ -94,12 +123,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // Parse mode parameter from query string
           final modeParam = state.uri.queryParameters['mode'];
           final initialMode = CameraModeExtension.fromString(modeParam);
-          
-          return ARCameraScreen(initialMode: initialMode);
+
+          return AuthWrapper(child: ARCameraScreen(initialMode: initialMode));
         },
       ),
-
-
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(

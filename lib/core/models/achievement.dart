@@ -104,6 +104,33 @@ class Achievement {
     );
   }
 
+  /// Create from Supabase database row
+  factory Achievement.fromSupabase(Map<String, dynamic> data) {
+    return Achievement(
+      id: data['achievement_id'] as String,
+      title: data['title'] as String? ?? '',
+      description: data['description'] as String? ?? '',
+      iconPath: data['icon_path'] as String? ?? '',
+      iconUrl: data['icon_url'] as String? ?? '',
+      type: AchievementType.values.firstWhere(
+        (e) => e.name == (data['type'] as String? ?? 'firstScan'),
+        orElse: () => AchievementType.firstScan,
+      ),
+      rarity: AchievementRarity.values.firstWhere(
+        (e) => e.name == (data['rarity'] as String? ?? 'common'),
+        orElse: () => AchievementRarity.common,
+      ),
+      pointsRequired: data['points_required'] as int? ?? 0,
+      level: data['level'] as int? ?? 1,
+      isUnlocked: data['unlocked_at'] != null,
+      unlockedAt: data['unlocked_at'] != null
+          ? DateTime.parse(data['unlocked_at'] as String)
+          : null,
+      category: data['category'] as String? ?? '',
+      metadata: data['metadata'] as Map<String, dynamic>? ?? {},
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -118,6 +145,16 @@ class Achievement {
       'isUnlocked': isUnlocked,
       'unlockedAt': unlockedAt?.toIso8601String(),
       'category': category,
+      'metadata': metadata,
+    };
+  }
+
+  /// Convert to Supabase database format for user achievements
+  Map<String, dynamic> toSupabase(String userId) {
+    return {
+      'user_id': userId,
+      'achievement_id': id,
+      'unlocked_at': unlockedAt?.toIso8601String(),
       'metadata': metadata,
     };
   }

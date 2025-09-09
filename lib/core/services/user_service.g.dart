@@ -6,7 +6,7 @@ part of 'user_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$userServiceHash() => r'f568e4f6d676de570d3952b302e5556a8b074dea';
+String _$userServiceHash() => r'2a4da7916defc7691ed2f71000beb744984bf3c2';
 
 /// Provider for UserService
 ///
@@ -25,7 +25,7 @@ final userServiceProvider = AutoDisposeProvider<UserService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserServiceRef = AutoDisposeProviderRef<UserService>;
-String _$currentUserHash() => r'464a25cddb2ad4f9ea7f84353b0b9884fe6b2f14';
+String _$currentUserHash() => r'6c3ffa408c05731997e273a063b01ea77a4b1d83';
 
 /// Provider for current user
 ///
@@ -44,7 +44,7 @@ final currentUserProvider = AutoDisposeStreamProvider<User?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentUserRef = AutoDisposeStreamProviderRef<User?>;
-String _$authStateHash() => r'df0b62ce38a1bd3050863e514f176e826dad9221';
+String _$authStateHash() => r'cc1079a19a2ca069615b6942ab12a3156390ba95';
 
 /// Provider for authentication state
 ///
@@ -63,7 +63,7 @@ final authStateProvider = AutoDisposeStreamProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthStateRef = AutoDisposeStreamProviderRef<bool>;
-String _$userStatsHash() => r'514380c641022141c746a65d86cddf68a4813609';
+String _$userStatsHash() => r'd0b214cb029faa9a3919ee7fc4268055c1c46ad5';
 
 /// Provider for user statistics
 ///

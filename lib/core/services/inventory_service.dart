@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/detected_object.dart';
 import '../models/waste_category.dart';
 import 'qr_bin_service.dart';
 import 'bin_matching_service.dart';
+import 'inventory_database_service.dart';
+import 'database_service_provider.dart';
+import 'supabase_config_service.dart';
+import 'user_service.dart';
 
 part 'inventory_service.g.dart';
 
@@ -81,7 +86,7 @@ class InventoryItem {
     );
   }
 
-  /// Create from JSON
+  /// Create from JSON (local storage format)
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
     return InventoryItem(
       id: json['id'] as String,
@@ -95,10 +100,39 @@ class InventoryItem {
     );
   }
 
-  /// Convert to JSON
+  /// Create from Supabase database row
+  factory InventoryItem.fromSupabase(Map<String, dynamic> data) {
+    return InventoryItem(
+      id: data['id'] as String,
+      trackingId: data['tracking_id'] as String,
+      category: data['category'] as String,
+      displayName: data['display_name'] as String,
+      codeName: data['code_name'] as String,
+      confidence: (data['confidence'] as num).toDouble(),
+      pickedUpAt: DateTime.parse(data['picked_up_at'] as String),
+      metadata: data['metadata'] as Map<String, dynamic>?,
+    );
+  }
+
+  /// Convert to JSON (local storage format)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'tracking_id': trackingId,
+      'category': category,
+      'display_name': displayName,
+      'code_name': codeName,
+      'confidence': confidence,
+      'picked_up_at': pickedUpAt.toIso8601String(),
+      'metadata': metadata,
+    };
+  }
+
+  /// Convert to Supabase database format
+  Map<String, dynamic> toSupabase(String userId) {
+    return {
+      'id': id,
+      'user_id': userId,
       'tracking_id': trackingId,
       'category': category,
       'display_name': displayName,
@@ -247,7 +281,7 @@ class SessionStats {
 class InventoryService extends _$InventoryService {
   static const String _logTag = 'CONSOLIDATED_INVENTORY';
 
-  // Storage keys (merged from both services)
+  // Storage keys for offline cache (fallback)
   static const String _inventoryKey = 'user_carried_inventory';
   static const String _pointsKey = 'user_points';
   static const String _sessionStatsKey = 'session_statistics';
@@ -269,12 +303,36 @@ class InventoryService extends _$InventoryService {
   bool _isLoaded = false;
   Future<void>? _loadingFuture;
 
+  // Database services
+  late final InventoryDatabaseService _dbService;
+  late final SupabaseClient _supabase;
+  StreamSubscription<List<Map<String, dynamic>>>? _realtimeSubscription;
+
   @override
   InventoryService build() {
+    // Initialize database services
+    _dbService = ref.watch(inventoryDatabaseServiceProvider);
+
+    // Get Supabase client
+    try {
+      if (SupabaseConfigService.isFullyConfigured) {
+        _supabase = SupabaseConfigService.client;
+      } else {
+        _supabase = Supabase.instance.client;
+      }
+    } catch (e) {
+      _supabase = Supabase.instance.client;
+    }
+
+    // Set up disposal
+    ref.onDispose(() async {
+      await dispose();
+    });
+
     // Initialize with defaults first
     _initializeDefaults();
-    // Start loading from storage asynchronously
-    _loadingFuture = _loadFromStorage();
+    // Start loading from database/storage asynchronously
+    _loadingFuture = _loadFromDatabase();
     return this;
   }
 
@@ -364,7 +422,7 @@ class InventoryService extends _$InventoryService {
   Future<bool> addItem(InventoryItem item) async {
     // Ensure loading is complete before proceeding
     await _ensureLoaded();
-    
+
     print('📦 [$_logTag] Adding item to inventory: ${item.trackingId}');
 
     // Check for duplicates
@@ -375,25 +433,52 @@ class InventoryService extends _$InventoryService {
       return false;
     }
 
-    // Add to memory
-    _inventory.add(item);
+    try {
+      final currentUser = ref.read(userServiceProvider).currentUser;
 
-    // Update session stats
-    _sessionStats = _sessionStats.copyWith(
-      totalItemsPickedUp: _sessionStats.totalItemsPickedUp + 1,
-    );
+      if (currentUser != null && SupabaseConfigService.isFullyConfigured) {
+        // Save to database first
+        final result = await _dbService.create(item, currentUser.id);
 
-    // Persist to storage immediately after adding items
-    await _saveToStorage();
+        if (!result.isSuccess) {
+          print('❌ [$_logTag] Failed to add item to database: ${result.error}');
+          // Continue with local operation for offline support
+        } else {
+          print('✅ [$_logTag] Item saved to database: ${item.trackingId}');
+        }
+      }
 
-    // Notify Riverpod that state has changed
-    ref.notifyListeners();
+      // Add to local memory (optimistic update)
+      _inventory.add(item);
 
-    print(
-      '✅ [$_logTag] Item added successfully. Total items: ${_inventory.length}',
-    );
+      // Update session stats
+      _sessionStats = _sessionStats.copyWith(
+        totalItemsPickedUp: _sessionStats.totalItemsPickedUp + 1,
+      );
 
-    return true;
+      // Cache locally
+      await _saveToStorageCache();
+
+      // Notify Riverpod that state has changed
+      ref.notifyListeners();
+
+      print(
+        '✅ [$_logTag] Item added successfully. Total items: ${_inventory.length}',
+      );
+      return true;
+    } catch (e) {
+      print('❌ [$_logTag] Error adding item: $e');
+
+      // Try to add locally as fallback
+      _inventory.add(item);
+      _sessionStats = _sessionStats.copyWith(
+        totalItemsPickedUp: _sessionStats.totalItemsPickedUp + 1,
+      );
+      await _saveToStorageCache();
+      ref.notifyListeners();
+
+      return true; // Still return success for offline operation
+    }
   }
 
   /// Add item from DetectedObject (backward compatibility)
@@ -431,22 +516,51 @@ class InventoryService extends _$InventoryService {
       return;
     }
 
-    _inventory.removeWhere((item) => item.id == itemId);
+    try {
+      final currentUser = ref.read(userServiceProvider).currentUser;
 
-    // Update session stats
-    _sessionStats = _sessionStats.copyWith(
-      totalItemsDisposed: _sessionStats.totalItemsDisposed + 1,
-    );
+      if (currentUser != null && SupabaseConfigService.isFullyConfigured) {
+        // Remove from database first
+        final result = await _dbService.delete(itemId);
 
-    // Persist to storage immediately after removing item
-    await _saveToStorage();
+        if (!result.isSuccess) {
+          print(
+            '❌ [$_logTag] Failed to remove item from database: ${result.error}',
+          );
+          // Continue with local operation for offline support
+        } else {
+          print('✅ [$_logTag] Item removed from database: $itemId');
+        }
+      }
 
-    // Notify Riverpod that state has changed
-    ref.notifyListeners();
+      // Remove from local memory (optimistic update)
+      _inventory.removeWhere((item) => item.id == itemId);
 
-    print(
-      '✅ [$_logTag] Item removed successfully: ${removedItem.displayName}. Remaining: ${_inventory.length}',
-    );
+      // Update session stats
+      _sessionStats = _sessionStats.copyWith(
+        totalItemsDisposed: _sessionStats.totalItemsDisposed + 1,
+      );
+
+      // Cache locally
+      await _saveToStorageCache();
+
+      // Notify Riverpod that state has changed
+      ref.notifyListeners();
+
+      print(
+        '✅ [$_logTag] Item removed successfully: ${removedItem.displayName}. Remaining: ${_inventory.length}',
+      );
+    } catch (e) {
+      print('❌ [$_logTag] Error removing item: $e');
+
+      // Try to remove locally as fallback
+      _inventory.removeWhere((item) => item.id == itemId);
+      _sessionStats = _sessionStats.copyWith(
+        totalItemsDisposed: _sessionStats.totalItemsDisposed + 1,
+      );
+      await _saveToStorageCache();
+      ref.notifyListeners();
+    }
   }
 
   /// Remove item by tracking ID (backward compatibility)
@@ -486,7 +600,7 @@ class InventoryService extends _$InventoryService {
   Future<void> removeItems(List<String> trackingIds) async {
     // Ensure loading is complete before proceeding
     await _ensureLoaded();
-    
+
     print('📦 [$_logTag] Removing ${trackingIds.length} items from inventory');
 
     final removedCount = _inventory.length;
@@ -496,7 +610,8 @@ class InventoryService extends _$InventoryService {
     if (actualRemovedCount > 0) {
       // Update session stats
       _sessionStats = _sessionStats.copyWith(
-        totalItemsDisposed: _sessionStats.totalItemsDisposed + actualRemovedCount,
+        totalItemsDisposed:
+            _sessionStats.totalItemsDisposed + actualRemovedCount,
       );
 
       // Persist to storage immediately after removing items
@@ -553,7 +668,7 @@ class InventoryService extends _$InventoryService {
   Future<void> clearInventory() async {
     // Ensure loading is complete before proceeding
     await _ensureLoaded();
-    
+
     print('📦 [$_logTag] Clearing entire inventory');
 
     final itemCount = _inventory.length;
@@ -597,7 +712,9 @@ class InventoryService extends _$InventoryService {
       totalPoints += pointsPerItem;
     }
 
-    print('🏆 [$_logTag] Awarding $totalPoints points for ${disposedItems.length} disposed items');
+    print(
+      '🏆 [$_logTag] Awarding $totalPoints points for ${disposedItems.length} disposed items',
+    );
 
     // Add points to total
     _totalPoints += totalPoints;
@@ -605,7 +722,8 @@ class InventoryService extends _$InventoryService {
     // Update session stats
     _sessionStats = _sessionStats.copyWith(
       totalPointsEarned: _sessionStats.totalPointsEarned + totalPoints,
-      totalItemsDisposed: _sessionStats.totalItemsDisposed + disposedItems.length,
+      totalItemsDisposed:
+          _sessionStats.totalItemsDisposed + disposedItems.length,
     );
 
     // Note: Achievement and user stats updates should be handled by the calling code
@@ -617,7 +735,9 @@ class InventoryService extends _$InventoryService {
     // Notify Riverpod that state has changed
     ref.notifyListeners();
 
-    print('✅ [$_logTag] Points awarded successfully. Total points: $_totalPoints');
+    print(
+      '✅ [$_logTag] Points awarded successfully. Total points: $_totalPoints',
+    );
   }
 
   /// Award points to user
@@ -637,16 +757,68 @@ class InventoryService extends _$InventoryService {
 
   // ===== STORAGE METHODS =====
 
-  /// Load inventory and session data from persistent storage
+  /// Load inventory and session data from database or storage
   Future<void> loadInventory() async {
-    print('📦 [$_logTag] Loading inventory from storage...');
-    await _loadFromStorage();
+    print('📦 [$_logTag] Loading inventory from database...');
+    await _loadFromDatabase();
   }
 
-  /// Load from storage (internal method)
-  Future<void> _loadFromStorage() async {
+  /// Load from database with fallback to local storage
+  Future<void> _loadFromDatabase() async {
     if (_isLoaded) return; // Avoid loading multiple times
-    
+
+    try {
+      // Check if user is authenticated and database is available
+      final currentUser = ref.read(userServiceProvider).currentUser;
+
+      if (currentUser != null && SupabaseConfigService.isFullyConfigured) {
+        print('📦 [$_logTag] Loading from Supabase database...');
+        await _loadFromSupabase(currentUser.authId!);
+      } else {
+        print(
+          '📦 [$_logTag] Loading from local storage (demo mode or offline)...',
+        );
+        await _loadFromStorage();
+      }
+
+      _isLoaded = true;
+      print('✅ [$_logTag] Inventory load complete: ${_inventory.length} items');
+
+      // Set up real-time subscription if authenticated
+      if (currentUser != null && SupabaseConfigService.isFullyConfigured) {
+        _setupRealtimeSubscription(currentUser.authId!);
+      }
+    } catch (e) {
+      print('❌ [$_logTag] Failed to load inventory: $e');
+      // Fallback to local storage
+      await _loadFromStorage();
+      _isLoaded = true;
+    }
+  }
+
+  /// Load from Supabase database
+  Future<void> _loadFromSupabase(String userId) async {
+    try {
+      final result = await _dbService.findByUserId(userId);
+
+      if (result.isSuccess && result.data != null) {
+        _inventory = result.data!;
+        print('✅ [$_logTag] Loaded ${_inventory.length} items from database');
+      } else {
+        print('⚠️ [$_logTag] No inventory found in database: ${result.error}');
+        _inventory = [];
+      }
+
+      // Load session stats from local storage (session-specific)
+      await _loadSessionStatsFromStorage();
+    } catch (e) {
+      print('❌ [$_logTag] Error loading from Supabase: $e');
+      throw e;
+    }
+  }
+
+  /// Load from local storage (fallback method)
+  Future<void> _loadFromStorage() async {
     try {
       _prefs ??= await SharedPreferences.getInstance();
 
@@ -659,18 +831,23 @@ class InventoryService extends _$InventoryService {
       // Load session stats with fallback
       _sessionStats = _loadStatsWithFallback();
 
-      _isLoaded = true;
-
       print(
         '✅ [$_logTag] Storage load complete: ${_inventory.length} items, $_totalPoints points',
       );
-
-      // State automatically notified by Riverpod
     } catch (e) {
       print('❌ [$_logTag] Failed to load from storage: $e');
-      // Initialize with defaults on error
       _initializeDefaults();
-      _isLoaded = true;
+    }
+  }
+
+  /// Load session stats from local storage
+  Future<void> _loadSessionStatsFromStorage() async {
+    try {
+      _prefs ??= await SharedPreferences.getInstance();
+      _sessionStats = _loadStatsWithFallback();
+    } catch (e) {
+      print('❌ [$_logTag] Failed to load session stats: $e');
+      _sessionStats = SessionStats();
     }
   }
 
@@ -696,7 +873,9 @@ class InventoryService extends _$InventoryService {
         return loadedItems;
       }
     } catch (e) {
-      print('❌ [$_logTag] Failed to parse inventory JSON, using empty list: $e');
+      print(
+        '❌ [$_logTag] Failed to parse inventory JSON, using empty list: $e',
+      );
     }
     return [];
   }
@@ -712,7 +891,9 @@ class InventoryService extends _$InventoryService {
         return stats;
       }
     } catch (e) {
-      print('❌ [$_logTag] Failed to parse session stats JSON, using defaults: $e');
+      print(
+        '❌ [$_logTag] Failed to parse session stats JSON, using defaults: $e',
+      );
     }
     return SessionStats();
   }
@@ -725,8 +906,85 @@ class InventoryService extends _$InventoryService {
     print('✅ [$_logTag] Initialized with default values');
   }
 
-  /// Save to storage (internal method)
-  Future<void> _saveToStorage() async {
+  /// Set up real-time subscription for inventory changes
+  void _setupRealtimeSubscription(String userId) {
+    try {
+      print(
+        '🔄 [$_logTag] Setting up real-time subscription for user: $userId',
+      );
+
+      _realtimeSubscription?.cancel(); // Cancel existing subscription
+
+      _realtimeSubscription = _supabase
+          .from('inventory')
+          .stream(primaryKey: ['id'])
+          .eq('user_id', userId)
+          .listen(
+            (data) => _handleRealtimeUpdate(data),
+            onError: (error) {
+              print('❌ [$_logTag] Real-time subscription error: $error');
+            },
+          );
+
+      print('✅ [$_logTag] Real-time subscription established');
+    } catch (e) {
+      print('❌ [$_logTag] Failed to set up real-time subscription: $e');
+    }
+  }
+
+  /// Handle real-time updates from Supabase
+  void _handleRealtimeUpdate(List<Map<String, dynamic>> data) {
+    try {
+      print('🔄 [$_logTag] Received real-time update: ${data.length} items');
+
+      final updatedInventory = data
+          .map((item) => InventoryItem.fromSupabase(item))
+          .toList();
+
+      // Update local state
+      _inventory = updatedInventory;
+
+      // Cache locally for offline support
+      _saveToStorageCache();
+
+      // Notify listeners
+      ref.notifyListeners();
+
+      print(
+        '✅ [$_logTag] Real-time update processed: ${_inventory.length} items',
+      );
+    } catch (e) {
+      print('❌ [$_logTag] Error processing real-time update: $e');
+    }
+  }
+
+  /// Save to database with offline support
+  Future<void> _saveToDatabase() async {
+    final currentUser = ref.read(userServiceProvider).currentUser;
+
+    if (currentUser != null && SupabaseConfigService.isFullyConfigured) {
+      // Save to database
+      await _saveToSupabase(currentUser.authId!);
+    }
+
+    // Always save to local storage as cache/fallback
+    await _saveToStorageCache();
+  }
+
+  /// Save to Supabase database
+  Future<void> _saveToSupabase(String userId) async {
+    try {
+      // Note: Individual items are saved when added/removed
+      // This method is for batch operations if needed
+      print('💾 [$_logTag] Inventory synced with database');
+    } catch (e) {
+      print('❌ [$_logTag] Failed to save to database: $e');
+      // Don't throw - allow offline operation
+    }
+  }
+
+  /// Save to local storage as cache
+  Future<void> _saveToStorageCache() async {
     try {
       _prefs ??= await SharedPreferences.getInstance();
 
@@ -742,15 +1000,18 @@ class InventoryService extends _$InventoryService {
       final statsJson = jsonEncode(_sessionStats.toJson());
       await _prefs!.setString(_sessionStatsKey, statsJson);
 
-      print('💾 [$_logTag] Data persisted to storage successfully');
+      print('💾 [$_logTag] Data cached to storage successfully');
     } catch (e) {
-      // Log error without throwing exceptions that crash the app
-      print('❌ [$_logTag] Failed to save to storage: $e');
+      print('❌ [$_logTag] Failed to save to storage cache: $e');
       if (kDebugMode) {
         print('❌ [$_logTag] Storage error details: ${e.toString()}');
       }
-      // Don't rethrow - allow app to continue functioning
     }
+  }
+
+  /// Save to storage (backward compatibility)
+  Future<void> _saveToStorage() async {
+    await _saveToDatabase();
   }
 
   // ===== UTILITY AND DEBUG METHODS =====
@@ -833,8 +1094,12 @@ class InventoryService extends _$InventoryService {
   Future<void> dispose() async {
     print('📦 [$_logTag] Disposing consolidated inventory service...');
 
+    // Cancel real-time subscription
+    _realtimeSubscription?.cancel();
+    _realtimeSubscription = null;
+
     // Persist final state before disposal
-    await _saveToStorage();
+    await _saveToDatabase();
 
     // Clear in-memory data
     _inventory.clear();

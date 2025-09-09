@@ -58,7 +58,7 @@ class SupabaseConfigService {
   
   static Future<void> initialize() async {
     final supabaseUrl = await _getEnvVariable('SUPABASE_URL');
-    final supabaseAnonKey = await _getEnvVariable('SUPABASE_ANON_KEY');
+    final supabaseAnonKey = await _getEnvVariable('SUPABASE_PUBLISHABLE_KEY');
     
     await Supabase.initialize(
       url: supabaseUrl,

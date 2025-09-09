@@ -1,6 +1,7 @@
-/// Represents a user in the VibeSweep system
+/// Represents a user in the VibeSweep system with Supabase integration
 class User {
   final String id;
+  final String? authId; // Supabase auth.users(id) reference
   final String username;
   final String email;
   final String? avatarUrl;
@@ -14,6 +15,7 @@ class User {
 
   const User({
     required this.id,
+    this.authId,
     required this.username,
     required this.email,
     this.avatarUrl,
@@ -52,10 +54,11 @@ class User {
     );
   }
 
-  /// Create from JSON
+  /// Create from JSON (local storage format)
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] as String,
+      authId: json['authId'] as String?,
       username: json['username'] as String,
       email: json['email'] as String,
       avatarUrl: json['avatarUrl'] as String?,
@@ -69,10 +72,29 @@ class User {
     );
   }
 
-  /// Convert to JSON
+  /// Create from Supabase database row
+  factory User.fromSupabase(Map<String, dynamic> data) {
+    return User(
+      id: data['id'] as String,
+      authId: data['auth_id'] as String?,
+      username: data['username'] as String,
+      email: data['email'] as String,
+      avatarUrl: data['avatar_url'] as String?,
+      totalPoints: data['total_points'] as int? ?? 0,
+      level: data['level'] as int? ?? 1,
+      createdAt: DateTime.parse(data['created_at'] as String),
+      lastActiveAt: DateTime.parse(data['last_active_at'] as String),
+      categoryStats: const {}, // Will be loaded separately from category_stats table
+      achievements: const [], // Will be loaded separately from achievements table
+      isOnline: data['is_online'] as bool? ?? false,
+    );
+  }
+
+  /// Convert to JSON (local storage format)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'authId': authId,
       'username': username,
       'email': email,
       'avatarUrl': avatarUrl,
@@ -86,9 +108,26 @@ class User {
     };
   }
 
+  /// Convert to Supabase database format
+  Map<String, dynamic> toSupabase() {
+    return {
+      'id': id,
+      'auth_id': authId,
+      'username': username,
+      'email': email,
+      'avatar_url': avatarUrl,
+      'total_points': totalPoints,
+      'level': level,
+      'created_at': createdAt.toIso8601String(),
+      'last_active_at': lastActiveAt.toIso8601String(),
+      'is_online': isOnline,
+    };
+  }
+
   /// Create a copy with updated fields
   User copyWith({
     String? id,
+    String? authId,
     String? username,
     String? email,
     String? avatarUrl,
@@ -102,6 +141,7 @@ class User {
   }) {
     return User(
       id: id ?? this.id,
+      authId: authId ?? this.authId,
       username: username ?? this.username,
       email: email ?? this.email,
       avatarUrl: avatarUrl ?? this.avatarUrl,

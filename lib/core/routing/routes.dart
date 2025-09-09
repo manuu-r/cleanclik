@@ -6,7 +6,10 @@ class Routes {
   static const String leaderboard = '/leaderboard';
   static const String profile = '/profile';
 
-
+  // Authentication routes
+  static const String login = '/login';
+  static const String signup = '/signup';
+  static const String emailVerification = '/email-verification';
 
   // Future routes for additional features
   static const String settings = '/settings';
