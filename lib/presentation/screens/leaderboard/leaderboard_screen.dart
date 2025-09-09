@@ -4,8 +4,10 @@ import 'package:cleanclik/core/theme/app_colors.dart';
 import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/models/leaderboard_user.dart';
+import 'package:cleanclik/core/models/leaderboard_entry.dart';
 import 'package:cleanclik/core/models/achievement.dart';
 import 'package:cleanclik/core/models/achievement_card.dart';
+import 'package:cleanclik/core/enums/leaderboard_period.dart';
 import 'package:cleanclik/core/services/leaderboard_service.dart';
 import 'package:cleanclik/core/services/social_sharing_service.dart';
 import 'package:cleanclik/core/services/user_service.dart';
@@ -14,6 +16,7 @@ import 'package:cleanclik/presentation/widgets/particle_system.dart';
 
 import 'package:cleanclik/presentation/widgets/floating_share_overlay.dart';
 import 'package:cleanclik/presentation/widgets/high_priority_overlay.dart';
+import 'package:cleanclik/presentation/widgets/sync_status_indicator.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -58,9 +61,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
   }
 
   void _listenForAchievements() {
-    final leaderboardService = ref.read(leaderboardServiceProvider);
-    leaderboardService.achievementUnlockedStream.listen((achievement) {
-      _showAchievementCelebration(achievement);
+    ref.read(leaderboardServiceProvider.future).then((leaderboardService) {
+      leaderboardService.achievementUnlockedStream.listen((achievement) {
+        _showAchievementCelebration(achievement);
+      });
     });
   }
 
@@ -68,7 +72,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     // Tab change handling can be added here if needed
   }
 
-  void _showAchievementCelebration(Achievement achievement) {
+  void _showAchievementCelebration(String achievementTitle) {
     setState(() {
       _showCelebration = true;
     });
@@ -81,15 +85,15 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     });
 
     // Show achievement dialog
-    _showAchievementDialog(achievement);
+    _showAchievementDialog(achievementTitle);
   }
 
-  void _showAchievementDialog(Achievement achievement) {
+  void _showAchievementDialog(String achievementTitle) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) =>
-          _AchievementUnlockedDialog(achievement: achievement),
+          _AchievementUnlockedDialog(achievementTitle: achievementTitle),
     );
   }
 
@@ -110,6 +114,24 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
+        actions: [
+          // Debug button (remove in production)
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () async {
+              final service = await ref.read(leaderboardServiceProvider.future);
+              await service.testDatabaseDirectly();
+            },
+          ),
+          // Sync status indicator
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: SyncStatusIndicator(
+              showDetails: true,
+              onTap: () => _showSyncStatusDialog(context),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: NeonColors.electricGreen,
@@ -179,7 +201,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
   Widget _buildUserRankCard() {
     final currentUser = ref.watch(currentUserProvider).value;
-    final leaderboardService = ref.watch(leaderboardServiceProvider);
+    final leaderboardServiceAsync = ref.watch(leaderboardServiceProvider);
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -227,11 +249,27 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                   ),
                   if (currentUser != null) ...[
                     const SizedBox(height: 4),
-                    Text(
-                      '${leaderboardService.currentStreak} day streak • ${leaderboardService.accuracyPercentage.toStringAsFixed(1)}% accuracy',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.white.withOpacity(0.6),
+                    leaderboardServiceAsync.when(
+                      data: (leaderboardService) => Text(
+                        '${leaderboardService.currentStreak} day streak • ${leaderboardService.accuracyPercentage.toStringAsFixed(1)}% accuracy',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withOpacity(0.6),
+                        ),
+                      ),
+                      loading: () => Text(
+                        'Loading stats...',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withOpacity(0.6),
+                        ),
+                      ),
+                      error: (_, __) => Text(
+                        'Stats unavailable',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withOpacity(0.6),
+                        ),
                       ),
                     ),
                   ],
@@ -265,8 +303,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
             itemCount: users.length,
             itemBuilder: (context, index) {
-              final user = users[index];
-              return _buildLeaderboardItem(user);
+              final entry = users[index];
+              return _buildLeaderboardItem(entry);
             },
           ),
           loading: () => const Center(
@@ -283,7 +321,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     );
   }
 
-  Widget _buildLeaderboardItem(LeaderboardUser user) {
+  Widget _buildLeaderboardItem(LeaderboardEntry entry) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: GlassmorphismContainer(
@@ -297,17 +335,17 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: user.isCurrentUser
+                color: entry.isCurrentUser
                     ? NeonColors.electricGreen.withOpacity(0.3)
-                    : _getRankColor(user.rank).withAlpha((0.15 * 255).round()),
+                    : _getRankColor(entry.rank).withAlpha((0.15 * 255).round()),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: user.isCurrentUser
+                  color: entry.isCurrentUser
                       ? NeonColors.electricGreen
-                      : _getRankColor(user.rank).withOpacity(0.3),
-                  width: user.isCurrentUser ? 2 : 1,
+                      : _getRankColor(entry.rank).withOpacity(0.3),
+                  width: entry.isCurrentUser ? 2 : 1,
                 ),
-                boxShadow: user.isCurrentUser
+                boxShadow: entry.isCurrentUser
                     ? [
                         BoxShadow(
                           color: NeonColors.electricGreen.withOpacity(0.3),
@@ -318,20 +356,20 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                     : null,
               ),
               child: Center(
-                child: user.rank <= 3
+                child: entry.rank <= 3
                     ? Icon(
-                        _getRankIcon(user.rank),
-                        color: user.isCurrentUser
+                        _getRankIcon(entry.rank),
+                        color: entry.isCurrentUser
                             ? Colors.white
-                            : _getRankColor(user.rank),
+                            : _getRankColor(entry.rank),
                         size: 22,
                       )
                     : Text(
-                        '${user.rank}',
+                        '${entry.rank}',
                         style: TextStyle(
-                          color: user.isCurrentUser
+                          color: entry.isCurrentUser
                               ? Colors.white
-                              : _getRankColor(user.rank),
+                              : _getRankColor(entry.rank),
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -346,12 +384,12 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: user.isCurrentUser
+                color: entry.isCurrentUser
                     ? NeonColors.electricGreen.withOpacity(0.2)
                     : AppColors.primary.withAlpha((0.15 * 255).round()),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: user.isCurrentUser
+                  color: entry.isCurrentUser
                       ? NeonColors.electricGreen.withOpacity(0.5)
                       : AppColors.primary.withOpacity(0.3),
                   width: 1,
@@ -359,7 +397,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
               ),
               child: Icon(
                 Icons.person,
-                color: user.isCurrentUser ? Colors.white : AppColors.primary,
+                color: entry.isCurrentUser ? Colors.white : AppColors.primary,
                 size: 22,
               ),
             ),
@@ -375,49 +413,25 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                   Row(
                     children: [
                       Text(
-                        user.username,
+                        entry.username,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: user.isCurrentUser
+                          color: entry.isCurrentUser
                               ? NeonColors.electricGreen
                               : Colors.white,
                         ),
                       ),
-                      if (user.rankChange != 0) ...[
-                        const SizedBox(width: 8),
-                        _buildRankChangeIndicator(user.rankChange),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${user.itemsCollected} items • ${user.accuracyPercentage.toStringAsFixed(1)}% accuracy',
+                    'Level ${entry.level}',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 12,
                     ),
                   ),
-                  if (user.currentStreak > 0) ...[
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.local_fire_department,
-                          color: Colors.orange,
-                          size: 12,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${user.currentStreak} day streak',
-                          style: TextStyle(
-                            color: Colors.orange.withOpacity(0.8),
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -430,11 +444,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '${user.totalPoints}',
+                  '${entry.totalPoints}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
-                    color: user.isCurrentUser
+                    color: entry.isCurrentUser
                         ? NeonColors.electricGreen
                         : AppColors.primary,
                   ),
@@ -447,7 +461,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                     color: Colors.white.withOpacity(0.6),
                   ),
                 ),
-                if (user.highestBadge.isNotEmpty) ...[
+                if (entry.level >= 5) ...[
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -584,6 +598,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     );
   }
 
+  void _showSyncStatusDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const SyncStatusDialog(),
+    );
+  }
+
   void _showShareOptions() {
     print('📤 [LEADERBOARD_SCREEN] _showShareOptions() called');
     // Use high-priority overlay to appear above the floating action hub
@@ -636,9 +657,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
 /// Dialog for showing achievement unlock celebration
 class _AchievementUnlockedDialog extends ConsumerWidget {
-  final Achievement achievement;
+  final String achievementTitle;
 
-  const _AchievementUnlockedDialog({required this.achievement});
+  const _AchievementUnlockedDialog({required this.achievementTitle});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -651,8 +672,8 @@ class _AchievementUnlockedDialog extends ConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(achievement.rarity.color).withOpacity(0.9),
-              Color(achievement.rarity.color).withOpacity(0.7),
+              NeonColors.electricGreen.withOpacity(0.9),
+              NeonColors.electricGreen.withOpacity(0.7),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
@@ -691,7 +712,7 @@ class _AchievementUnlockedDialog extends ConsumerWidget {
 
             // Achievement name
             Text(
-              achievement.name,
+              achievementTitle,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -704,7 +725,7 @@ class _AchievementUnlockedDialog extends ConsumerWidget {
 
             // Achievement description
             Text(
-              achievement.description,
+              'Congratulations on your achievement!',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
                 fontSize: 14,
@@ -721,8 +742,8 @@ class _AchievementUnlockedDialog extends ConsumerWidget {
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                achievement.rarity.displayName,
+              child: const Text(
+                'Achievement',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -751,7 +772,7 @@ class _AchievementUnlockedDialog extends ConsumerWidget {
                     onPressed: () {
                       Navigator.of(context).pop();
                       // Generate and share achievement card
-                      _shareAchievement(context, ref, achievement);
+                      _shareAchievement(context, ref, achievementTitle);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white.withOpacity(0.2),
@@ -773,10 +794,11 @@ class _AchievementUnlockedDialog extends ConsumerWidget {
   void _shareAchievement(
     BuildContext context,
     WidgetRef ref,
-    Achievement achievement,
+    String achievementTitle,
   ) {
     // Implementation for sharing achievement
-    // Generate quick card and share
+    // Generate quick card and share with achievement title
+    print('Sharing achievement: $achievementTitle');
   }
 }
 

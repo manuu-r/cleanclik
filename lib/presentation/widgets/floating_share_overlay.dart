@@ -90,7 +90,7 @@ class _FloatingShareOverlayState extends ConsumerState<FloatingShareOverlay>
       
       // First generate legacy achievement card for preview
       final currentUser = ref.read(currentUserProvider).value;
-      final leaderboardService = ref.read(leaderboardServiceProvider);
+      final leaderboardService = await ref.read(leaderboardServiceProvider.future);
 
       if (currentUser != null) {
         print('👤 Current user found: ${currentUser.username}');
@@ -628,9 +628,18 @@ class _FloatingShareOverlayState extends ConsumerState<FloatingShareOverlay>
                   'Items',
                   currentUser.totalItemsCollected.toString(),
                 ),
-                _buildStatItem(
-                  'Accuracy',
-                  '${ref.read(leaderboardServiceProvider).accuracyPercentage.toStringAsFixed(1)}%',
+                Consumer(
+                  builder: (context, ref, child) {
+                    final leaderboardServiceAsync = ref.watch(leaderboardServiceProvider);
+                    return leaderboardServiceAsync.when(
+                      data: (service) => _buildStatItem(
+                        'Accuracy',
+                        '${service.accuracyPercentage.toStringAsFixed(1)}%',
+                      ),
+                      loading: () => _buildStatItem('Accuracy', '--'),
+                      error: (_, __) => _buildStatItem('Accuracy', '--'),
+                    );
+                  },
                 ),
               ],
             ),

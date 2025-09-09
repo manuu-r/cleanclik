@@ -93,7 +93,29 @@ final categoryStatsDatabaseServiceProvider =
 // ignore: unused_element
 typedef CategoryStatsDatabaseServiceRef =
     AutoDisposeProviderRef<CategoryStatsDatabaseService>;
-String _$databaseServicesHash() => r'dc92f5f13727251aeaf38f4082148053380ce1e3';
+String _$leaderboardDatabaseServiceHash() =>
+    r'9b97468d317dfcdbc5c16c4a20ddff1ad11a1f24';
+
+/// Provider for LeaderboardDatabaseService
+///
+/// Copied from [leaderboardDatabaseService].
+@ProviderFor(leaderboardDatabaseService)
+final leaderboardDatabaseServiceProvider =
+    AutoDisposeProvider<LeaderboardDatabaseService>.internal(
+      leaderboardDatabaseService,
+      name: r'leaderboardDatabaseServiceProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$leaderboardDatabaseServiceHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef LeaderboardDatabaseServiceRef =
+    AutoDisposeProviderRef<LeaderboardDatabaseService>;
+String _$databaseServicesHash() => r'80cef87c737e2f658b8e9854203bce3acf324976';
 
 /// Composite database service provider that provides access to all database services
 ///

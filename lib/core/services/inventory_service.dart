@@ -496,9 +496,21 @@ class InventoryService extends _$InventoryService {
   }
 
   /// Add carried item (backward compatibility with UserInventoryService)
+  /// Add carried item (backward compatibility)
   Future<bool> addCarriedItem(CarriedItem carriedItem) async {
     final inventoryItem = InventoryItem.fromCarriedItem(carriedItem);
     return await addItem(inventoryItem);
+  }
+
+  /// Migrate item from JSON data (for data migration)
+  Future<bool> migrateItemFromJson(Map<String, dynamic> itemJson) async {
+    try {
+      final inventoryItem = InventoryItem.fromJson(itemJson);
+      return await addItem(inventoryItem);
+    } catch (e) {
+      print('❌ [$_logTag] Failed to migrate item from JSON: $e');
+      return false;
+    }
   }
 
   // ===== REMOVE ITEM METHODS =====
@@ -1087,6 +1099,21 @@ class InventoryService extends _$InventoryService {
 
     if (kDebugMode) {
       print('✅ [$_logTag] Added ${testItems.length} test items to inventory');
+    }
+  }
+
+  /// Synchronize inventory data with server
+  Future<void> syncInventoryData() async {
+    try {
+      print('📦 [$_logTag] Starting inventory data synchronization...');
+
+      // Load latest data from database
+      await _loadFromDatabase();
+
+      print('✅ [$_logTag] Inventory data synchronized successfully');
+    } catch (e) {
+      print('❌ [$_logTag] Failed to sync inventory data: $e');
+      rethrow;
     }
   }
 

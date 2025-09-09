@@ -7,14 +7,14 @@ part of 'leaderboard_service.dart';
 // **************************************************************************
 
 String _$leaderboardServiceHash() =>
-    r'de332e10afb9e61edc40e170fb59c19b68f1ada6';
+    r'61c19eac6b56b4f25d3bff37cf8323dab3fa71da';
 
 /// Provider for LeaderboardService
 ///
 /// Copied from [leaderboardService].
 @ProviderFor(leaderboardService)
 final leaderboardServiceProvider =
-    AutoDisposeProvider<LeaderboardService>.internal(
+    AutoDisposeFutureProvider<LeaderboardService>.internal(
       leaderboardService,
       name: r'leaderboardServiceProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -26,8 +26,9 @@ final leaderboardServiceProvider =
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef LeaderboardServiceRef = AutoDisposeProviderRef<LeaderboardService>;
-String _$leaderboardHash() => r'3e1eb8b64de33f84d920faabc0b5a13531ace83b';
+typedef LeaderboardServiceRef =
+    AutoDisposeFutureProviderRef<LeaderboardService>;
+String _$leaderboardHash() => r'4591c572330ecde71c1bf1b8041fa3128d973538';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -50,22 +51,22 @@ class _SystemHash {
   }
 }
 
-/// Provider for leaderboard data
+/// Provider for leaderboard page data
 ///
 /// Copied from [leaderboard].
 @ProviderFor(leaderboard)
 const leaderboardProvider = LeaderboardFamily();
 
-/// Provider for leaderboard data
+/// Provider for leaderboard page data
 ///
 /// Copied from [leaderboard].
-class LeaderboardFamily extends Family<AsyncValue<List<LeaderboardUser>>> {
-  /// Provider for leaderboard data
+class LeaderboardFamily extends Family<AsyncValue<List<LeaderboardEntry>>> {
+  /// Provider for leaderboard page data
   ///
   /// Copied from [leaderboard].
   const LeaderboardFamily();
 
-  /// Provider for leaderboard data
+  /// Provider for leaderboard page data
   ///
   /// Copied from [leaderboard].
   LeaderboardProvider call({required LeaderboardPeriod period}) {
@@ -94,12 +95,12 @@ class LeaderboardFamily extends Family<AsyncValue<List<LeaderboardUser>>> {
   String? get name => r'leaderboardProvider';
 }
 
-/// Provider for leaderboard data
+/// Provider for leaderboard page data
 ///
 /// Copied from [leaderboard].
 class LeaderboardProvider
-    extends AutoDisposeFutureProvider<List<LeaderboardUser>> {
-  /// Provider for leaderboard data
+    extends AutoDisposeFutureProvider<List<LeaderboardEntry>> {
+  /// Provider for leaderboard page data
   ///
   /// Copied from [leaderboard].
   LeaderboardProvider({required LeaderboardPeriod period})
@@ -129,7 +130,7 @@ class LeaderboardProvider
 
   @override
   Override overrideWith(
-    FutureOr<List<LeaderboardUser>> Function(LeaderboardRef provider) create,
+    FutureOr<List<LeaderboardEntry>> Function(LeaderboardRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
@@ -146,7 +147,7 @@ class LeaderboardProvider
   }
 
   @override
-  AutoDisposeFutureProviderElement<List<LeaderboardUser>> createElement() {
+  AutoDisposeFutureProviderElement<List<LeaderboardEntry>> createElement() {
     return _LeaderboardProviderElement(this);
   }
 
@@ -166,13 +167,13 @@ class LeaderboardProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin LeaderboardRef on AutoDisposeFutureProviderRef<List<LeaderboardUser>> {
+mixin LeaderboardRef on AutoDisposeFutureProviderRef<List<LeaderboardEntry>> {
   /// The parameter `period` of this provider.
   LeaderboardPeriod get period;
 }
 
 class _LeaderboardProviderElement
-    extends AutoDisposeFutureProviderElement<List<LeaderboardUser>>
+    extends AutoDisposeFutureProviderElement<List<LeaderboardEntry>>
     with LeaderboardRef {
   _LeaderboardProviderElement(super.provider);
 
@@ -180,28 +181,7 @@ class _LeaderboardProviderElement
   LeaderboardPeriod get period => (origin as LeaderboardProvider).period;
 }
 
-String _$unlockedAchievementsHash() =>
-    r'37e4a5e59f8abc8f88c7112803fbdb841d2d5e84';
-
-/// Provider for unlocked achievements
-///
-/// Copied from [unlockedAchievements].
-@ProviderFor(unlockedAchievements)
-final unlockedAchievementsProvider =
-    AutoDisposeProvider<List<Achievement>>.internal(
-      unlockedAchievements,
-      name: r'unlockedAchievementsProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$unlockedAchievementsHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef UnlockedAchievementsRef = AutoDisposeProviderRef<List<Achievement>>;
-String _$achievementCardsHash() => r'fde6ae89ebf8421b8e91a183f282b0496ca9533e';
+String _$achievementCardsHash() => r'3e2b3c34f76e346533455819d6ff1a1dfac2cbd1';
 
 /// Provider for achievement cards
 ///
@@ -221,5 +201,83 @@ final achievementCardsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AchievementCardsRef = AutoDisposeProviderRef<List<AchievementCard>>;
+String _$leaderboardStreamHash() => r'2f15c128324bd1372af4d60fcfbbd3f39f267346';
+
+/// Provider for leaderboard stream
+///
+/// Copied from [leaderboardStream].
+@ProviderFor(leaderboardStream)
+final leaderboardStreamProvider =
+    AutoDisposeStreamProvider<LeaderboardPage>.internal(
+      leaderboardStream,
+      name: r'leaderboardStreamProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$leaderboardStreamHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef LeaderboardStreamRef = AutoDisposeStreamProviderRef<LeaderboardPage>;
+String _$userRankStreamHash() => r'1f75a98a381104d1e842da25ae4b73eef905ad97';
+
+/// Provider for user rank stream
+///
+/// Copied from [userRankStream].
+@ProviderFor(userRankStream)
+final userRankStreamProvider = AutoDisposeStreamProvider<int?>.internal(
+  userRankStream,
+  name: r'userRankStreamProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$userRankStreamHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UserRankStreamRef = AutoDisposeStreamProviderRef<int?>;
+String _$syncStatusStreamHash() => r'a67a50acc4e47f7d228af8d91348950d1e8c017a';
+
+/// Provider for sync status stream
+///
+/// Copied from [syncStatusStream].
+@ProviderFor(syncStatusStream)
+final syncStatusStreamProvider = AutoDisposeStreamProvider<SyncStatus>.internal(
+  syncStatusStream,
+  name: r'syncStatusStreamProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$syncStatusStreamHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SyncStatusStreamRef = AutoDisposeStreamProviderRef<SyncStatus>;
+String _$sharedPreferencesHash() => r'dc403fbb1d968c7d5ab4ae1721a29ffe173701c7';
+
+/// Provider for SharedPreferences
+///
+/// Copied from [sharedPreferences].
+@ProviderFor(sharedPreferences)
+final sharedPreferencesProvider =
+    AutoDisposeFutureProvider<SharedPreferences>.internal(
+      sharedPreferences,
+      name: r'sharedPreferencesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$sharedPreferencesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SharedPreferencesRef = AutoDisposeFutureProviderRef<SharedPreferences>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

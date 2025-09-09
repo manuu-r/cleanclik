@@ -4,6 +4,7 @@ import 'user_database_service.dart';
 import 'inventory_database_service.dart';
 import 'achievement_database_service.dart';
 import 'category_stats_database_service.dart';
+import 'leaderboard_database_service.dart';
 
 part 'database_service_provider.g.dart';
 
@@ -31,6 +32,12 @@ CategoryStatsDatabaseService categoryStatsDatabaseService(CategoryStatsDatabaseS
   return CategoryStatsDatabaseService();
 }
 
+/// Provider for LeaderboardDatabaseService
+@riverpod
+LeaderboardDatabaseService leaderboardDatabaseService(LeaderboardDatabaseServiceRef ref) {
+  return LeaderboardDatabaseService();
+}
+
 /// Composite database service provider that provides access to all database services
 @riverpod
 DatabaseServices databaseServices(DatabaseServicesRef ref) {
@@ -39,6 +46,7 @@ DatabaseServices databaseServices(DatabaseServicesRef ref) {
     inventoryService: ref.watch(inventoryDatabaseServiceProvider),
     achievementService: ref.watch(achievementDatabaseServiceProvider),
     categoryStatsService: ref.watch(categoryStatsDatabaseServiceProvider),
+    leaderboardService: ref.watch(leaderboardDatabaseServiceProvider),
   );
 }
 
@@ -48,12 +56,14 @@ class DatabaseServices {
   final InventoryDatabaseService inventoryService;
   final AchievementDatabaseService achievementService;
   final CategoryStatsDatabaseService categoryStatsService;
+  final LeaderboardDatabaseService leaderboardService;
 
   const DatabaseServices({
     required this.userService,
     required this.inventoryService,
     required this.achievementService,
     required this.categoryStatsService,
+    required this.leaderboardService,
   });
 
   /// Test all database connections
@@ -64,6 +74,7 @@ class DatabaseServices {
     results['inventory'] = await inventoryService.testConnection();
     results['achievements'] = await achievementService.testConnection();
     results['category_stats'] = await categoryStatsService.testConnection();
+    results['leaderboard'] = await leaderboardService.testConnection();
     
     return results;
   }
@@ -83,6 +94,9 @@ class DatabaseServices {
     
     final categoryStatsHealth = await categoryStatsService.getHealthStatus();
     results['category_stats'] = categoryStatsHealth.isSuccess ? categoryStatsHealth.data! : {'healthy': false, 'error': categoryStatsHealth.error?.message};
+    
+    final leaderboardHealth = await leaderboardService.getHealthStatus();
+    results['leaderboard'] = leaderboardHealth.isSuccess ? leaderboardHealth.data! : {'healthy': false, 'error': leaderboardHealth.error?.message};
     
     return results;
   }
