@@ -1,4 +1,3 @@
-
 import 'package:latlong2/latlong.dart';
 
 /// Represents a bin location with geohash, coordinates, category, and metadata
@@ -102,17 +101,17 @@ class BinLocation {
 /// Utility class for geohash operations
 class GeohashUtils {
   static const String _base32 = '0123456789bcdefghjkmnpqrstuvwxyz';
-  
+
   /// Generate geohash from coordinates with specified precision
   static String encode(double latitude, double longitude, {int precision = 8}) {
     double latMin = -90.0, latMax = 90.0;
     double lonMin = -180.0, lonMax = 180.0;
-    
+
     String geohash = '';
     int bits = 0;
     int bit = 0;
     bool evenBit = true;
-    
+
     while (geohash.length < precision) {
       if (evenBit) {
         // longitude
@@ -135,19 +134,19 @@ class GeohashUtils {
           latMax = mid;
         }
       }
-      
+
       evenBit = !evenBit;
-      
+
       if (++bits == 5) {
         geohash += _base32[bit];
         bits = 0;
         bit = 0;
       }
     }
-    
+
     return geohash;
   }
-  
+
   /// Calculate distance between two coordinates in meters
   static double distanceBetween(LatLng point1, LatLng point2) {
     const Distance distance = Distance();

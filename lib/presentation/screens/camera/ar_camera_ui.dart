@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/models/detected_object.dart';
-import '../../../core/services/hand_tracking_service.dart';
-import '../../../core/services/object_management_service.dart'
+import 'package:cleanclik/core/models/detected_object.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
+import 'package:cleanclik/core/services/business/object_management_service.dart'
     show ObjectStatus;
 
-import '../../../core/theme/neon_colors.dart';
-import '../../widgets/enhanced_object_overlay.dart';
-import '../../widgets/glassmorphism_container.dart';
-import '../../widgets/hand_skeleton_painter.dart';
-import '../../widgets/coordinate_debug_widget.dart';
-import '../../widgets/coordinate_diagnostic_overlay.dart';
+import 'package:cleanclik/core/theme/neon_colors.dart';
+import 'package:cleanclik/presentation/widgets/camera/enhanced_object_overlay.dart';
+import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/camera/hand_skeleton_painter.dart';
+import 'package:cleanclik/presentation/widgets/camera/coordinate_debug_widget.dart';
+import 'package:cleanclik/presentation/widgets/camera/coordinate_diagnostic_overlay.dart';
 
 import 'ar_camera_services.dart';
 import 'ar_camera_processing.dart';
@@ -205,7 +205,7 @@ class ARCameraUI {
 
     final objectManagement = _services.objectManagementService!;
     final carriedObjects = objectManagement.carriedObjects;
-    
+
     // Show pickup notifications for recently picked up items
     return [
       if (carriedObjects.isNotEmpty)

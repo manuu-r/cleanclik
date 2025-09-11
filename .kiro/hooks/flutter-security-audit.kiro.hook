@@ -1,0 +1,33 @@
+{
+  "name": "Flutter Security Audit",
+  "description": "Performs comprehensive security analysis on Flutter app changes, detecting hardcoded secrets, insecure storage, authentication flaws, and other security issues",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [
+      "lib/**/*.dart",
+      "android/**/*.kt",
+      "android/**/*.java",
+      "android/**/*.xml",
+      "android/**/*.gradle",
+      "android/**/*.properties",
+      "ios/**/*.swift",
+      "ios/**/*.m",
+      "ios/**/*.h",
+      "ios/**/*.plist",
+      "ios/**/*.xcconfig",
+      "pubspec.yaml",
+      ".env",
+      ".env.*",
+      "database/**/*.sql"
+    ]
+  },
+  "actions": [
+    {
+      "type": "agent",
+      "prompt": "You are a Flutter security expert conducting a comprehensive security audit. Analyze the changed files for:\n\n**HARDCODED SECRETS & CREDENTIALS:**\n- API keys, tokens, passwords in source code\n- Firebase configuration secrets\n- Database connection strings\n- Third-party service credentials\n- Encryption keys or certificates\n\n**INSECURE STORAGE:**\n- Sensitive data in SharedPreferences without encryption\n- Unencrypted local databases (SQLite)\n- Temporary files with sensitive content\n- Keychain/Keystore misconfigurations\n- Cache storage of sensitive data\n\n**AUTHENTICATION & AUTHORIZATION FLAWS:**\n- Weak authentication implementations\n- Missing session management\n- Improper token validation\n- Insecure password policies\n- Missing multi-factor authentication considerations\n\n**UNSAFE DATABASE PRACTICES:**\n- SQL injection vulnerabilities\n- Missing input validation\n- Unencrypted database fields\n- Improper access controls\n- Missing audit trails\n\n**ENVIRONMENT MISCONFIGURATIONS:**\n- Debug mode enabled in production\n- Insecure network configurations\n- Missing security headers\n- Improper certificate validation\n- Weak encryption algorithms\n\n**PLATFORM-SPECIFIC ISSUES:**\n- Android: Manifest permissions, ProGuard rules, network security config\n- iOS: Info.plist configurations, App Transport Security, entitlements\n\nFor each finding, provide:\n1. **SEVERITY**: CRITICAL/HIGH/MEDIUM/LOW\n2. **FILE & LINE**: Exact location reference\n3. **VULNERABILITY**: Clear description of the security issue\n4. **IMPACT**: Potential consequences if exploited\n5. **REMEDIATION**: Step-by-step fix instructions with code examples\n6. **BEST PRACTICES**: Additional security recommendations\n\nFocus on actionable findings that developers can immediately address. Prioritize issues that could lead to data breaches, unauthorized access, or compliance violations.",
+      "description": "AI-powered security audit"
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

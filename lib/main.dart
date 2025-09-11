@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleanclik/app.dart';
-import 'package:cleanclik/core/services/supabase_config_service.dart';
+import 'package:cleanclik/core/services/auth/supabase_config_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

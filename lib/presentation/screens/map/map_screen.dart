@@ -9,16 +9,16 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'dart:io' show Platform;
 import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
-import 'package:cleanclik/core/services/location_service.dart';
-import 'package:cleanclik/core/services/bin_location_service.dart';
+import 'package:cleanclik/core/services/location/location_service.dart';
+import 'package:cleanclik/core/services/location/bin_location_service.dart';
 import 'package:cleanclik/core/models/bin_location.dart';
-import 'package:cleanclik/presentation/widgets/neon_icon_button.dart';
-import 'package:cleanclik/presentation/widgets/layer_toggle_column.dart';
-import 'package:cleanclik/presentation/widgets/bin_marker.dart';
-import 'package:cleanclik/presentation/widgets/mission_marker.dart';
-import 'package:cleanclik/presentation/widgets/friend_marker.dart';
-import 'package:cleanclik/presentation/widgets/detail_card.dart';
-import 'package:cleanclik/core/services/map_data_service.dart';
+import 'package:cleanclik/presentation/widgets/common/neon_icon_button.dart';
+import 'package:cleanclik/presentation/widgets/map/layer_toggle_column.dart';
+import 'package:cleanclik/presentation/widgets/map/bin_marker.dart';
+import 'package:cleanclik/presentation/widgets/map/mission_marker.dart';
+import 'package:cleanclik/presentation/widgets/map/friend_marker.dart';
+import 'package:cleanclik/presentation/widgets/inventory/detail_card.dart';
+import 'package:cleanclik/core/services/location/map_data_service.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -46,10 +46,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   LocationData? _currentLocation;
   bool _isModalOpen = false;
   bool _followUserLocation = false;
-  
+
   // Performance optimization
   double _currentZoom = _initialZoom;
-  LatLng _currentCenter = _initialCenter;
   Timer? _markerUpdateTimer;
 
   // Detail card state
@@ -63,7 +62,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     super.initState();
     _loadLocalBins();
     _createMarkers();
-    
+
     // Set up periodic refresh to catch newly scanned bins
     Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted) {
@@ -79,7 +78,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final binService = ref.read(binLocationServiceProvider);
     try {
       _localBins = await binService.getAllBins();
-      print('📦 [MAP_SCREEN] Loaded ${_localBins.length} local bins from storage');
+      print(
+        '📦 [MAP_SCREEN] Loaded ${_localBins.length} local bins from storage',
+      );
       if (_localBins.isNotEmpty) {
         for (final bin in _localBins) {
           print('  - ${bin.name} (${bin.category}) at ${bin.coordinates}');
@@ -105,7 +106,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _createMarkersOptimized() {
     final markers = <Marker>[];
-    
+
     // Calculate viewport bounds for culling
     final viewportBounds = _calculateViewportBounds();
     final shouldShowDetailedMarkers = _currentZoom >= 12.0;
@@ -113,11 +114,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     // Local bins from storage with viewport culling
     if (_showBins) {
-      final visibleLocalBins = _localBins.where((bin) => 
-        _isPointInViewport(bin.coordinates, viewportBounds)
-      ).take(maxMarkersToShow ~/ 2).toList();
+      final visibleLocalBins = _localBins
+          .where((bin) => _isPointInViewport(bin.coordinates, viewportBounds))
+          .take(maxMarkersToShow ~/ 2)
+          .toList();
 
-      print('🗺️ [MAP_SCREEN] Creating markers for ${visibleLocalBins.length} visible local bins (total: ${_localBins.length})');
+      print(
+        '🗺️ [MAP_SCREEN] Creating markers for ${visibleLocalBins.length} visible local bins (total: ${_localBins.length})',
+      );
 
       markers.addAll(
         visibleLocalBins.map(
@@ -125,7 +129,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             point: bin.coordinates,
             width: shouldShowDetailedMarkers ? 50 : 35,
             height: shouldShowDetailedMarkers ? 50 : 35,
-            child: shouldShowDetailedMarkers 
+            child: shouldShowDetailedMarkers
                 ? _buildEnhancedBinMarker(bin)
                 : _buildSimpleBinMarker(bin),
           ),
@@ -134,9 +138,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
       // Add default bins from service with viewport culling
       final bins = MapDataService.getBins();
-      final visibleBins = bins.where((bin) => 
-        _isPointInViewport(bin.location, viewportBounds)
-      ).take(maxMarkersToShow ~/ 2).toList();
+      final visibleBins = bins
+          .where((bin) => _isPointInViewport(bin.location, viewportBounds))
+          .take(maxMarkersToShow ~/ 2)
+          .toList();
 
       markers.addAll(
         visibleBins.map(
@@ -153,7 +158,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       lat: bin.location.latitude,
                       lng: bin.location.longitude,
                     ),
-                    onTap: (b) => _showBinDetails(b.name, b.type, b.fillLevel, bin.location),
+                    onTap: (b) => _showBinDetails(
+                      b.name,
+                      b.type,
+                      b.fillLevel,
+                      bin.location,
+                    ),
                   )
                 : _buildSimpleBinMarkerFromBin(bin),
           ),
@@ -244,7 +254,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Build enhanced bin marker with distance and category info
   Widget _buildEnhancedBinMarker(BinLocation bin) {
     final distance = _currentLocation != null
-        ? GeohashUtils.distanceBetween(_currentLocation!.position, bin.coordinates)
+        ? GeohashUtils.distanceBetween(
+            _currentLocation!.position,
+            bin.coordinates,
+          )
         : null;
 
     return GestureDetector(
@@ -267,11 +280,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              _getCategoryIcon(bin.category),
-              color: Colors.white,
-              size: 20,
-            ),
+            Icon(_getCategoryIcon(bin.category), color: Colors.white, size: 20),
             if (distance != null && distance < 1000)
               Text(
                 '${distance.round()}m',
@@ -310,11 +319,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             color: Colors.blue,
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(
-                color: Colors.white,
-                blurRadius: 4,
-                spreadRadius: 2,
-              ),
+              BoxShadow(color: Colors.white, blurRadius: 4, spreadRadius: 2),
             ],
           ),
         ),
@@ -335,7 +340,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
-  void _showBinDetails(String name, String type, int fillLevel, LatLng location) {
+  void _showBinDetails(
+    String name,
+    String type,
+    int fillLevel,
+    LatLng location,
+  ) {
     final distance = _currentLocation != null
         ? GeohashUtils.distanceBetween(_currentLocation!.position, location)
         : null;
@@ -346,7 +356,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _selectedDetailData = {
         'type': type,
         'fillLevel': fillLevel,
-        'distance': distance != null ? '${distance.round()}m away' : 'Distance unknown',
+        'distance': distance != null
+            ? '${distance.round()}m away'
+            : 'Distance unknown',
       };
       _selectedDetailActions = [
         ActionButton(
@@ -365,9 +377,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _selectedDetailTitle = bin.name;
       _selectedDetailData = {
         'Category': bin.category,
-        'Distance': distance != null ? '${distance.round()}m away' : 'Distance unknown',
+        'Distance': distance != null
+            ? '${distance.round()}m away'
+            : 'Distance unknown',
         'Last Scanned': _formatTimestamp(bin.timestamp),
-        'Fill Level': bin.fillLevel != null ? '${(bin.fillLevel! * 100).round()}%' : 'Unknown',
+        'Fill Level': bin.fillLevel != null
+            ? '${(bin.fillLevel! * 100).round()}%'
+            : 'Unknown',
       };
       _selectedDetailActions = [
         ActionButton(
@@ -381,27 +397,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           label: 'Details',
           onPressed: () => _showBinInfo(bin),
           color: NeonColors.oceanBlue,
-        ),
-      ];
-    });
-  }
-
-  void _showHotspotDetails(String name, String priority) {
-    setState(() {
-      _selectedDetailType = DetailType.hotspot;
-      _selectedDetailTitle = name;
-      _selectedDetailData = {
-        'Priority': priority,
-        'Status': 'Active cleanup needed',
-        'Description':
-            'This area needs community attention. Join other eco-warriors to clean up this hotspot!',
-      };
-      _selectedDetailActions = [
-        ActionButton(
-          icon: Icons.people,
-          label: 'Join Cleanup',
-          onPressed: _joinCleanup,
-          color: NeonColors.toxicPurple,
         ),
       ];
     });
@@ -458,14 +453,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Navigate to a specific location using external maps
   Future<void> _navigateToLocation(LatLng location) async {
     setState(() => _selectedDetailType = null);
-    
+
     try {
-      print('🗺️ [MAP_SCREEN] Starting navigation to ${location.latitude}, ${location.longitude}');
-      
+      print(
+        '🗺️ [MAP_SCREEN] Starting navigation to ${location.latitude}, ${location.longitude}',
+      );
+
       // Method 1: Try maps_launcher package (most reliable)
       try {
         print('🗺️ [MAP_SCREEN] Trying maps_launcher package...');
-        
+
         await MapsLauncher.launchCoordinates(
           location.latitude,
           location.longitude,
@@ -476,14 +473,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       } catch (e) {
         print('⚠️ [MAP_SCREEN] maps_launcher failed: $e');
       }
-      
+
       // Method 2: Try Android Intent (Android only)
       if (Platform.isAndroid) {
         try {
           print('🗺️ [MAP_SCREEN] Trying Android Intent...');
           final intent = AndroidIntent(
             action: 'android.intent.action.VIEW',
-            data: 'google.navigation:q=${location.latitude},${location.longitude}&mode=w',
+            data:
+                'google.navigation:q=${location.latitude},${location.longitude}&mode=w',
           );
           await intent.launch();
           print('✅ [MAP_SCREEN] Successfully launched with Android Intent');
@@ -491,13 +489,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         } catch (e) {
           print('⚠️ [MAP_SCREEN] Android Intent failed: $e');
         }
-        
+
         // Try geo intent as fallback
         try {
           print('🗺️ [MAP_SCREEN] Trying geo intent...');
           final geoIntent = AndroidIntent(
             action: 'android.intent.action.VIEW',
-            data: 'geo:${location.latitude},${location.longitude}?q=${location.latitude},${location.longitude}(Bin Location)',
+            data:
+                'geo:${location.latitude},${location.longitude}?q=${location.latitude},${location.longitude}(Bin Location)',
           );
           await geoIntent.launch();
           print('✅ [MAP_SCREEN] Successfully launched with geo intent');
@@ -506,21 +505,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           print('⚠️ [MAP_SCREEN] Geo intent failed: $e');
         }
       }
-      
+
       // Method 3: Try URL launcher with different URLs
       final urls = [
         'https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}&travelmode=walking',
         'https://maps.apple.com/?daddr=${location.latitude},${location.longitude}&dirflg=w',
         'https://www.openstreetmap.org/directions?to=${location.latitude},${location.longitude}',
       ];
-      
+
       for (final urlString in urls) {
         try {
           final url = Uri.parse(urlString);
           print('🗺️ [MAP_SCREEN] Trying URL: $urlString');
-          
+
           if (await canLaunchUrl(url)) {
-            final launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+            final launched = await launchUrl(
+              url,
+              mode: LaunchMode.externalApplication,
+            );
             if (launched) {
               print('✅ [MAP_SCREEN] Successfully launched URL: $urlString');
               return;
@@ -531,7 +533,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           continue;
         }
       }
-      
+
       // If all methods fail, show helpful message
       print('❌ [MAP_SCREEN] All navigation methods failed');
       if (mounted) {
@@ -571,7 +573,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             const Text('You can:'),
             const Text('• Copy coordinates above'),
             const Text('• Install Google Maps or another maps app'),
-            const Text('• Use the coordinates in your preferred navigation app'),
+            const Text(
+              '• Use the coordinates in your preferred navigation app',
+            ),
           ],
         ),
         actions: [
@@ -594,7 +598,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Open Play Store to install Google Maps
   Future<void> _openPlayStore() async {
     try {
-      const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.google.android.apps.maps';
+      const playStoreUrl =
+          'https://play.google.com/store/apps/details?id=com.google.android.apps.maps';
       final url = Uri.parse(playStoreUrl);
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -608,44 +613,47 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Future<void> _testNavigation() async {
     const testLocation = LatLng(12.9716, 77.5946); // Bangalore city center
     print('🧪 [MAP_SCREEN] Testing navigation to Bangalore city center');
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Testing navigation to Bangalore city center...'),
         duration: Duration(seconds: 2),
       ),
     );
-    
+
     await _navigateToLocation(testLocation);
   }
 
   /// Add a test bin near current location for debugging
   Future<void> _addTestBin() async {
     if (_currentLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location not available')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Location not available')));
       return;
     }
 
     final binService = ref.read(binLocationServiceProvider);
-    
+
     // Create a test bin 100m away from current location
     final testLocation = LatLng(
       _currentLocation!.position.latitude + 0.001, // ~100m north
       _currentLocation!.position.longitude + 0.001, // ~100m east
     );
-    
+
     final testBin = BinLocation(
       id: 'test_bin_${DateTime.now().millisecondsSinceEpoch}',
-      geohash: GeohashUtils.encode(testLocation.latitude, testLocation.longitude),
+      geohash: GeohashUtils.encode(
+        testLocation.latitude,
+        testLocation.longitude,
+      ),
       coordinates: testLocation,
       category: 'recycle',
       name: 'Test Recycle Bin',
       timestamp: DateTime.now(),
       metadata: {'source': 'test', 'description': 'Test bin for debugging'},
     );
-    
+
     final added = await binService.addBin(testBin);
     if (added) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -654,7 +662,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      print('✅ [MAP_SCREEN] Test bin added: ${testBin.name} at ${testBin.coordinates}');
+      print(
+        '✅ [MAP_SCREEN] Test bin added: ${testBin.name} at ${testBin.coordinates}',
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -668,7 +678,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Show detailed bin information
   void _showBinInfo(BinLocation bin) {
     setState(() => _selectedDetailType = null);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -678,12 +688,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Category: ${bin.category}'),
-            Text('Coordinates: ${bin.coordinates.latitude.toStringAsFixed(6)}, ${bin.coordinates.longitude.toStringAsFixed(6)}'),
+            Text(
+              'Coordinates: ${bin.coordinates.latitude.toStringAsFixed(6)}, ${bin.coordinates.longitude.toStringAsFixed(6)}',
+            ),
             Text('Geohash: ${bin.geohash}'),
             Text('Added: ${_formatTimestamp(bin.timestamp)}'),
             if (bin.metadata != null) ...[
               const SizedBox(height: 8),
-              const Text('Additional Info:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Additional Info:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               ...bin.metadata!.entries.map((e) => Text('${e.key}: ${e.value}')),
             ],
           ],
@@ -765,14 +780,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (_currentLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Location not available. Please enable location services.'),
+          content: Text(
+            'Location not available. Please enable location services.',
+          ),
           duration: Duration(seconds: 3),
         ),
       );
       return;
     }
 
-    print('🔍 [MAP_SCREEN] Searching for nearest bin from location: ${_currentLocation!.position}');
+    print(
+      '🔍 [MAP_SCREEN] Searching for nearest bin from location: ${_currentLocation!.position}',
+    );
 
     // Find nearest bin from local storage
     final binService = ref.read(binLocationServiceProvider);
@@ -783,24 +802,31 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     if (nearestBin != null) {
       // Move map to show both user location and nearest bin
-      final distance = GeohashUtils.distanceBetween(_currentLocation!.position, nearestBin.coordinates);
-      
-      print('✅ [MAP_SCREEN] Found nearest local bin: ${nearestBin.name} at ${distance.round()}m');
-      
+      final distance = GeohashUtils.distanceBetween(
+        _currentLocation!.position,
+        nearestBin.coordinates,
+      );
+
+      print(
+        '✅ [MAP_SCREEN] Found nearest local bin: ${nearestBin.name} at ${distance.round()}m',
+      );
+
       // Calculate appropriate zoom level based on distance
       double zoom = 16.0;
       if (distance > 1000) zoom = 14.0;
       if (distance > 2000) zoom = 13.0;
       if (distance > 5000) zoom = 12.0;
-      
+
       _mapController.move(nearestBin.coordinates, zoom);
-      
+
       // Show bin details
       _showEnhancedBinDetails(nearestBin, distance);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Nearest ${nearestBin.category} bin: ${distance.round()}m away'),
+          content: Text(
+            'Nearest ${nearestBin.category} bin: ${distance.round()}m away',
+          ),
           backgroundColor: _getCategoryColor(nearestBin.category),
           action: SnackBarAction(
             label: 'Navigate',
@@ -812,35 +838,44 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     } else {
       // Check default bins from service
       final bins = MapDataService.getBins();
-      print('🔍 [MAP_SCREEN] No local bins found, checking ${bins.length} default bins');
-      
+      print(
+        '🔍 [MAP_SCREEN] No local bins found, checking ${bins.length} default bins',
+      );
+
       if (bins.isNotEmpty) {
         Bin? nearestDefaultBin;
         double nearestDistance = double.infinity;
-        
+
         for (final bin in bins) {
-          final distance = GeohashUtils.distanceBetween(_currentLocation!.position, bin.location);
+          final distance = GeohashUtils.distanceBetween(
+            _currentLocation!.position,
+            bin.location,
+          );
           if (distance < nearestDistance) {
             nearestDistance = distance;
             nearestDefaultBin = bin;
           }
         }
-        
+
         if (nearestDefaultBin != null && nearestDistance <= 5000) {
           final bin = nearestDefaultBin; // Create non-nullable reference
-          
-          print('✅ [MAP_SCREEN] Found nearest default bin: ${bin.name} at ${nearestDistance.round()}m');
-          
+
+          print(
+            '✅ [MAP_SCREEN] Found nearest default bin: ${bin.name} at ${nearestDistance.round()}m',
+          );
+
           double zoom = 16.0;
           if (nearestDistance > 1000) zoom = 14.0;
           if (nearestDistance > 2000) zoom = 13.0;
-          
+
           _mapController.move(bin.location, zoom);
           _showBinDetails(bin.name, bin.type, bin.fillLevel, bin.location);
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Nearest ${bin.type} bin: ${nearestDistance.round()}m away'),
+              content: Text(
+                'Nearest ${bin.type} bin: ${nearestDistance.round()}m away',
+              ),
               backgroundColor: _getCategoryColor(bin.type),
               action: SnackBarAction(
                 label: 'Navigate',
@@ -862,7 +897,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         print('⚠️ [MAP_SCREEN] No bins available at all');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No bins available. Scan QR codes to add bin locations.'),
+            content: Text(
+              'No bins available. Scan QR codes to add bin locations.',
+            ),
             duration: Duration(seconds: 4),
           ),
         );
@@ -908,7 +945,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays} days ago';
     } else if (difference.inHours > 0) {
@@ -924,7 +961,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Map<String, double> _calculateViewportBounds() {
     final camera = _mapController.camera;
     final bounds = camera.visibleBounds;
-    
+
     return {
       'north': bounds.north,
       'south': bounds.south,
@@ -936,9 +973,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Check if a point is within the viewport bounds
   bool _isPointInViewport(LatLng point, Map<String, double> bounds) {
     return point.latitude >= bounds['south']! &&
-           point.latitude <= bounds['north']! &&
-           point.longitude >= bounds['west']! &&
-           point.longitude <= bounds['east']!;
+        point.latitude <= bounds['north']! &&
+        point.longitude >= bounds['west']! &&
+        point.longitude <= bounds['east']!;
   }
 
   /// Get maximum markers to show based on zoom level
@@ -973,7 +1010,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Build simple bin marker from Bin object
   Widget _buildSimpleBinMarkerFromBin(Bin bin) {
     return GestureDetector(
-      onTap: () => _showBinDetails(bin.name, bin.type, bin.fillLevel, bin.location),
+      onTap: () =>
+          _showBinDetails(bin.name, bin.type, bin.fillLevel, bin.location),
       child: Container(
         width: 30,
         height: 30,
@@ -982,11 +1020,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 1),
         ),
-        child: Icon(
-          _getCategoryIcon(bin.type),
-          color: Colors.white,
-          size: 14,
-        ),
+        child: Icon(_getCategoryIcon(bin.type), color: Colors.white, size: 14),
       ),
     );
   }
@@ -995,14 +1029,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _onMapEvent(MapEvent event) {
     if (event is MapEventMove || event is MapEventRotate) {
       _currentZoom = event.camera.zoom;
-      _currentCenter = event.camera.center;
-      
+
       // Disable user location following when user manually moves map
-      if (event.source == MapEventSource.onDrag || 
+      if (event.source == MapEventSource.onDrag ||
           event.source == MapEventSource.doubleTap) {
         _followUserLocation = false;
       }
-      
+
       // Update markers with debouncing for performance
       _createMarkers();
     }
@@ -1018,8 +1051,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget _buildHeatZoneMarker(Hotspot hotspot) {
     final isHighPriority = hotspot.priority.toLowerCase() == 'high priority';
     final colors = isHighPriority
-        ? [Colors.red.withOpacity(0.7), Colors.orange.withOpacity(0.4), Colors.yellow.withOpacity(0.2)]
-        : [Colors.orange.withOpacity(0.6), Colors.yellow.withOpacity(0.3), Colors.green.withOpacity(0.1)];
+        ? [
+            Colors.red.withOpacity(0.7),
+            Colors.orange.withOpacity(0.4),
+            Colors.yellow.withOpacity(0.2),
+          ]
+        : [
+            Colors.orange.withOpacity(0.6),
+            Colors.yellow.withOpacity(0.3),
+            Colors.green.withOpacity(0.1),
+          ];
 
     return GestureDetector(
       onTap: () => _showHeatZoneDetails(hotspot),
@@ -1054,15 +1095,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           Container(
             width: 25,
             height: 25,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: colors[0],
-            ),
-            child: Icon(
-              Icons.warning,
-              color: Colors.white,
-              size: 16,
-            ),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: colors[0]),
+            child: Icon(Icons.warning, color: Colors.white, size: 16),
           ),
         ],
       ),
@@ -1071,7 +1105,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _showHeatZoneDetails(Hotspot hotspot) {
     final distance = _currentLocation != null
-        ? GeohashUtils.distanceBetween(_currentLocation!.position, hotspot.location)
+        ? GeohashUtils.distanceBetween(
+            _currentLocation!.position,
+            hotspot.location,
+          )
         : null;
 
     setState(() {
@@ -1080,10 +1117,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _selectedDetailData = {
         'Priority': hotspot.priority,
         'Status': 'Active cleanup needed',
-        'Distance': distance != null ? '${distance.round()}m away' : 'Distance unknown',
+        'Distance': distance != null
+            ? '${distance.round()}m away'
+            : 'Distance unknown',
         'Estimated Items': '15-25 items',
         'Category Mix': 'Mixed waste types',
-        'Description': 'This area needs community attention. Join other eco-warriors to clean up this hotspot!',
+        'Description':
+            'This area needs community attention. Join other eco-warriors to clean up this hotspot!',
       };
       _selectedDetailActions = [
         ActionButton(
@@ -1108,31 +1148,42 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final arTheme = theme.arTheme;
 
     // Listen to location updates
-    ref.listen<AsyncValue<LocationData?>>(locationStreamProvider, (previous, next) {
+    ref.listen<AsyncValue<LocationData?>>(locationStreamProvider, (
+      previous,
+      next,
+    ) {
       next.whenData((locationData) {
         if (locationData != null && mounted) {
           setState(() {
             _currentLocation = locationData;
             _createMarkers();
           });
-          
+
           // Follow user location if enabled
           if (_followUserLocation) {
-            _mapController.move(locationData.position, _mapController.camera.zoom);
+            _mapController.move(
+              locationData.position,
+              _mapController.camera.zoom,
+            );
           }
         }
       });
     });
 
     // Listen to bin location updates for real-time map updates
-    ref.listen<AsyncValue<List<BinLocation>>>(binLocationsStreamProvider, (previous, next) {
+    ref.listen<AsyncValue<List<BinLocation>>>(binLocationsStreamProvider, (
+      previous,
+      next,
+    ) {
       next.whenData((bins) {
         if (mounted) {
           setState(() {
             _localBins = bins;
             _createMarkers();
           });
-          print('🗺️ [MAP_SCREEN] Updated map with ${bins.length} bin locations');
+          print(
+            '🗺️ [MAP_SCREEN] Updated map with ${bins.length} bin locations',
+          );
         }
       });
     });
@@ -1250,7 +1301,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       showMissions: _showMissions,
                       showFriends: _showFriends,
                       showUserLocation: _showUserLocation,
-                      binCount: MapDataService.getBins().length + _localBins.length,
+                      binCount:
+                          MapDataService.getBins().length + _localBins.length,
                       hotspotCount: MapDataService.getHotspots().length,
                       missionCount: MapDataService.getMissions().length,
                       friendCount: MapDataService.getFriends().length,

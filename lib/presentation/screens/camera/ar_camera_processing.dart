@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import '../../../core/services/hand_tracking_service.dart';
-import '../../../core/models/detected_object.dart';
-import '../../widgets/hand_skeleton_painter.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
+import 'package:cleanclik/core/models/detected_object.dart';
+import 'package:cleanclik/presentation/widgets/camera/hand_skeleton_painter.dart';
 import 'ar_camera_services.dart';
 
 /// Manages image processing, ML detection, and hand tracking for AR camera

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cleanclik/core/services/user_service.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
 import 'package:cleanclik/core/models/user.dart';
 
 void main() {
@@ -116,21 +116,20 @@ void main() {
 
       test('should create failure result correctly', () {
         const errorMessage = 'Authentication failed';
-        final result = AuthResult.failure(errorMessage);
+        final result = AuthResult.failure(AuthErrorType.invalidCredentials, errorMessage);
 
         expect(result.success, false);
         expect(result.user, isNull);
-        expect(result.error, errorMessage);
-        expect(result.exception, isNull);
+        expect(result.error?.message, errorMessage);
       });
 
       test('should create failure result with exception correctly', () {
         const errorMessage = 'Authentication failed';
-        final result = AuthResult.failure(errorMessage);
+        final result = AuthResult.failure(AuthErrorType.unknownError, errorMessage);
 
         expect(result.success, false);
         expect(result.user, isNull);
-        expect(result.error, errorMessage);
+        expect(result.error?.message, errorMessage);
       });
     });
 

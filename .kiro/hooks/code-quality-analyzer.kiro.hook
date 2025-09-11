@@ -1,0 +1,24 @@
+{
+  "name": "Code Quality Analyzer",
+  "description": "Monitors source code files for changes and analyzes modified code for potential improvements including code smells, design patterns, and best practices.",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [
+      "lib/**/*.dart",
+      "android/**/*.kt",
+      "android/**/*.java",
+      "ios/**/*.swift",
+      "ios/**/*.m",
+      "ios/**/*.h"
+    ]
+  },
+  "actions": [
+    {
+      "type": "agent",
+      "prompt": "Analyze the modified code files for potential improvements. Focus on:\n\n1. **Code Smells**: Identify long methods, large classes, duplicate code, complex conditionals, and other maintainability issues\n2. **Design Patterns**: Suggest appropriate design patterns that could improve code structure and flexibility\n3. **Best Practices**: Check for proper error handling, resource management, naming conventions, and documentation\n4. **Performance**: Look for optimization opportunities including algorithm efficiency, memory usage, and unnecessary computations\n5. **Readability**: Suggest improvements for code clarity, variable naming, and method organization\n6. **Maintainability**: Identify areas where code could be more modular, testable, or easier to extend\n\nFor each suggestion, provide:\n- Clear description of the issue or improvement opportunity\n- Specific code examples showing the current implementation\n- Recommended solution with example code\n- Explanation of benefits (performance, maintainability, readability)\n- Priority level (high/medium/low)\n\nEnsure all suggestions maintain existing functionality and follow the project's architecture patterns and coding standards.",
+      "description": "AI-powered code quality analysis"
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

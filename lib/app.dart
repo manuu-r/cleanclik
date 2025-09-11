@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:cleanclik/core/routing/app_router.dart';
 
 import 'package:cleanclik/core/theme/app_theme.dart';
-import 'package:cleanclik/core/services/user_service.dart';
-import 'package:cleanclik/core/services/logging_service.dart';
-import 'package:cleanclik/core/services/deep_link_service.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/core/services/system/logging_service.dart';
+import 'package:cleanclik/core/services/social/deep_link_service.dart';
 
 class CleanClikApp extends ConsumerStatefulWidget {
   const CleanClikApp({super.key});
@@ -39,9 +39,9 @@ class _CleanClikAppState extends ConsumerState<CleanClikApp> {
 
   Future<void> _initializeServices() async {
     try {
-      // Initialize the user service (will check for existing session)
-      final userService = ref.read(userServiceProvider);
-      await userService.initialize();
+      // Initialize the auth service (will check for existing session)
+      final authService = ref.read(authServiceProvider);
+      await authService.initialize();
 
       // Initialize deep link service
       final deepLinkService = ref.read(deepLinkServiceProvider);

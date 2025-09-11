@@ -51,10 +51,11 @@ class LeaderboardUser {
       co2Saved: (json['co2Saved'] as num).toDouble(),
       currentStreak: json['currentStreak'] as int,
       lastActivity: DateTime.parse(json['lastActivity'] as String),
-      lastActiveAt: json['lastActiveAt'] != null 
+      lastActiveAt: json['lastActiveAt'] != null
           ? DateTime.parse(json['lastActiveAt'] as String)
           : DateTime.parse(json['lastActivity'] as String),
-      accuracyPercentage: (json['accuracyPercentage'] as num?)?.toDouble() ?? 0.0,
+      accuracyPercentage:
+          (json['accuracyPercentage'] as num?)?.toDouble() ?? 0.0,
       highestBadge: json['highestBadge'] as String? ?? '',
       isCurrentUser: json['isCurrentUser'] as bool? ?? false,
       rankChange: json['rankChange'] as int? ?? 0,

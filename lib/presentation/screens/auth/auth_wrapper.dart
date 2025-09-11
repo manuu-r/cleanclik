@@ -1,42 +1,116 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/services/user_service.dart';
-import '../../../core/services/supabase_config_service.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/core/services/auth/supabase_config_service.dart';
 import 'login_screen.dart';
 
 /// Wrapper widget that handles authentication state and route protection
-class AuthWrapper extends ConsumerWidget {
+class AuthWrapper extends ConsumerStatefulWidget {
   final Widget child;
 
-  const AuthWrapper({
-    super.key,
-    required this.child,
-  });
+  const AuthWrapper({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends ConsumerState<AuthWrapper> {
+  Timer? _timeoutTimer;
+  bool _hasTimedOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set a timeout for initialization
+    _timeoutTimer = Timer(const Duration(seconds: 15), () {
+      if (mounted) {
+        setState(() {
+          _hasTimedOut = true;
+        });
+        debugPrint('Auth initialization timed out after 15 seconds');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // If timed out, show error screen
+    if (_hasTimedOut) {
+      return AuthErrorScreen(
+        error: 'Authentication initialization timed out. This may be due to network issues or server problems.',
+        onRetry: () {
+          setState(() {
+            _hasTimedOut = false;
+          });
+          _timeoutTimer?.cancel();
+          _timeoutTimer = Timer(const Duration(seconds: 15), () {
+            if (mounted) {
+              setState(() {
+                _hasTimedOut = true;
+              });
+            }
+          });
+          ref.invalidate(authStateProvider);
+        },
+      );
+    }
+
     // Watch authentication state
     final authStateAsync = ref.watch(authStateProvider);
-    
+
     return authStateAsync.when(
-      data: (isAuthenticated) {
-        // If running in demo mode or user is authenticated, show the child
-        if (SupabaseConfigService.isDemoMode || isAuthenticated) {
-          return child;
-        }
+      data: (authState) {
+        // Cancel timeout timer since we got a result
+        _timeoutTimer?.cancel();
         
-        // Otherwise, show login screen
-        return const LoginScreen();
+        switch (authState.status) {
+          case AuthStatus.loading:
+            return const AuthLoadingScreen();
+            
+          case AuthStatus.authenticated:
+            return widget.child;
+            
+          case AuthStatus.unauthenticated:
+            // If running in demo mode, show the child
+            if (authState.isDemoMode) {
+              return widget.child;
+            }
+            // Otherwise show login screen
+            return const LoginScreen();
+            
+          case AuthStatus.error:
+            // If there's an auth error but we're in demo mode, show the child
+            if (authState.isDemoMode) {
+              return widget.child;
+            }
+            // Otherwise show error screen with option to retry
+            return AuthErrorScreen(
+              error: authState.error ?? 'Unknown authentication error',
+              onRetry: () {
+                ref.invalidate(authStateProvider);
+              },
+            );
+        }
       },
       loading: () => const AuthLoadingScreen(),
       error: (error, stackTrace) {
-        debugPrint('Auth state error: $error');
+        // Cancel timeout timer since we got a result
+        _timeoutTimer?.cancel();
         
+        debugPrint('Auth state error: $error');
+
         // If there's an auth error but we're in demo mode, show the child
         if (SupabaseConfigService.isDemoMode) {
-          return child;
+          return widget.child;
         }
-        
+
         // Otherwise show error screen with option to retry
         return AuthErrorScreen(
           error: error.toString(),
@@ -56,17 +130,13 @@ class AuthLoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.eco,
-              size: 80,
-              color: theme.colorScheme.primary,
-            ),
+            Icon(Icons.eco, size: 80, color: theme.colorScheme.primary),
             const SizedBox(height: 24),
             Text(
               'CleanClik',
@@ -105,7 +175,7 @@ class AuthErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       body: SafeArea(
         child: Padding(

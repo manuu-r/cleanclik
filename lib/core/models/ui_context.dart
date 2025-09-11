@@ -1,12 +1,5 @@
 /// Represents the current UI context for adaptive interface
-enum UIContext {
-  arCamera,
-  map,
-  inventory,
-  social,
-  profile,
-  mission,
-}
+enum UIContext { arCamera, map, inventory, social, profile, mission }
 
 /// Represents the current user activity state
 enum ActivityState {
@@ -25,14 +18,14 @@ class UIContextData {
   final ActivityState activityState;
   final Map<String, dynamic> contextData;
   final DateTime timestamp;
-  
+
   const UIContextData({
     required this.context,
     required this.activityState,
     this.contextData = const {},
     required this.timestamp,
   });
-  
+
   UIContextData copyWith({
     UIContext? context,
     ActivityState? activityState,
@@ -46,7 +39,7 @@ class UIContextData {
       timestamp: timestamp ?? this.timestamp,
     );
   }
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -54,7 +47,7 @@ class UIContextData {
         other.context == context &&
         other.activityState == activityState;
   }
-  
+
   @override
   int get hashCode => Object.hash(context, activityState);
 }

@@ -53,7 +53,7 @@ class AuthException implements Exception {
   factory AuthException.fromSupabase(dynamic error) {
     final message = error?.message as String? ?? 'Authentication failed';
     final statusCode = error?.statusCode as String?;
-    
+
     AuthErrorType type;
     switch (statusCode) {
       case '400':
@@ -167,7 +167,7 @@ class DatabaseException implements Exception {
     final code = error?.code as String?;
     final details = error?.details as String?;
     final hint = error?.hint as String?;
-    
+
     DatabaseErrorType type;
     switch (code) {
       case '23505': // unique_violation
@@ -211,7 +211,10 @@ class DatabaseException implements Exception {
       message,
       table: table,
       operation: operation,
-      details: [details, hint].where((s) => s != null && s.isNotEmpty).join('; '),
+      details: [
+        details,
+        hint,
+      ].where((s) => s != null && s.isNotEmpty).join('; '),
       originalError: error,
     );
   }
@@ -257,23 +260,20 @@ class DatabaseResult<T> {
   final DatabaseException? error;
   final bool isSuccess;
 
-  const DatabaseResult.success(this.data)
-      : error = null,
-        isSuccess = true;
+  const DatabaseResult.success(this.data) : error = null, isSuccess = true;
 
-  const DatabaseResult.failure(this.error)
-      : data = null,
-        isSuccess = false;
+  const DatabaseResult.failure(this.error) : data = null, isSuccess = false;
 
   /// Get data or throw exception
   T get dataOrThrow {
     if (isSuccess && data != null) {
       return data!;
     }
-    throw error ?? DatabaseException(
-      DatabaseErrorType.unknown,
-      'Operation failed with no data or error information',
-    );
+    throw error ??
+        DatabaseException(
+          DatabaseErrorType.unknown,
+          'Operation failed with no data or error information',
+        );
   }
 
   /// Transform data if successful
@@ -312,23 +312,20 @@ class AuthResult<T> {
   final AuthException? error;
   final bool isSuccess;
 
-  const AuthResult.success(this.data)
-      : error = null,
-        isSuccess = true;
+  const AuthResult.success(this.data) : error = null, isSuccess = true;
 
-  const AuthResult.failure(this.error)
-      : data = null,
-        isSuccess = false;
+  const AuthResult.failure(this.error) : data = null, isSuccess = false;
 
   /// Get data or throw exception
   T get dataOrThrow {
     if (isSuccess && data != null) {
       return data!;
     }
-    throw error ?? AuthException(
-      AuthErrorType.unknown,
-      'Authentication failed with no data or error information',
-    );
+    throw error ??
+        AuthException(
+          AuthErrorType.unknown,
+          'Authentication failed with no data or error information',
+        );
   }
 
   /// Transform data if successful

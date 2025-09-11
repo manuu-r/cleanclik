@@ -1,0 +1,31 @@
+{
+  "name": "Refactor Progress Tracker",
+  "description": "Tracks refactoring progress and updates task completion status",
+  "trigger": {
+    "type": "manual",
+    "button": {
+      "text": "Update Refactor Progress",
+      "icon": "checklist"
+    }
+  },
+  "actions": [
+    {
+      "type": "agent",
+      "prompt": "Analyze the current state of the CleanClik refactoring project and update the tasks.md file with current progress. Check:\n1. Which database services have been consolidated into repositories\n2. Current service count in lib/core/services/\n3. AR camera screen line count\n4. Which duplicate services have been removed\n5. Provider consolidation status\n6. Update task checkboxes [x] for completed items\n7. Add notes about any blockers or issues found",
+      "description": "AI-powered progress tracking"
+    },
+    {
+      "type": "command",
+      "command": "find lib/core/services -name '*.dart' | wc -l",
+      "description": "Count current service files"
+    },
+    {
+      "type": "command",
+      "command": "wc -l lib/presentation/screens/ar_camera/ar_camera_screen.dart",
+      "description": "Check AR camera screen line count",
+      "continueOnError": true
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

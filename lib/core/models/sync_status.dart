@@ -1,11 +1,5 @@
 /// Represents the synchronization status of data
-enum SyncState {
-  idle,
-  syncing,
-  success,
-  error,
-  conflict,
-}
+enum SyncState { idle, syncing, success, error, conflict }
 
 /// Sync status for different data types
 class SyncStatus {
@@ -25,26 +19,17 @@ class SyncStatus {
 
   /// Create initial sync status
   factory SyncStatus.initial() {
-    return SyncStatus(
-      state: SyncState.idle,
-      lastSyncAt: DateTime.now(),
-    );
+    return SyncStatus(state: SyncState.idle, lastSyncAt: DateTime.now());
   }
 
   /// Create syncing status
   factory SyncStatus.syncing() {
-    return SyncStatus(
-      state: SyncState.syncing,
-      lastSyncAt: DateTime.now(),
-    );
+    return SyncStatus(state: SyncState.syncing, lastSyncAt: DateTime.now());
   }
 
   /// Create success status
   factory SyncStatus.success() {
-    return SyncStatus(
-      state: SyncState.success,
-      lastSyncAt: DateTime.now(),
-    );
+    return SyncStatus(state: SyncState.success, lastSyncAt: DateTime.now());
   }
 
   /// Create error status
@@ -224,7 +209,7 @@ class GlobalSyncStatus {
   factory GlobalSyncStatus.fromJson(Map<String, dynamic> json) {
     final statusMap = <String, SyncStatus>{};
     final dataTypeStatusJson = json['dataTypeStatus'] as Map<String, dynamic>;
-    
+
     for (final entry in dataTypeStatusJson.entries) {
       statusMap[entry.key] = SyncStatus.fromJson(entry.value);
     }

@@ -14,12 +14,33 @@ lib/
 │   ├── models/                 # Core data models and entities
 │   ├── providers/              # Global Riverpod providers
 │   ├── routing/                # GoRouter configuration
-│   ├── services/               # Core business logic services
+│   ├── services/               # Core business logic services (organized by domain)
+│   │   ├── auth/              # Authentication & user management
+│   │   ├── camera/            # Camera, AR, ML detection
+│   │   ├── data/              # Database, storage, sync
+│   │   ├── location/          # GPS, mapping, proximity
+│   │   ├── social/            # Sharing, leaderboards, achievements
+│   │   ├── platform/          # Platform-specific implementations
+│   │   ├── system/            # Core system services (logging, performance)
+│   │   └── business/          # Business logic services
 │   └── theme/                  # Material 3 theme configuration
 └── presentation/               # UI layer
     ├── navigation/             # Navigation shell and components
-    ├── screens/                # Feature screens (camera, map, etc.)
-    └── widgets/                # Reusable UI components
+    ├── screens/                # Feature screens (organized by feature)
+    │   ├── auth/              # Authentication screens
+    │   ├── camera/            # AR camera screens
+    │   ├── map/               # Map screens
+    │   ├── profile/           # Profile screens
+    │   └── leaderboard/       # Leaderboard screens
+    └── widgets/                # Reusable UI components (organized by feature)
+        ├── camera/            # AR camera related widgets
+        ├── map/               # Map and location widgets
+        ├── inventory/         # Inventory and object widgets
+        ├── social/            # Social and sharing widgets
+        ├── overlays/          # All overlay widgets
+        ├── animations/        # Animation widgets
+        ├── debug/             # Debug and diagnostic widgets
+        └── common/            # Shared/reusable widgets
 ```
 
 ## Service Layer Architecture

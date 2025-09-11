@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/services/user_service.dart';
-import '../../../core/routing/routes.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/core/routing/routes.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -36,8 +36,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      final userService = ref.read(userServiceProvider);
-      final result = await userService.signInWithEmail(
+      final authService = ref.read(authServiceProvider);
+      final result = await authService.signInWithEmail(
         _emailController.text.trim(),
         _passwordController.text,
       );
@@ -48,7 +48,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       } else {
         setState(() {
-          _errorMessage = result.error ?? 'Sign in failed';
+          _errorMessage = result.error?.message ?? 'Sign in failed';
         });
       }
     } catch (e) {
@@ -71,8 +71,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      final userService = ref.read(userServiceProvider);
-      final result = await userService.signInWithGoogle();
+      final authService = ref.read(authServiceProvider);
+      final result = await authService.signInWithGoogle();
 
       if (result.success) {
         if (mounted) {
@@ -80,7 +80,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       } else {
         setState(() {
-          _errorMessage = result.error ?? 'Google sign in failed';
+          _errorMessage = result.error?.message ?? 'Google sign in failed';
         });
       }
     } catch (e) {

@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "AR Camera Refactor Monitor",
+  "description": "Monitors AR camera screen refactoring and runs integration tests",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "lib/presentation/screens/ar_camera/**/*.dart",
+      "lib/core/services/ar_*.dart",
+      "lib/core/services/*_detection_service.dart",
+      "lib/core/services/hand_tracking_service.dart"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "AR camera files have been modified. Please:\n\n1. Run build_runner to regenerate providers after AR service changes\n2. Execute AR camera widget tests to verify functionality\n3. Run AR detection integration tests to ensure end-to-end flow works\n4. Check if the AR camera screen file size is under 200 lines as per refactoring goal - if over 200 lines, suggest further decomposition\n\nCommands to run:\n- dart run build_runner build --delete-conflicting-outputs\n- flutter test test/widget/ar_camera_test.dart\n- flutter test test/integration/ar_detection_flow_test.dart\n\nMonitor the AR camera screen size goal and provide refactoring suggestions if needed."
+  }
+}

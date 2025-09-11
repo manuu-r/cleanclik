@@ -1,0 +1,32 @@
+{
+  "name": "Refactor Validation",
+  "description": "Validates refactoring changes by running code generation, analysis, and tests",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [
+      "lib/core/services/**/*.dart",
+      "lib/core/repositories/**/*.dart",
+      "lib/core/models/**/*.dart",
+      "lib/core/providers/**/*.dart"
+    ]
+  },
+  "actions": [
+    {
+      "type": "command",
+      "command": "dart run build_runner build --delete-conflicting-outputs",
+      "description": "Regenerate Riverpod providers and other generated code"
+    },
+    {
+      "type": "command", 
+      "command": "flutter analyze",
+      "description": "Run static analysis to catch issues"
+    },
+    {
+      "type": "command",
+      "command": "dart format .",
+      "description": "Format code consistently"
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../../core/services/ml_detection_service.dart';
-import '../../../core/services/hand_tracking_service.dart';
-import '../../../core/services/platform_hand_tracking_factory.dart';
-import '../../../core/services/enhanced_gesture_recognition_service.dart';
-import '../../../core/services/object_management_service.dart';
-import '../../../core/services/inventory_service.dart';
-import '../../../core/services/performance_service.dart';
+import 'package:cleanclik/core/services/camera/ml_detection_service.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
+import 'package:cleanclik/core/services/platform/platform_hand_tracking_factory.dart';
+import 'package:cleanclik/core/services/platform/enhanced_gesture_recognition_service.dart';
+import 'package:cleanclik/core/services/business/object_management_service.dart';
+import 'package:cleanclik/core/services/business/inventory_service.dart';
+import 'package:cleanclik/core/services/system/performance_service.dart';
 
 /// Manages initialization and lifecycle of AR camera services
 class ARCameraServices {
@@ -48,9 +48,7 @@ class ARCameraServices {
   bool get hasPerformanceService => _performanceService != null;
 
   /// Initialize all AR camera services
-  Future<void> initializeServices({
-    InventoryService? inventoryService,
-  }) async {
+  Future<void> initializeServices({InventoryService? inventoryService}) async {
     if (_isInitialized) {
       print('📱 [SERVICES] Already initialized');
       return;

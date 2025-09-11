@@ -1,0 +1,20 @@
+{
+  "name": "Test Case Generator",
+  "description": "Automatically creates test cases for each feature found where test coverage is missing and updates or cleans up existing test cases as development progresses",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [
+      "lib/**/*.dart",
+      "test/**/*.dart"
+    ]
+  },
+  "actions": [
+    {
+      "type": "agent",
+      "prompt": "Analyze the modified Dart files and identify any new features, services, or models that lack corresponding test cases. For each missing test case, generate comprehensive unit tests that cover:\n\n1. **New Features Without Tests**: Scan lib/ directory changes and cross-reference with test/ directory to find untested code\n2. **Service Testing**: Create tests for new services including success cases, error handling, and edge cases\n3. **Model Testing**: Generate tests for data models including serialization, validation, and edge cases\n4. **Widget Testing**: Create widget tests for new UI components and screens\n5. **Integration Testing**: Suggest integration tests for new user flows\n\nFor existing test files that need updates:\n- Clean up outdated test cases that no longer match the implementation\n- Update test mocks and fixtures to reflect code changes\n- Improve test coverage for modified methods\n- Refactor test structure for better maintainability\n\nGenerate the test files following Flutter/Dart testing best practices:\n- Use proper test grouping and descriptions\n- Include setup and teardown methods\n- Mock external dependencies appropriately\n- Test both positive and negative scenarios\n- Follow the existing test file naming conventions\n\nFocus on creating practical, maintainable tests that provide real value for catching regressions and ensuring code quality.",
+      "description": "AI-powered test case generation"
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

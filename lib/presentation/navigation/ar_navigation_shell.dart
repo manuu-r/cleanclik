@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cleanclik/core/models/ui_context.dart';
-import 'package:cleanclik/core/services/ui_context_service.dart';
-import 'package:cleanclik/core/services/smart_suggestions_service.dart';
-import 'package:cleanclik/core/constants/ui_constants.dart';
-import 'package:cleanclik/presentation/widgets/floating_action_hub.dart';
-import 'package:cleanclik/presentation/widgets/slide_up_panel.dart';
-import 'package:cleanclik/presentation/widgets/particle_system.dart';
+import 'package:cleanclik/core/services/system/ui_context_service.dart';
+import 'package:cleanclik/core/services/business/smart_suggestions_service.dart';
+import 'package:cleanclik/core/theme/app_theme.dart';
+import 'package:cleanclik/presentation/widgets/common/floating_action_hub.dart';
+import 'package:cleanclik/presentation/widgets/common/slide_up_panel.dart';
+import 'package:cleanclik/presentation/widgets/animations/particle_system.dart';
 
 /// AR-first navigation shell with floating action hub
 class ARNavigationShell extends ConsumerStatefulWidget {
@@ -325,67 +325,6 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildLayerToggle(String title, IconData icon, bool isEnabled) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ),
-          Switch(
-            value: isEnabled,
-            onChanged: (value) {
-              // Handle layer toggle
-            },
-            activeTrackColor: Theme.of(context).colorScheme.primary,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

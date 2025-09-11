@@ -1,0 +1,28 @@
+{
+  "name": "Performance Regression Check",
+  "description": "Monitors performance-critical files and validates performance targets",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [
+      "lib/core/services/performance_service.dart",
+      "lib/core/services/ar_camera_processing.dart",
+      "lib/core/services/object_management_service.dart",
+      "lib/presentation/screens/ar_camera/ar_camera_screen.dart"
+    ]
+  },
+  "actions": [
+    {
+      "type": "agent",
+      "prompt": "Review the modified file for potential performance regressions. Check for:\n1. Memory leaks (unclosed streams, timers)\n2. Inefficient algorithms or loops\n3. Blocking operations on main thread\n4. Resource disposal in dispose() methods\n5. Compliance with performance targets: camera init <3s, AR processing <200ms",
+      "description": "AI performance analysis"
+    },
+    {
+      "type": "command",
+      "command": "flutter test test/performance/",
+      "description": "Run performance tests if they exist",
+      "continueOnError": true
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

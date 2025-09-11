@@ -19,8 +19,10 @@ enum WasteCategory {
   static WasteCategory? fromMLKitLabel(String label, double confidence) {
     print('🗂️ [WASTE_CATEGORY] ===== PROCESSING ML KIT LABEL =====');
     print('🗂️ [WASTE_CATEGORY] Input Label: "$label"');
-    print('🗂️ [WASTE_CATEGORY] Input Confidence: ${(confidence * 100).toStringAsFixed(2)}%');
-    
+    print(
+      '🗂️ [WASTE_CATEGORY] Input Confidence: ${(confidence * 100).toStringAsFixed(2)}%',
+    );
+
     if (confidence < 0.3) {
       print('🗂️ [WASTE_CATEGORY] ❌ REJECTED: Confidence below 30% threshold');
       _logDetection(label, confidence, null, 'Below confidence threshold');
@@ -29,29 +31,54 @@ enum WasteCategory {
 
     // Check if this is a PLACE object or other ignored category
     if (_isIgnoredCategory(label)) {
-      print('🗂️ [WASTE_CATEGORY] ❌ IGNORED: Category "$label" is not a waste item');
-      _logDetection(label, confidence, null, 'Ignored category (PLACE or non-waste)');
+      print(
+        '🗂️ [WASTE_CATEGORY] ❌ IGNORED: Category "$label" is not a waste item',
+      );
+      _logDetection(
+        label,
+        confidence,
+        null,
+        'Ignored category (PLACE or non-waste)',
+      );
       return null;
     }
 
-    print('🗂️ [WASTE_CATEGORY] ✅ Confidence acceptable, proceeding with categorization...');
+    print(
+      '🗂️ [WASTE_CATEGORY] ✅ Confidence acceptable, proceeding with categorization...',
+    );
     final result = _categorizeWithSimplifiedMapping(label, confidence);
-    
+
     if (result != null) {
       print('🗂️ [WASTE_CATEGORY] ✅ CATEGORIZATION SUCCESS:');
       print('🗂️ [WASTE_CATEGORY]   Category: ${result.category.id}');
-      print('🗂️ [WASTE_CATEGORY]   Matched Keyword: "${result.matchedKeyword}"');
+      print(
+        '🗂️ [WASTE_CATEGORY]   Matched Keyword: "${result.matchedKeyword}"',
+      );
       print('🗂️ [WASTE_CATEGORY]   Match Type: ${result.matchType}');
-      print('🗂️ [WASTE_CATEGORY]   Final Confidence: ${(result.confidence * 100).toStringAsFixed(2)}%');
+      print(
+        '🗂️ [WASTE_CATEGORY]   Final Confidence: ${(result.confidence * 100).toStringAsFixed(2)}%',
+      );
     } else {
-      print('🗂️ [WASTE_CATEGORY] ❌ CATEGORIZATION FAILED: Unknown ML Kit category');
-      _logDetection(label, confidence, null, 'Unknown ML Kit category - skipped');
+      print(
+        '🗂️ [WASTE_CATEGORY] ❌ CATEGORIZATION FAILED: Unknown ML Kit category',
+      );
+      _logDetection(
+        label,
+        confidence,
+        null,
+        'Unknown ML Kit category - skipped',
+      );
       return null;
     }
-    
-    _logDetection(label, confidence, result?.category, result?.matchedKeyword ?? 'No match');
+
+    _logDetection(
+      label,
+      confidence,
+      result?.category,
+      result?.matchedKeyword ?? 'No match',
+    );
     print('🗂️ [WASTE_CATEGORY] ===== END LABEL PROCESSING =====');
-    
+
     return result?.category;
   }
 
@@ -59,54 +86,77 @@ enum WasteCategory {
   static WasteCategory? fromMultipleLabels(List<Map<String, dynamic>> labels) {
     if (labels.isEmpty) return null;
 
-    final validLabels = labels.where((label) => 
-        label['confidence'] != null && 
-        label['text'] != null && 
-        label['confidence'] >= 0.3).toList();
+    final validLabels = labels
+        .where(
+          (label) =>
+              label['confidence'] != null &&
+              label['text'] != null &&
+              label['confidence'] >= 0.3,
+        )
+        .toList();
     if (validLabels.isEmpty) return null;
 
     // Check for multiple category detection (FASHION_GOOD + HOME_GOOD = ewaste)
-    final labelTexts = validLabels.map((label) => label['text'].toString().toUpperCase()).toSet();
-    if (labelTexts.contains('FASHION_GOOD') && labelTexts.contains('HOME_GOOD')) {
-      print('🗂️ [WASTE_CATEGORY] ✅ MULTI-CATEGORY DETECTION: FASHION_GOOD + HOME_GOOD → ewaste');
-      _logDetection('FASHION_GOOD + HOME_GOOD', 0.9, WasteCategory.ewaste, 'Multi-category detection');
+    final labelTexts = validLabels
+        .map((label) => label['text'].toString().toUpperCase())
+        .toSet();
+    if (labelTexts.contains('FASHION_GOOD') &&
+        labelTexts.contains('HOME_GOOD')) {
+      print(
+        '🗂️ [WASTE_CATEGORY] ✅ MULTI-CATEGORY DETECTION: FASHION_GOOD + HOME_GOOD → ewaste',
+      );
+      _logDetection(
+        'FASHION_GOOD + HOME_GOOD',
+        0.9,
+        WasteCategory.ewaste,
+        'Multi-category detection',
+      );
       return WasteCategory.ewaste;
     }
 
     // Sort by confidence and try each label
     validLabels.sort((a, b) => b['confidence'].compareTo(a['confidence']));
-    
+
     for (final label in validLabels) {
       final result = fromMLKitLabel(label['text'], label['confidence']);
       if (result != null) {
-        _logDetection(label['text'], label['confidence'], result, 
-                     'Multi-label match');
+        _logDetection(
+          label['text'],
+          label['confidence'],
+          result,
+          'Multi-label match',
+        );
         return result;
       }
     }
 
     // No valid category found
-    print('🗂️ [WASTE_CATEGORY] ❌ No valid categories found in multi-label detection');
+    print(
+      '🗂️ [WASTE_CATEGORY] ❌ No valid categories found in multi-label detection',
+    );
     return null;
   }
 
   /// Check if a category should be ignored (PLACE objects only)
   static bool _isIgnoredCategory(String label) {
     final normalizedLabel = label.toUpperCase();
-    
+
     // Ignore PLACE objects as they are not waste items
     if (normalizedLabel == 'PLACE') {
       return true;
     }
-    
+
     // Don't ignore other categories - let them be processed by the categorization system
     return false;
   }
 
   /// Simplified categorization mapping for ML Kit categories
-  static _CategoryMatch? _categorizeWithSimplifiedMapping(String label, double confidence) {
+  static _CategoryMatch? _categorizeWithSimplifiedMapping(
+    String label,
+    double confidence,
+  ) {
     final normalizedLabel = label.toUpperCase();
-    
+
     // Direct ML Kit category mapping
     switch (normalizedLabel) {
       case 'FASHION_GOOD':
@@ -144,52 +194,85 @@ enum WasteCategory {
   }
 
   /// Enhanced categorization with priority system and fuzzy matching
-  static _CategoryMatch? _categorizeWithPriority(String label, double confidence) {
+  static _CategoryMatch? _categorizeWithPriority(
+    String label,
+    double confidence,
+  ) {
     final normalizedLabel = _preprocessLabel(label);
-    
+
     // Handle compound labels with special logic first
     if (normalizedLabel.contains(' ')) {
       // For hazardous compound labels, prioritize hazardous (highest priority)
-      if (normalizedLabel.contains('hazardous') || normalizedLabel.contains('chemical') || normalizedLabel.contains('toxic')) {
-        final hazardousKeywords = _categoryKeywords[WasteCategory.hazardous] ?? [];
-        final hazardousMatch = _findBestKeywordMatch(normalizedLabel, hazardousKeywords, WasteCategory.hazardous, confidence);
+      if (normalizedLabel.contains('hazardous') ||
+          normalizedLabel.contains('chemical') ||
+          normalizedLabel.contains('toxic')) {
+        final hazardousKeywords =
+            _categoryKeywords[WasteCategory.hazardous] ?? [];
+        final hazardousMatch = _findBestKeywordMatch(
+          normalizedLabel,
+          hazardousKeywords,
+          WasteCategory.hazardous,
+          confidence,
+        );
         if (hazardousMatch != null) {
           return hazardousMatch;
         }
       }
-      
+
       // For organic waste compound labels, prioritize organic if it's explicitly mentioned
-      if (normalizedLabel.contains('organic') || normalizedLabel.contains('food waste') || normalizedLabel.contains('compost')) {
+      if (normalizedLabel.contains('organic') ||
+          normalizedLabel.contains('food waste') ||
+          normalizedLabel.contains('compost')) {
         final organicKeywords = _categoryKeywords[WasteCategory.organic] ?? [];
-        final organicMatch = _findBestKeywordMatch(normalizedLabel, organicKeywords, WasteCategory.organic, confidence);
+        final organicMatch = _findBestKeywordMatch(
+          normalizedLabel,
+          organicKeywords,
+          WasteCategory.organic,
+          confidence,
+        );
         if (organicMatch != null) {
           return organicMatch;
         }
       }
-      
+
       // For electronic device compound labels, prioritize the electronic aspect
-      if (normalizedLabel.contains('electronic') || normalizedLabel.contains('device')) {
+      if (normalizedLabel.contains('electronic') ||
+          normalizedLabel.contains('device')) {
         final ewasteKeywords = _categoryKeywords[WasteCategory.ewaste] ?? [];
-        final ewasteMatch = _findBestKeywordMatch(normalizedLabel, ewasteKeywords, WasteCategory.ewaste, confidence);
+        final ewasteMatch = _findBestKeywordMatch(
+          normalizedLabel,
+          ewasteKeywords,
+          WasteCategory.ewaste,
+          confidence,
+        );
         if (ewasteMatch != null) {
           return ewasteMatch;
         }
       }
-      
+
       // For container-related compound labels, prioritize the container aspect (but not if hazardous/organic/electronic is mentioned)
-      if ((normalizedLabel.contains('container') || normalizedLabel.contains('bottle') || normalizedLabel.contains('jar')) 
-          && !normalizedLabel.contains('hazardous') && !normalizedLabel.contains('chemical') 
-          && !normalizedLabel.contains('organic') && !normalizedLabel.contains('food waste')
-          && !normalizedLabel.contains('electronic')) {
+      if ((normalizedLabel.contains('container') ||
+              normalizedLabel.contains('bottle') ||
+              normalizedLabel.contains('jar')) &&
+          !normalizedLabel.contains('hazardous') &&
+          !normalizedLabel.contains('chemical') &&
+          !normalizedLabel.contains('organic') &&
+          !normalizedLabel.contains('food waste') &&
+          !normalizedLabel.contains('electronic')) {
         // Check if it's a recyclable container first
         final recycleKeywords = _categoryKeywords[WasteCategory.recycle] ?? [];
-        final recycleMatch = _findBestKeywordMatch(normalizedLabel, recycleKeywords, WasteCategory.recycle, confidence);
+        final recycleMatch = _findBestKeywordMatch(
+          normalizedLabel,
+          recycleKeywords,
+          WasteCategory.recycle,
+          confidence,
+        );
         if (recycleMatch != null) {
           return recycleMatch;
         }
       }
     }
-    
+
     // Check direct mappings for exact matches only (not substring)
     for (final entry in _directMappings.entries) {
       if (normalizedLabel == entry.key) {
@@ -204,10 +287,15 @@ enum WasteCategory {
 
     // Check category keywords with priority weighting
     final matches = <_CategoryMatch>[];
-    
+
     for (final category in _categoryPriority) {
       final keywords = _categoryKeywords[category] ?? [];
-      final match = _findBestKeywordMatch(normalizedLabel, keywords, category, confidence);
+      final match = _findBestKeywordMatch(
+        normalizedLabel,
+        keywords,
+        category,
+        confidence,
+      );
       if (match != null) {
         matches.add(match);
       }
@@ -231,10 +319,10 @@ enum WasteCategory {
 
   /// Find the best keyword match for a category
   static _CategoryMatch? _findBestKeywordMatch(
-    String label, 
-    List<String> keywords, 
-    WasteCategory category, 
-    double confidence
+    String label,
+    List<String> keywords,
+    WasteCategory category,
+    double confidence,
   ) {
     // Exact matches first (highest priority)
     for (final keyword in keywords) {
@@ -264,9 +352,11 @@ enum WasteCategory {
     final labelParts = label.split(' ');
     if (labelParts.length > 1) {
       for (final part in labelParts) {
-        if (part.length >= 3) { // Only check meaningful parts
+        if (part.length >= 3) {
+          // Only check meaningful parts
           for (final keyword in keywords) {
-            if (part == keyword || (keyword.contains(part) && part.length >= 4)) {
+            if (part == keyword ||
+                (keyword.contains(part) && part.length >= 4)) {
               return _CategoryMatch(
                 category: category,
                 confidence: confidence * 0.75,
@@ -298,39 +388,43 @@ enum WasteCategory {
   static bool _conservativeFuzzyMatch(String label, String keyword) {
     // Only match if words are very similar (for typos)
     if (label.length < 4 || keyword.length < 4) return false;
-    if ((label.length - keyword.length).abs() > 2) return false; // Length difference too big
-    
+    if ((label.length - keyword.length).abs() > 2)
+      return false; // Length difference too big
+
     // Check for common typos and variations
     final commonVariations = {
       'aluminium': 'aluminum',
       'bottel': 'bottle',
       'mobil': 'mobile',
     };
-    
-    if (commonVariations[label] == keyword || commonVariations[keyword] == label) {
+
+    if (commonVariations[label] == keyword ||
+        commonVariations[keyword] == label) {
       return true;
     }
-    
+
     // Avoid false matches like "grass" -> "glass"
     final problematicPairs = {
       'grass': ['glass'],
       'glass': ['grass'],
     };
-    
+
     if (problematicPairs[label]?.contains(keyword) == true) {
       return false;
     }
-    
+
     // Check character similarity for very close matches only
     int matches = 0;
-    final minLength = label.length < keyword.length ? label.length : keyword.length;
-    
+    final minLength = label.length < keyword.length
+        ? label.length
+        : keyword.length;
+
     for (int i = 0; i < minLength; i++) {
       if (i < label.length && i < keyword.length && label[i] == keyword[i]) {
         matches++;
       }
     }
-    
+
     // Require 85% character match for fuzzy matching (more strict)
     return matches >= (minLength * 0.85);
   }
@@ -345,10 +439,17 @@ enum WasteCategory {
   }
 
   /// Log detection results for debugging and improvement
-  static void _logDetection(String label, double confidence, WasteCategory? result, String details) {
+  static void _logDetection(
+    String label,
+    double confidence,
+    WasteCategory? result,
+    String details,
+  ) {
     if (kDebugMode) {
       final categoryName = result?.id ?? 'null';
-      debugPrint('🗂️ [WasteCategory] "$label" (${(confidence * 100).toStringAsFixed(1)}%) → $categoryName ($details)');
+      debugPrint(
+        '🗂️ [WasteCategory] "$label" (${(confidence * 100).toStringAsFixed(1)}%) → $categoryName ($details)',
+      );
     }
   }
 
@@ -413,7 +514,11 @@ enum WasteCategory {
   static const Map<WasteCategory, List<String>> _categoryKeywords = {
     WasteCategory.recycle: [
       // Plastic containers and bottles
-      'bottle', 'plastic bottle', 'water bottle', 'soda bottle', 'beverage bottle',
+      'bottle',
+      'plastic bottle',
+      'water bottle',
+      'soda bottle',
+      'beverage bottle',
       'sports bottle', 'squeeze bottle', 'shampoo bottle', 'detergent bottle',
       'container', 'plastic container', 'food container', 'storage container',
       'tupperware', 'lunch box', 'bento box', 'meal prep container',
@@ -580,8 +685,6 @@ enum WasteCategory {
       'aerosol', 'spray can', 'propane', 'lighter fluid',
       'fluorescent bulb', 'cfl bulb', 'mercury bulb',
     ],
-
-
   };
 
   /// Get all categories as a list
@@ -599,7 +702,9 @@ enum WasteCategory {
   /// Get category by codeName (EcoGems, BioShards, etc.)
   static WasteCategory? fromCodeName(String codeName) {
     try {
-      return WasteCategory.values.firstWhere((category) => category.codeName == codeName);
+      return WasteCategory.values.firstWhere(
+        (category) => category.codeName == codeName,
+      );
     } catch (e) {
       return null;
     }
@@ -610,31 +715,34 @@ enum WasteCategory {
     // Try ID first (recycle, organic, etc.)
     final byId = fromId(value);
     if (byId != null) return byId;
-    
+
     // Try codeName (EcoGems, BioShards, etc.)
     final byCodeName = fromCodeName(value);
     if (byCodeName != null) return byCodeName;
-    
+
     return null;
   }
 
   /// Calculate category confidence based on keyword match strength
-  static double calculateCategoryConfidence(String label, WasteCategory category) {
+  static double calculateCategoryConfidence(
+    String label,
+    WasteCategory category,
+  ) {
     final keywords = _categoryKeywords[category] ?? [];
     final normalizedLabel = _preprocessLabel(label);
-    
+
     // Check for exact matches
     for (final keyword in keywords) {
       if (normalizedLabel == keyword) return 0.95;
       if (normalizedLabel.contains(keyword)) return 0.85;
     }
-    
+
     // Check direct mappings
-    if (_directMappings.containsKey(normalizedLabel) && 
+    if (_directMappings.containsKey(normalizedLabel) &&
         _directMappings[normalizedLabel] == category) {
       return 0.90;
     }
-    
+
     return 0.0;
   }
 
@@ -647,13 +755,14 @@ enum WasteCategory {
   /// Check if a label matches keywords for a category using fuzzy matching
   static bool matchesKeywords(String label, List<String> keywords) {
     final normalizedLabel = _preprocessLabel(label);
-    
+
     for (final keyword in keywords) {
-      if (normalizedLabel.contains(keyword) || _conservativeFuzzyMatch(normalizedLabel, keyword)) {
+      if (normalizedLabel.contains(keyword) ||
+          _conservativeFuzzyMatch(normalizedLabel, keyword)) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -661,11 +770,11 @@ enum WasteCategory {
   static List<String> preprocessLabel(String label) {
     final normalized = _preprocessLabel(label);
     final parts = normalized.split(' ');
-    
+
     // Include the full label and individual parts
     final result = <String>[normalized];
     result.addAll(parts.where((part) => part.length > 2));
-    
+
     return result;
   }
 }
@@ -687,8 +796,7 @@ class _CategoryMatch {
 
 /// Types of keyword matches
 enum _MatchType {
-  exact,      // Direct keyword match
-  fuzzy,      // Substring or fuzzy match
-  compound,   // Multi-word match
-  fallback    // Default categorization
+  exact, // Direct keyword match
+  fuzzy, // Substring or fuzzy match
+  compound, // Multi-word match
 }

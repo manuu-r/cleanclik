@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/services/user_service.dart';
-import '../../../core/routing/routes.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/core/routing/routes.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -41,8 +41,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     });
 
     try {
-      final userService = ref.read(userServiceProvider);
-      final result = await userService.signUpWithEmail(
+      final authService = ref.read(authServiceProvider);
+      final result = await authService.signUpWithEmail(
         _emailController.text.trim(),
         _passwordController.text,
         _usernameController.text.trim(),
@@ -53,7 +53,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         if (mounted) {
           context.go(Routes.home);
         }
-      } else if (result.emailConfirmationRequired) {
+      } else if (result.error?.type == AuthErrorType.emailNotVerified) {
         if (mounted) {
           // Navigate to email verification screen
           context.push(
@@ -63,7 +63,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         }
       } else {
         setState(() {
-          _errorMessage = result.error ?? 'Sign up failed';
+          _errorMessage = result.error?.message ?? 'Sign up failed';
         });
       }
     } catch (e) {
@@ -86,8 +86,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     });
 
     try {
-      final userService = ref.read(userServiceProvider);
-      final result = await userService.signInWithGoogle();
+      final authService = ref.read(authServiceProvider);
+      final result = await authService.signInWithGoogle();
 
       if (result.success) {
         if (mounted) {
@@ -95,7 +95,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         }
       } else {
         setState(() {
-          _errorMessage = result.error ?? 'Google sign in failed';
+          _errorMessage = result.error?.message ?? 'Google sign in failed';
         });
       }
     } catch (e) {

@@ -45,11 +45,7 @@ class User {
         'ewaste': 26, // Combined landfill items into ewaste
         'hazardous': 3,
       },
-      achievements: [
-        'first_pickup',
-        'eco_novice',
-        'recycling_champion',
-      ],
+      achievements: ['first_pickup', 'eco_novice', 'recycling_champion'],
       isOnline: true,
     );
   }
@@ -84,8 +80,10 @@ class User {
       level: data['level'] as int? ?? 1,
       createdAt: DateTime.parse(data['created_at'] as String),
       lastActiveAt: DateTime.parse(data['last_active_at'] as String),
-      categoryStats: const {}, // Will be loaded separately from category_stats table
-      achievements: const [], // Will be loaded separately from achievements table
+      categoryStats:
+          const {}, // Will be loaded separately from category_stats table
+      achievements:
+          const [], // Will be loaded separately from achievements table
       isOnline: data['is_online'] as bool? ?? false,
     );
   }
@@ -183,13 +181,20 @@ class User {
 
   int _getLevelThreshold(int level) {
     switch (level) {
-      case 1: return 0;
-      case 2: return 100;
-      case 3: return 500;
-      case 4: return 1000;
-      case 5: return 2500;
-      case 6: return 5000;
-      default: return 10000;
+      case 1:
+        return 0;
+      case 2:
+        return 100;
+      case 3:
+        return 500;
+      case 4:
+        return 1000;
+      case 5:
+        return 2500;
+      case 6:
+        return 5000;
+      default:
+        return 10000;
     }
   }
 

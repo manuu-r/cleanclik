@@ -12,7 +12,7 @@ class ARThemeExtension extends ThemeExtension<ARThemeExtension> {
   final double neonIntensity;
   final List<BoxShadow> neonGlow;
   final Gradient neonGradient;
-  
+
   const ARThemeExtension({
     required this.neonAccent,
     required this.glowColor,
@@ -23,7 +23,7 @@ class ARThemeExtension extends ThemeExtension<ARThemeExtension> {
     required this.neonGlow,
     required this.neonGradient,
   });
-  
+
   @override
   ARThemeExtension copyWith({
     Color? neonAccent,
@@ -46,13 +46,13 @@ class ARThemeExtension extends ThemeExtension<ARThemeExtension> {
       neonGradient: neonGradient ?? this.neonGradient,
     );
   }
-  
+
   @override
   ARThemeExtension lerp(ARThemeExtension? other, double t) {
     if (other is! ARThemeExtension) {
       return this;
     }
-    
+
     return ARThemeExtension(
       neonAccent: Color.lerp(neonAccent, other.neonAccent, t)!,
       glowColor: Color.lerp(glowColor, other.glowColor, t)!,
@@ -64,7 +64,7 @@ class ARThemeExtension extends ThemeExtension<ARThemeExtension> {
       neonGradient: Gradient.lerp(neonGradient, other.neonGradient, t)!,
     );
   }
-  
+
   static ARThemeExtension light() {
     return const ARThemeExtension(
       neonAccent: NeonColors.electricGreen,
@@ -81,7 +81,7 @@ class ARThemeExtension extends ThemeExtension<ARThemeExtension> {
       ),
     );
   }
-  
+
   static ARThemeExtension dark() {
     return const ARThemeExtension(
       neonAccent: NeonColors.electricGreen,
@@ -109,7 +109,7 @@ class AnimationThemeExtension extends ThemeExtension<AnimationThemeExtension> {
   final Curve defaultCurve;
   final Curve elasticCurve;
   final Curve bounceCurve;
-  
+
   const AnimationThemeExtension({
     required this.fastDuration,
     required this.mediumDuration,
@@ -118,7 +118,7 @@ class AnimationThemeExtension extends ThemeExtension<AnimationThemeExtension> {
     required this.elasticCurve,
     required this.bounceCurve,
   });
-  
+
   @override
   AnimationThemeExtension copyWith({
     Duration? fastDuration,
@@ -137,13 +137,13 @@ class AnimationThemeExtension extends ThemeExtension<AnimationThemeExtension> {
       bounceCurve: bounceCurve ?? this.bounceCurve,
     );
   }
-  
+
   @override
   AnimationThemeExtension lerp(AnimationThemeExtension? other, double t) {
     if (other is! AnimationThemeExtension) {
       return this;
     }
-    
+
     return AnimationThemeExtension(
       fastDuration: lerpDuration(fastDuration, other.fastDuration, t),
       mediumDuration: lerpDuration(mediumDuration, other.mediumDuration, t),
@@ -153,7 +153,7 @@ class AnimationThemeExtension extends ThemeExtension<AnimationThemeExtension> {
       bounceCurve: other.bounceCurve,
     );
   }
-  
+
   static AnimationThemeExtension standard() {
     return const AnimationThemeExtension(
       fastDuration: Duration(milliseconds: 200),
@@ -169,7 +169,8 @@ class AnimationThemeExtension extends ThemeExtension<AnimationThemeExtension> {
 /// Helper functions for theme extensions
 extension ThemeDataExtensions on ThemeData {
   ARThemeExtension get arTheme => extension<ARThemeExtension>()!;
-  AnimationThemeExtension get animationTheme => extension<AnimationThemeExtension>()!;
+  AnimationThemeExtension get animationTheme =>
+      extension<AnimationThemeExtension>()!;
 }
 
 /// Helper functions for lerping
@@ -179,6 +180,7 @@ double lerpDouble(double a, double b, double t) {
 
 Duration lerpDuration(Duration a, Duration b, double t) {
   return Duration(
-    microseconds: (a.inMicroseconds + (b.inMicroseconds - a.inMicroseconds) * t).round(),
+    microseconds: (a.inMicroseconds + (b.inMicroseconds - a.inMicroseconds) * t)
+        .round(),
   );
 }

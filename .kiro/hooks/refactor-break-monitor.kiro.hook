@@ -1,0 +1,26 @@
+{
+  "name": "Refactor Break Monitor",
+  "description": "Monitors critical Flutter/Dart files during refactoring phase to detect potentially breaking changes that could destabilize the entire project",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [
+      "lib/main.dart",
+      "lib/app.dart",
+      "lib/core/services/*.dart",
+      "lib/core/providers/*.dart",
+      "lib/core/models/*.dart",
+      "pubspec.yaml",
+      "android/app/build.gradle.kts",
+      "ios/Runner/Info.plist"
+    ]
+  },
+  "actions": [
+    {
+      "type": "agent",
+      "prompt": "CRITICAL REFACTOR ALERT: Files in the core architecture have been modified during the refactoring phase. Please analyze these changes for potential breaking issues:\n\n1. Check for removed or renamed public APIs that other parts of the codebase depend on\n2. Verify that service dependencies and provider relationships are still intact\n3. Look for changes to core models that might break serialization/deserialization\n4. Ensure build configuration changes don't break platform-specific functionality\n5. Validate that routing and navigation changes maintain app flow\n6. Check for removed or modified Riverpod providers that could cause runtime crashes\n7. Verify that any changes to main.dart or app.dart don't break app initialization\n\nFocus on identifying changes that could cause:\n- Compilation errors across the project\n- Runtime crashes due to missing dependencies\n- Breaking changes to the public API surface\n- Platform-specific build failures\n- State management provider issues\n\nProvide specific recommendations to prevent project breakage and suggest safer refactoring approaches if risky patterns are detected.",
+      "description": "Critical refactor safety analysis"
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

@@ -3,20 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleanclik/core/theme/app_colors.dart';
 import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
-import 'package:cleanclik/core/models/leaderboard_user.dart';
 import 'package:cleanclik/core/models/leaderboard_entry.dart';
-import 'package:cleanclik/core/models/achievement.dart';
 import 'package:cleanclik/core/models/achievement_card.dart';
-import 'package:cleanclik/core/enums/leaderboard_period.dart';
-import 'package:cleanclik/core/services/leaderboard_service.dart';
-import 'package:cleanclik/core/services/social_sharing_service.dart';
-import 'package:cleanclik/core/services/user_service.dart';
-import 'package:cleanclik/presentation/widgets/glassmorphism_container.dart';
-import 'package:cleanclik/presentation/widgets/particle_system.dart';
 
-import 'package:cleanclik/presentation/widgets/floating_share_overlay.dart';
-import 'package:cleanclik/presentation/widgets/high_priority_overlay.dart';
-import 'package:cleanclik/presentation/widgets/sync_status_indicator.dart';
+import 'package:cleanclik/core/services/social/leaderboard_service.dart';
+import 'package:cleanclik/core/services/social/social_sharing_service.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/animations/particle_system.dart';
+
+import 'package:cleanclik/presentation/widgets/social/floating_share_overlay.dart';
+import 'package:cleanclik/presentation/widgets/overlays/high_priority_overlay.dart';
+import 'package:cleanclik/presentation/widgets/common/sync_status_indicator.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -200,7 +198,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
   }
 
   Widget _buildUserRankCard() {
-    final currentUser = ref.watch(currentUserProvider).value;
+    final currentUser = ref.watch(currentUserProvider);
     final leaderboardServiceAsync = ref.watch(leaderboardServiceProvider);
 
     return Container(
@@ -479,39 +477,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildRankChangeIndicator(int change) {
-    if (change == 0) return const SizedBox.shrink();
-
-    final isPositive = change > 0;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: isPositive
-            ? Colors.green.withOpacity(0.2)
-            : Colors.red.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-            color: isPositive ? Colors.green : Colors.red,
-            size: 10,
-          ),
-          Text(
-            '${change.abs()}',
-            style: TextStyle(
-              color: isPositive ? Colors.green : Colors.red,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
       ),
     );
   }

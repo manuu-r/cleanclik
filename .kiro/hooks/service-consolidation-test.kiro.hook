@@ -1,0 +1,34 @@
+{
+  "name": "Service Consolidation Test",
+  "description": "Runs targeted tests when database services and repositories are modified",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [
+      "lib/core/services/database_service.dart",
+      "lib/core/repositories/**/*.dart",
+      "lib/core/models/user.dart"
+    ]
+  },
+  "actions": [
+    {
+      "type": "command",
+      "command": "flutter test test/unit/services/database_service_test.dart",
+      "description": "Test database service functionality",
+      "continueOnError": true
+    },
+    {
+      "type": "command",
+      "command": "flutter test test/unit/repositories/",
+      "description": "Test repository pattern implementations",
+      "continueOnError": true
+    },
+    {
+      "type": "command",
+      "command": "flutter test test/unit/models/user_test.dart",
+      "description": "Test consolidated user model",
+      "continueOnError": true
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

@@ -4,8 +4,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/camera_mode.dart';
-import '../services/camera_resource_manager.dart';
+import 'package:cleanclik/core/models/camera_mode.dart';
+import 'package:cleanclik/core/services/camera/camera_resource_manager.dart';
 
 part 'camera_provider.g.dart';
 
@@ -18,27 +18,30 @@ class CameraNotifier extends _$CameraNotifier {
   @override
   CameraState build() {
     _manager = CameraResourceManager();
-    
+
     // Listen to camera state changes
     _stateSubscription = _manager.stateStream.listen((newState) {
       // Check if the provider is still active before updating state
       if (!ref.exists(cameraNotifierProvider)) return;
       state = newState;
     });
-    
+
     // Cleanup when provider is disposed
     ref.onDispose(() {
       _stateSubscription?.cancel();
       developer.log('CameraNotifier disposed', name: 'CameraProvider');
     });
-    
+
     return CameraState.initial;
   }
 
   /// Switch to QR scanning mode
   Future<void> switchToQRMode() async {
     if (state.status == CameraStatus.switching) {
-      developer.log('Camera already switching, ignoring QR mode request', name: 'CameraProvider');
+      developer.log(
+        'Camera already switching, ignoring QR mode request',
+        name: 'CameraProvider',
+      );
       return;
     }
 
@@ -47,7 +50,7 @@ class CameraNotifier extends _$CameraNotifier {
         status: CameraStatus.switching,
         errorMessage: null,
       );
-      
+
       await _manager.requestCamera(CameraMode.qrScanning);
       developer.log('Successfully switched to QR mode', name: 'CameraProvider');
     } catch (e) {
@@ -63,7 +66,10 @@ class CameraNotifier extends _$CameraNotifier {
   /// Switch to ML detection mode
   Future<void> switchToMLMode() async {
     if (state.status == CameraStatus.switching) {
-      developer.log('Camera already switching, ignoring ML mode request', name: 'CameraProvider');
+      developer.log(
+        'Camera already switching, ignoring ML mode request',
+        name: 'CameraProvider',
+      );
       return;
     }
 
@@ -72,7 +78,7 @@ class CameraNotifier extends _$CameraNotifier {
         status: CameraStatus.switching,
         errorMessage: null,
       );
-      
+
       await _manager.requestCamera(CameraMode.mlDetection);
       developer.log('Successfully switched to ML mode', name: 'CameraProvider');
     } catch (e) {

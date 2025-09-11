@@ -4,14 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/routing/routes.dart';
-import 'package:cleanclik/core/services/inventory_service.dart';
-import 'package:cleanclik/core/services/performance_service.dart';
-import 'package:cleanclik/core/constants/ui_constants.dart';
-import 'package:cleanclik/presentation/widgets/glassmorphism_container.dart';
+import 'package:cleanclik/core/services/business/inventory_service.dart';
+import 'package:cleanclik/core/services/system/performance_service.dart';
+import 'package:cleanclik/core/theme/app_theme.dart';
+import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
 
-import 'package:cleanclik/presentation/widgets/progress_ring.dart';
-import 'package:cleanclik/presentation/widgets/breathing_widget.dart';
-import 'package:cleanclik/presentation/widgets/particle_system.dart';
+import 'package:cleanclik/presentation/widgets/animations/progress_ring.dart';
+import 'package:cleanclik/presentation/widgets/animations/breathing_widget.dart';
+import 'package:cleanclik/presentation/widgets/animations/particle_system.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -44,7 +44,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final ref = this.ref;
     final inventory = ref.watch(inventoryServiceProvider);
-    final inventoryService = ref.read(inventoryServiceProvider);
     final performanceService = ref.watch(performanceServiceProvider);
     final theme = Theme.of(context);
     final arTheme = theme.arTheme;

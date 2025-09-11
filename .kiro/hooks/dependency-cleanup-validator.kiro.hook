@@ -1,0 +1,37 @@
+{
+  "name": "Dependency Cleanup Validator",
+  "description": "Validates dependency changes and checks for unused imports/dependencies",
+  "trigger": {
+    "type": "file_save",
+    "patterns": [
+      "pubspec.yaml",
+      "lib/**/*.dart"
+    ]
+  },
+  "actions": [
+    {
+      "type": "command",
+      "command": "flutter pub get",
+      "description": "Update dependencies after pubspec changes",
+      "condition": "file_matches:pubspec.yaml"
+    },
+    {
+      "type": "command",
+      "command": "dart analyze --fatal-infos",
+      "description": "Check for unused imports and other issues"
+    },
+    {
+      "type": "command",
+      "command": "flutter pub deps --style=compact",
+      "description": "Check dependency tree for conflicts",
+      "continueOnError": true
+    },
+    {
+      "type": "agent",
+      "prompt": "Analyze the current file for unused imports, dead code, or circular dependencies. Suggest specific cleanup actions.",
+      "description": "AI-powered code cleanup analysis"
+    }
+  ],
+  "enabled": true,
+  "autoApprove": false
+}

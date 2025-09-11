@@ -1,9 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../../lib/core/models/database_exceptions.dart';
-import '../../lib/core/services/user_database_service.dart';
-import '../../lib/core/services/inventory_database_service.dart';
-import '../../lib/core/services/achievement_database_service.dart';
-import '../../lib/core/services/category_stats_database_service.dart';
+import 'package:cleanclik/core/models/database_exceptions.dart';
+import 'package:cleanclik/core/services/data/inventory_database_service.dart';
+import 'package:cleanclik/core/services/data/achievement_database_service.dart';
+import 'package:cleanclik/core/services/data/category_stats_database_service.dart';
 
 void main() {
   group('Database Service Tests', () {
@@ -78,12 +77,10 @@ void main() {
     });
 
     test('Database services should have correct table names', () {
-      final userService = UserDatabaseService();
       final inventoryService = InventoryDatabaseService();
       final achievementService = AchievementDatabaseService();
       final categoryStatsService = CategoryStatsDatabaseService();
 
-      expect(userService.tableName, 'users');
       expect(inventoryService.tableName, 'inventory');
       expect(achievementService.tableName, 'achievements');
       expect(categoryStatsService.tableName, 'category_stats');

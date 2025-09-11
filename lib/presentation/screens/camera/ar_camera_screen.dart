@@ -4,13 +4,13 @@ import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 
-import '../../../core/services/hand_tracking_service.dart';
-import '../../../core/services/inventory_service.dart';
-import '../../../core/services/qr_camera_controller.dart';
-import '../../../core/services/bin_location_service.dart';
-import '../../../core/models/detected_object.dart';
-import '../../../core/models/camera_mode.dart';
-import '../../widgets/qr_scanner_overlay.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
+import 'package:cleanclik/core/services/business/inventory_service.dart';
+import 'package:cleanclik/core/services/camera/qr_camera_controller.dart';
+import 'package:cleanclik/core/services/location/bin_location_service.dart';
+import 'package:cleanclik/core/models/detected_object.dart';
+import 'package:cleanclik/core/models/camera_mode.dart';
+import 'package:cleanclik/presentation/widgets/camera/qr_scanner_overlay.dart';
 import 'ar_camera_services.dart';
 import 'ar_camera_processing.dart';
 import 'ar_camera_ui.dart';
@@ -79,7 +79,10 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
     _processing = ARCameraProcessing(_services);
     _ui = ARCameraUI(_services, _processing);
     _inventoryService = ref.read(inventoryServiceProvider.notifier);
-    _qrController = QRCameraController(_inventoryService, ref.read(binLocationServiceProvider));
+    _qrController = QRCameraController(
+      _inventoryService,
+      ref.read(binLocationServiceProvider),
+    );
 
     // Set up callbacks
     _setupCallbacks();
