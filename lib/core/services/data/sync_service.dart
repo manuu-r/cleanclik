@@ -9,7 +9,7 @@ import 'package:cleanclik/core/models/sync_status.dart';
 import 'package:cleanclik/core/services/auth/auth_service.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
 import 'package:cleanclik/core/services/social/leaderboard_service.dart';
-import 'data_migration_service.dart';
+import 'package:cleanclik/core/services/data/data_migration_service.dart';
 
 part 'sync_service.g.dart';
 
@@ -37,6 +37,7 @@ class SyncService {
   Timer? _periodicSyncTimer;
   bool _isSyncing = false;
   bool _isDisposed = false;
+  DateTime? _lastSyncTime;
 
   SyncService(
     this._authService,
@@ -78,6 +79,16 @@ class SyncService {
       debugPrint('Sync already in progress, skipping');
       return;
     }
+
+    // Add cooldown period to prevent excessive syncing
+    if (!forceSync && _lastSyncTime != null) {
+      final timeSinceLastSync = DateTime.now().difference(_lastSyncTime!);
+      if (timeSinceLastSync < const Duration(seconds: 10)) {
+        debugPrint('Sync cooldown active, skipping (last sync ${timeSinceLastSync.inSeconds}s ago)');
+        return;
+      }
+    }
+    _lastSyncTime = DateTime.now();
 
     if (!_isOnline) {
       debugPrint('Device is offline, skipping sync');
@@ -426,11 +437,14 @@ class SyncService {
 
   /// Listen to individual service updates
   void _listenToServiceUpdates() {
+    bool _hasTriggeredInitialSync = false;
+    
     // Listen to auth service state changes
     _authService.authStateStream.listen((authState) {
       final isAuthenticated = authState.isAuthenticated;
-      if (isAuthenticated) {
+      if (isAuthenticated && !_hasTriggeredInitialSync && !_isSyncing) {
         debugPrint('User authenticated, triggering initial sync...');
+        _hasTriggeredInitialSync = true;
         Timer(const Duration(seconds: 1), () => syncAllData());
       }
     });

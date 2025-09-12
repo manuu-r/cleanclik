@@ -1,10 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // UserDatabaseService removed - user operations now handled by AuthService
-import 'inventory_database_service.dart';
-import 'achievement_database_service.dart';
-import 'category_stats_database_service.dart';
-import 'leaderboard_database_service.dart';
+import 'package:cleanclik/core/services/data/inventory_database_service.dart';
+import 'package:cleanclik/core/services/data/achievement_database_service.dart';
+import 'package:cleanclik/core/services/data/category_stats_database_service.dart';
+import 'package:cleanclik/core/services/data/leaderboard_database_service.dart';
 
 part 'database_service_provider.g.dart';
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cleanclik/core/models/sync_status.dart';
 import 'package:cleanclik/core/services/data/sync_service.dart';
+import 'package:cleanclik/presentation/widgets/common/neon_icon_button.dart';
 
 /// Widget that displays the current synchronization status
 class SyncStatusIndicator extends ConsumerWidget {
@@ -155,12 +156,16 @@ class SyncStatusDialog extends ConsumerWidget {
         error: (error, _) => Text('Error: $error'),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+        NeonIconButton.secondary(
+          label: 'Close',
+          color: Colors.grey,
+          onTap: () => Navigator.of(context).pop(),
+          buttonSize: ButtonSize.small,
         ),
-        TextButton(
-          onPressed: () async {
+        NeonIconButton.primary(
+          label: 'Force Sync',
+          color: Colors.blue,
+          onTap: () async {
             try {
               final service = ref.read(syncServiceNotifierProvider);
               service.syncAllData(forceSync: true);
@@ -170,7 +175,7 @@ class SyncStatusDialog extends ConsumerWidget {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Force Sync'),
+          buttonSize: ButtonSize.small,
         ),
       ],
     );
@@ -328,8 +333,10 @@ class ManualSyncButton extends ConsumerWidget {
             ? status.getStatus(dataType!).isSyncing
             : status.isAnySyncing;
 
-        return ElevatedButton(
-          onPressed: isSyncing
+        return NeonIconButton.primary(
+          label: 'Sync',
+          color: Colors.blue,
+          onTap: isSyncing
               ? null
               : () async {
                   try {
@@ -343,25 +350,21 @@ class ManualSyncButton extends ConsumerWidget {
                     // Service not ready, ignore
                   }
                 },
-          child: isSyncing
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : child ?? const Text('Sync'),
+          isLoading: isSyncing,
+          buttonSize: ButtonSize.small,
         );
       },
-      loading: () => const ElevatedButton(
-        onPressed: null,
-        child: SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+      loading: () => NeonIconButton.primary(
+        label: 'Sync',
+        color: Colors.blue,
+        onTap: null,
+        isLoading: true,
+        buttonSize: ButtonSize.small,
       ),
-      error: (_, __) => ElevatedButton(
-        onPressed: () async {
+      error: (_, __) => NeonIconButton.primary(
+        label: 'Retry',
+        color: Colors.blue,
+        onTap: () async {
           try {
             final service = ref.read(syncServiceNotifierProvider);
             service.syncAllData(forceSync: true);
@@ -369,7 +372,7 @@ class ManualSyncButton extends ConsumerWidget {
             // Service not ready, ignore
           }
         },
-        child: child ?? const Text('Retry'),
+        buttonSize: ButtonSize.small,
       ),
     );
   }

@@ -31,6 +31,7 @@ class _EmailVerificationScreenState
   Future<void> _checkVerificationStatus() async {
     if (_isCheckingVerification) return;
 
+    if (!mounted) return;
     setState(() {
       _isCheckingVerification = true;
       _message = null;
@@ -43,7 +44,9 @@ class _EmailVerificationScreenState
       final authService = ref.read(authServiceProvider);
       final isAuthenticated = authService.isAuthenticated;
 
-      if (isAuthenticated && mounted) {
+      if (!mounted) return;
+
+      if (isAuthenticated) {
         // User is authenticated, navigate to home
         context.go(Routes.home);
         return;
@@ -55,6 +58,7 @@ class _EmailVerificationScreenState
         _isError = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _message = 'Error checking verification status. Please try again.';
         _isError = true;
@@ -71,6 +75,7 @@ class _EmailVerificationScreenState
   Future<void> _resendVerificationEmail() async {
     if (_isResendingEmail) return;
 
+    if (!mounted) return;
     setState(() {
       _isResendingEmail = true;
       _message = null;
@@ -80,11 +85,13 @@ class _EmailVerificationScreenState
     try {
       // For the simplified auth service, we'll use Supabase directly for resending
       // This functionality would need to be added to AuthService if needed
+      if (!mounted) return;
       setState(() {
         _message = 'Email resend functionality will be available in the full implementation.';
         _isError = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _message = 'Error sending verification email. Please try again.';
         _isError = true;

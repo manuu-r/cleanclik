@@ -12,6 +12,7 @@ import 'package:cleanclik/core/services/camera/camera_resource_manager.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/theme/app_theme.dart';
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/common/neon_icon_button.dart';
 
 /// ML Detection widget that integrates with the camera resource manager
 class IntegratedMLDetection extends ConsumerStatefulWidget {
@@ -384,20 +385,24 @@ class _IntegratedMLDetectionState extends ConsumerState<IntegratedMLDetection> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
+                  NeonIconButton.primary(
+                    label: 'Retry',
+                    color: Colors.green,
+                    onTap: () {
                       setState(() {
                         _errorMessage = null;
                       });
                       _initializeMLDetection();
                     },
-                    child: const Text('Retry'),
+                    buttonSize: ButtonSize.medium,
                   ),
                   if (widget.onClose != null) ...[
                     const SizedBox(width: UIConstants.spacing2),
-                    TextButton(
-                      onPressed: widget.onClose,
-                      child: const Text('Cancel'),
+                    NeonIconButton.secondary(
+                      label: 'Cancel',
+                      color: Colors.grey,
+                      onTap: widget.onClose,
+                      buttonSize: ButtonSize.medium,
                     ),
                   ],
                 ],
@@ -433,9 +438,11 @@ class _IntegratedMLDetectionState extends ConsumerState<IntegratedMLDetection> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  IconButton(
-                    onPressed: widget.onClose,
-                    icon: const Icon(Icons.close, color: Colors.white),
+                  NeonIconButton(
+                    icon: Icons.close,
+                    color: Colors.white,
+                    onTap: widget.onClose,
+                    tooltip: 'Close',
                   ),
                 ],
               ),

@@ -1,6 +1,6 @@
 import 'package:cleanclik/core/models/achievement.dart';
 import 'package:cleanclik/core/models/database_exceptions.dart';
-import 'database_service.dart';
+import 'package:cleanclik/core/services/data/database_service.dart';
 
 /// Database service for Achievement entities with Supabase integration
 /// Manages user achievements in the achievements table

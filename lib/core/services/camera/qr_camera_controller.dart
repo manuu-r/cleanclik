@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'qr_bin_service.dart';
+import 'package:cleanclik/core/services/camera/qr_bin_service.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
 import 'package:cleanclik/core/services/location/bin_matching_service.dart';
-import 'disposal_detection_service.dart';
+import 'package:cleanclik/core/services/camera/disposal_detection_service.dart';
 import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
 import 'package:cleanclik/core/services/location/bin_location_service.dart';
 
@@ -252,7 +252,7 @@ class QRCameraController {
         _onShowOverlay!(
           DisposalCelebrationOverlay(
             disposalResult: celebrationResult,
-            onComplete: () {
+            onDismiss: () {
               stopQRScanning();
               // Navigate to home screen after disposal
               if (_onNavigateHome != null) {

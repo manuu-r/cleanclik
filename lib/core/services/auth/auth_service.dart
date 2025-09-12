@@ -3,20 +3,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User, AuthState;
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase show User, AuthState;
+import 'package:supabase_flutter/supabase_flutter.dart'
+    as supabase
+    show User, AuthState;
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:cleanclik/core/models/user.dart';
-import 'supabase_config_service.dart';
+import 'package:cleanclik/core/services/auth/supabase_config_service.dart';
 
 part 'auth_service.g.dart';
 
 /// Authentication status enumeration
 enum AuthStatus {
-  loading,      // Initial load or authentication in progress
+  loading, // Initial load or authentication in progress
   authenticated, // User is signed in
   unauthenticated, // User is not signed in
-  error         // Authentication error occurred
+  error, // Authentication error occurred
 }
 
 /// Unified authentication state
@@ -35,7 +37,8 @@ class AuthState {
 
   // Convenience getters
   bool get isLoading => status == AuthStatus.loading;
-  bool get isAuthenticated => status == AuthStatus.authenticated && user != null;
+  bool get isAuthenticated =>
+      status == AuthStatus.authenticated && user != null;
   bool get hasError => status == AuthStatus.error;
 
   AuthState copyWith({
@@ -60,14 +63,14 @@ class AuthState {
 
 /// Authentication error types for better error handling
 enum AuthErrorType {
-  networkError,           // Network connectivity issues
-  invalidCredentials,     // Wrong email/password
-  emailNotVerified,      // Email confirmation required
-  userNotFound,          // User doesn't exist
-  weakPassword,          // Password doesn't meet requirements
-  emailAlreadyInUse,     // Email already registered
-  configurationError,    // Supabase not configured
-  unknownError          // Unexpected errors
+  networkError, // Network connectivity issues
+  invalidCredentials, // Wrong email/password
+  emailNotVerified, // Email confirmation required
+  userNotFound, // User doesn't exist
+  weakPassword, // Password doesn't meet requirements
+  emailAlreadyInUse, // Email already registered
+  configurationError, // Supabase not configured
+  unknownError, // Unexpected errors
 }
 
 /// Authentication result with categorized errors
@@ -76,17 +79,15 @@ class AuthResult {
   final User? user;
   final AuthError? error;
 
-  const AuthResult({
-    required this.success,
-    this.user,
-    this.error,
-  });
+  const AuthResult({required this.success, this.user, this.error});
 
   factory AuthResult.success(User user) =>
       AuthResult(success: true, user: user);
-  
-  factory AuthResult.failure(AuthErrorType type, String message) =>
-      AuthResult(success: false, error: AuthError(type: type, message: message));
+
+  factory AuthResult.failure(AuthErrorType type, String message) => AuthResult(
+    success: false,
+    error: AuthError(type: type, message: message),
+  );
 }
 
 /// Authentication error with type and message
@@ -94,10 +95,7 @@ class AuthError {
   final AuthErrorType type;
   final String message;
 
-  const AuthError({
-    required this.type,
-    required this.message,
-  });
+  const AuthError({required this.type, required this.message});
 
   @override
   String toString() => message;
@@ -110,11 +108,14 @@ class AuthService {
   // State management
   final StreamController<AuthState> _stateController =
       StreamController<AuthState>.broadcast();
-  
+
   AuthState _currentState = const AuthState(status: AuthStatus.loading);
   StreamSubscription<supabase.AuthState>? _authSubscription;
   bool _isSigningOut = false;
   bool _isDisposed = false;
+  
+  // Prevent duplicate user profile creation
+  final Map<String, Future<User>> _userCreationLocks = {};
 
   AuthService(this._supabase) {
     _initializeAuthState();
@@ -144,11 +145,46 @@ class AuthService {
       await _checkExistingSession();
     } catch (e) {
       debugPrint('Error during AuthService initialization: $e');
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: 'Failed to initialize authentication: $e',
-        isDemoMode: SupabaseConfigService.isDemoMode,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.error,
+          error: 'Failed to initialize authentication: $e',
+          isDemoMode: SupabaseConfigService.isDemoMode,
+        ),
+      );
+    }
+  }
+
+  /// Refresh authentication state (call when app resumes or on deep links)
+  Future<void> refreshAuthState() async {
+    debugPrint('Refreshing authentication state...');
+    await _checkExistingSession();
+  }
+
+  /// Handle Supabase auth callback from deep link
+  Future<void> handleAuthCallback(String url) async {
+    if (SupabaseConfigService.isDemoMode) return;
+    
+    try {
+      debugPrint('Handling Supabase auth callback: $url');
+      
+      // Parse the URL to extract auth parameters
+      final uri = Uri.parse(url);
+      final code = uri.queryParameters['code'];
+      
+      if (code != null) {
+        debugPrint('Found auth code, processing...');
+        
+        // Let Supabase handle the auth callback
+        // This should trigger the onAuthStateChange listener
+        await _supabase.auth.getSessionFromUrl(uri);
+        
+        debugPrint('Auth callback processed');
+      } else {
+        debugPrint('No auth code found in callback URL');
+      }
+    } catch (e) {
+      debugPrint('Error handling auth callback: $e');
     }
   }
 
@@ -169,41 +205,19 @@ class AuthService {
         password: password,
       );
 
-      if (response.session != null && response.user != null) {
-        final user = await _loadOrCreateUserProfile(response.user!);
-        _updateState(AuthState(
-          status: AuthStatus.authenticated,
-          user: user,
-          isDemoMode: false,
-        ));
-        return AuthResult.success(user);
-      } else {
-        _updateState(AuthState(
-          status: AuthStatus.error,
-          error: 'Sign in failed',
-          isDemoMode: false,
-        ));
-        return AuthResult.failure(AuthErrorType.unknownError, 'Sign in failed');
-      }
+      return _handleAuthResponse(response, 'sign in');
     } on AuthException catch (e) {
-      final errorType = _mapAuthException(e);
-      final errorMessage = e.message;
-      
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: errorMessage,
-        isDemoMode: false,
-      ));
-      
-      return AuthResult.failure(errorType, errorMessage);
+      return _handleAuthException(e, 'sign in');
     } catch (e) {
+      debugPrint('Unexpected error during sign in: $e');
       const errorMessage = 'An unexpected error occurred during sign in';
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: errorMessage,
-        isDemoMode: false,
-      ));
-      
+      _updateState(
+        AuthState(
+          status: AuthStatus.error,
+          error: errorMessage,
+          isDemoMode: false,
+        ),
+      );
       return AuthResult.failure(AuthErrorType.unknownError, errorMessage);
     }
   }
@@ -230,67 +244,48 @@ class AuthService {
 
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
-        _updateState(AuthState(
-          status: AuthStatus.unauthenticated,
-          isDemoMode: false,
-        ));
-        return AuthResult.failure(AuthErrorType.unknownError, 'Google sign in was cancelled');
+        _updateState(
+          AuthState(status: AuthStatus.unauthenticated, isDemoMode: false),
+        );
+        return AuthResult.failure(
+          AuthErrorType.unknownError,
+          'Google sign in was cancelled by user',
+        );
       }
 
       final googleAuth = await googleUser.authentication;
       final accessToken = googleAuth.accessToken;
       final idToken = googleAuth.idToken;
 
-      if (accessToken == null) {
-        _updateState(AuthState(
-          status: AuthStatus.error,
-          error: 'Failed to get Google access token',
-          isDemoMode: false,
-        ));
-        return AuthResult.failure(AuthErrorType.unknownError, 'Failed to get Google access token');
+      if (accessToken == null || idToken == null) {
+        _updateState(
+          AuthState(status: AuthStatus.unauthenticated, isDemoMode: false),
+        );
+        return AuthResult.failure(
+          AuthErrorType.unknownError,
+          'Failed to get Google authentication tokens',
+        );
       }
 
       final response = await _supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
-        idToken: idToken!,
+        idToken: idToken,
         accessToken: accessToken,
       );
 
-      if (response.session != null && response.user != null) {
-        final user = await _loadOrCreateUserProfile(response.user!);
-        _updateState(AuthState(
-          status: AuthStatus.authenticated,
-          user: user,
-          isDemoMode: false,
-        ));
-        return AuthResult.success(user);
-      } else {
-        _updateState(AuthState(
-          status: AuthStatus.error,
-          error: 'Google sign in failed',
-          isDemoMode: false,
-        ));
-        return AuthResult.failure(AuthErrorType.unknownError, 'Google sign in failed');
-      }
+      return _handleAuthResponse(response, 'Google sign in');
     } on AuthException catch (e) {
-      final errorType = _mapAuthException(e);
-      final errorMessage = e.message;
-      
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: errorMessage,
-        isDemoMode: false,
-      ));
-      
-      return AuthResult.failure(errorType, errorMessage);
+      return _handleAuthException(e, 'Google sign in');
     } catch (e) {
+      debugPrint('Unexpected error during Google sign in: $e');
       const errorMessage = 'An unexpected error occurred during Google sign in';
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: errorMessage,
-        isDemoMode: false,
-      ));
-      
+      _updateState(
+        AuthState(
+          status: AuthStatus.error,
+          error: errorMessage,
+          isDemoMode: false,
+        ),
+      );
       return AuthResult.failure(AuthErrorType.unknownError, errorMessage);
     }
   }
@@ -317,54 +312,19 @@ class AuthService {
         data: {'username': username},
       );
 
-      if (response.user != null) {
-        if (response.session != null) {
-          // User signed up and is immediately authenticated (email confirmation disabled)
-          final user = await _createUserProfile(response.user!, username);
-          _updateState(AuthState(
-            status: AuthStatus.authenticated,
-            user: user,
-            isDemoMode: false,
-          ));
-          return AuthResult.success(user);
-        } else {
-          // User signed up but needs email confirmation
-          _updateState(AuthState(
-            status: AuthStatus.unauthenticated,
-            isDemoMode: false,
-          ));
-          return AuthResult.failure(
-            AuthErrorType.emailNotVerified,
-            'Please check your email ($email) and click the confirmation link to complete your account setup.',
-          );
-        }
-      } else {
-        _updateState(AuthState(
-          status: AuthStatus.error,
-          error: 'Sign up failed - no user returned',
-          isDemoMode: false,
-        ));
-        return AuthResult.failure(AuthErrorType.unknownError, 'Sign up failed - no user returned');
-      }
+      return _handleAuthResponse(response, 'sign up', username: username);
     } on AuthException catch (e) {
-      final errorType = _mapAuthException(e);
-      final errorMessage = e.message;
-      
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: errorMessage,
-        isDemoMode: false,
-      ));
-      
-      return AuthResult.failure(errorType, errorMessage);
+      return _handleAuthException(e, 'sign up');
     } catch (e) {
+      debugPrint('Unexpected error during sign up: $e');
       const errorMessage = 'An unexpected error occurred during sign up';
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: errorMessage,
-        isDemoMode: false,
-      ));
-      
+      _updateState(
+        AuthState(
+          status: AuthStatus.error,
+          error: errorMessage,
+          isDemoMode: false,
+        ),
+      );
       return AuthResult.failure(AuthErrorType.unknownError, errorMessage);
     }
   }
@@ -373,15 +333,17 @@ class AuthService {
   Future<void> signOut() async {
     try {
       debugPrint('Starting user sign out process...');
-      
+
       // Set flag to prevent auth state listener from interfering
       _isSigningOut = true;
-      
+
       // Update state to unauthenticated immediately
-      _updateState(AuthState(
-        status: AuthStatus.unauthenticated,
-        isDemoMode: SupabaseConfigService.isDemoMode,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.unauthenticated,
+          isDemoMode: SupabaseConfigService.isDemoMode,
+        ),
+      );
 
       if (SupabaseConfigService.isFullyConfigured) {
         // Sign out from Supabase (this may cause expected errors)
@@ -400,10 +362,12 @@ class AuthService {
     } catch (e) {
       debugPrint('Error during sign out: $e');
       // Ensure local state is cleared even if there are errors
-      _updateState(AuthState(
-        status: AuthStatus.unauthenticated,
-        isDemoMode: SupabaseConfigService.isDemoMode,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.unauthenticated,
+          isDemoMode: SupabaseConfigService.isDemoMode,
+        ),
+      );
       _isSigningOut = false;
     }
   }
@@ -417,10 +381,10 @@ class AuthService {
     try {
       // Update user in database
       await _updateUserInDatabase(updatedUser);
-      
+
       // Update current state
       _updateState(_currentState.copyWith(user: updatedUser));
-      
+
       debugPrint('User profile updated: ${updatedUser.username}');
     } catch (e) {
       debugPrint('Failed to update user profile: $e');
@@ -445,6 +409,38 @@ class AuthService {
     await updateProfile(updatedUser);
   }
 
+  /// Handle email verification completion (call this when app resumes or on deep link)
+  Future<void> handleEmailVerificationComplete() async {
+    if (SupabaseConfigService.isDemoMode) return;
+    
+    try {
+      debugPrint('Handling email verification completion...');
+      
+      // Refresh the session to check if user is now authenticated
+      await _supabase.auth.refreshSession();
+      
+      // Check current session
+      final session = _supabase.auth.currentSession;
+      if (session != null && session.user != null) {
+        debugPrint('Email verification successful, user authenticated');
+        await _handleSignIn(session);
+      } else {
+        debugPrint('No valid session after email verification');
+        _updateState(AuthState(
+          status: AuthStatus.unauthenticated,
+          isDemoMode: false,
+        ));
+      }
+    } catch (e) {
+      debugPrint('Error handling email verification: $e');
+      // Don't update to error state, just stay unauthenticated
+      _updateState(AuthState(
+        status: AuthStatus.unauthenticated,
+        isDemoMode: false,
+      ));
+    }
+  }
+
   /// Initialize with demo user for development/testing
   Future<void> initializeWithDemoUser() async {
     try {
@@ -460,20 +456,24 @@ class AuthService {
       final demoUser = User.defaultUser();
 
       // Set the current state with demo user
-      _updateState(AuthState(
-        status: AuthStatus.authenticated,
-        user: demoUser,
-        isDemoMode: true,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.authenticated,
+          user: demoUser,
+          isDemoMode: true,
+        ),
+      );
 
       debugPrint('Demo user initialized: ${demoUser.username}');
     } catch (e) {
       debugPrint('Failed to initialize demo user: $e');
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: 'Failed to initialize demo user: $e',
-        isDemoMode: true,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.error,
+          error: 'Failed to initialize demo user: $e',
+          isDemoMode: true,
+        ),
+      );
       rethrow;
     }
   }
@@ -483,10 +483,9 @@ class AuthService {
     // Check if running in demo mode
     if (SupabaseConfigService.isDemoMode) {
       debugPrint('Running in demo mode, skipping Supabase auth initialization');
-      _updateState(AuthState(
-        status: AuthStatus.unauthenticated,
-        isDemoMode: true,
-      ));
+      _updateState(
+        AuthState(status: AuthStatus.unauthenticated, isDemoMode: true),
+      );
       return;
     }
 
@@ -496,7 +495,10 @@ class AuthService {
         final AuthChangeEvent event = data.event;
         final Session? session = data.session;
 
-        debugPrint('Auth state changed: $event (isSigningOut: $_isSigningOut)');
+        debugPrint('Supabase auth state changed: $event (isSigningOut: $_isSigningOut)');
+        if (session?.user != null) {
+          debugPrint('Session user: ${session!.user.email}, confirmed: ${session.user.emailConfirmedAt}');
+        }
 
         // Skip processing auth events if we're in the middle of signing out
         if (_isSigningOut && event != AuthChangeEvent.signedOut) {
@@ -506,18 +508,25 @@ class AuthService {
 
         switch (event) {
           case AuthChangeEvent.signedIn:
-            if (session != null && !_currentState.isAuthenticated && !_isSigningOut) {
+            if (session != null &&
+                !_currentState.isAuthenticated &&
+                !_isSigningOut) {
+              debugPrint('Processing signedIn event');
               await _handleSignIn(session);
             }
             break;
           case AuthChangeEvent.signedOut:
             if (!_isSigningOut) {
-              _updateState(AuthState(
-                status: AuthStatus.unauthenticated,
-                isDemoMode: false,
-              ));
+              _updateState(
+                AuthState(
+                  status: AuthStatus.unauthenticated,
+                  isDemoMode: false,
+                ),
+              );
             } else {
-              debugPrint('Sign out event during logout process - resetting flag');
+              debugPrint(
+                'Sign out event during logout process - resetting flag',
+              );
               _isSigningOut = false;
             }
             break;
@@ -526,11 +535,14 @@ class AuthService {
             debugPrint('Token refreshed automatically');
             break;
           case AuthChangeEvent.userUpdated:
-            if (session != null && _currentState.isAuthenticated && !_isSigningOut) {
+            if (session != null &&
+                _currentState.isAuthenticated &&
+                !_isSigningOut) {
               await _syncUserData();
             }
             break;
           default:
+            debugPrint('Unhandled auth event: $event');
             break;
         }
       });
@@ -539,11 +551,13 @@ class AuthService {
       _checkExistingSession();
     } catch (e) {
       debugPrint('Error initializing auth state: $e');
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: 'Failed to initialize authentication: $e',
-        isDemoMode: false,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.error,
+          error: 'Failed to initialize authentication: $e',
+          isDemoMode: false,
+        ),
+      );
     }
   }
 
@@ -553,13 +567,12 @@ class AuthService {
       debugPrint('Session check skipped (service disposed)');
       return;
     }
-    
+
     if (SupabaseConfigService.isDemoMode) {
       debugPrint('Demo mode: No session check needed');
-      _updateState(AuthState(
-        status: AuthStatus.unauthenticated,
-        isDemoMode: true,
-      ));
+      _updateState(
+        AuthState(status: AuthStatus.unauthenticated, isDemoMode: true),
+      );
       return;
     }
 
@@ -568,49 +581,64 @@ class AuthService {
 
       // Add timeout to prevent hanging
       await _performSessionCheck().timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 10), // Increased timeout for email verification
         onTimeout: () {
-          debugPrint('Session check timed out after 5 seconds');
-          _updateState(AuthState(
-            status: AuthStatus.unauthenticated,
-            isDemoMode: false,
-          ));
+          debugPrint('Session check timed out after 10 seconds');
+          _updateState(
+            AuthState(status: AuthStatus.unauthenticated, isDemoMode: false),
+          );
           return;
         },
       );
     } catch (e) {
       debugPrint('Error checking existing session: $e');
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: 'Failed to check existing session: $e',
-        isDemoMode: false,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.error,
+          error: 'Failed to check existing session: $e',
+          isDemoMode: false,
+        ),
+      );
     }
   }
 
   /// Perform the actual session check logic
   Future<void> _performSessionCheck() async {
     try {
-      final session = _supabase.auth.currentSession;
-      if (session != null) {
-        debugPrint('Found active Supabase session');
+      // Check current session first
+      var session = _supabase.auth.currentSession;
+      
+      if (session == null) {
+        // Try to refresh session in case of email verification
+        try {
+          final response = await _supabase.auth.refreshSession();
+          session = response.session;
+          debugPrint('Session refresh completed');
+        } catch (e) {
+          debugPrint('Session refresh failed (normal if no session): $e');
+        }
+      }
+      
+      if (session != null && session.user != null) {
+        debugPrint('Found active Supabase session for user: ${session.user.email}');
         await _handleSignIn(session);
         return;
       }
 
       // No valid session found
       debugPrint('No valid session found, user needs to authenticate');
-      _updateState(AuthState(
-        status: AuthStatus.unauthenticated,
-        isDemoMode: false,
-      ));
+      _updateState(
+        AuthState(status: AuthStatus.unauthenticated, isDemoMode: false),
+      );
     } catch (e) {
       debugPrint('Error in session check: $e');
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: 'Session check failed: $e',
-        isDemoMode: false,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.error,
+          error: 'Session check failed: $e',
+          isDemoMode: false,
+        ),
+      );
     }
   }
 
@@ -620,7 +648,7 @@ class AuthService {
       debugPrint('Sign in handling skipped (service disposed)');
       return;
     }
-    
+
     try {
       debugPrint('Handling sign in for user: ${session.user.id}');
 
@@ -628,25 +656,67 @@ class AuthService {
       final user = await _loadOrCreateUserProfile(session.user);
 
       // Update current state
-      _updateState(AuthState(
-        status: AuthStatus.authenticated,
-        user: user,
-        isDemoMode: false,
-      ));
+      _updateState(
+        AuthState(
+          status: AuthStatus.authenticated,
+          user: user,
+          isDemoMode: false,
+        ),
+      );
 
-      debugPrint('User signed in successfully: ${user.username} (${user.email})');
+      debugPrint(
+        'User signed in successfully: ${user.username} (${user.email})',
+      );
     } catch (e) {
       debugPrint('Error handling sign in: $e');
-      _updateState(AuthState(
-        status: AuthStatus.error,
-        error: 'Failed to load user profile: $e',
-        isDemoMode: false,
-      ));
+      
+      // If user session is invalid, clear it and go to unauthenticated state
+      if (e.toString().contains('User session invalid') || 
+          e.toString().contains('foreign key constraint')) {
+        debugPrint('Invalid user session detected, clearing...');
+        _updateState(
+          AuthState(
+            status: AuthStatus.unauthenticated,
+            isDemoMode: false,
+          ),
+        );
+      } else {
+        _updateState(
+          AuthState(
+            status: AuthStatus.error,
+            error: 'Failed to load user profile: $e',
+            isDemoMode: false,
+          ),
+        );
+      }
     }
   }
 
   /// Load existing user profile or create new one
   Future<User> _loadOrCreateUserProfile(supabase.User supabaseUser) async {
+    final authId = supabaseUser.id;
+    
+    // Check if we're already creating a user profile for this auth ID
+    if (_userCreationLocks.containsKey(authId)) {
+      debugPrint('User profile creation already in progress for: $authId');
+      return await _userCreationLocks[authId]!;
+    }
+    
+    // Create a lock for this user creation
+    final creationFuture = _performUserProfileLoad(supabaseUser);
+    _userCreationLocks[authId] = creationFuture;
+    
+    try {
+      final user = await creationFuture;
+      return user;
+    } finally {
+      // Remove the lock when done
+      _userCreationLocks.remove(authId);
+    }
+  }
+
+  /// Perform the actual user profile loading/creation
+  Future<User> _performUserProfileLoad(supabase.User supabaseUser) async {
     try {
       debugPrint('Loading user profile for auth ID: ${supabaseUser.id}');
 
@@ -655,25 +725,75 @@ class AuthService {
 
       if (existingUser != null) {
         debugPrint('Found existing user profile: ${existingUser.username}');
-        
+
         // Update last active timestamp
         final updatedUser = existingUser.copyWith(lastActiveAt: DateTime.now());
         await _updateUserInDatabase(updatedUser);
         return updatedUser;
       } else {
-        debugPrint('No existing user profile found, creating new profile...');
-        // Create new user profile
-        final username =
-            supabaseUser.userMetadata?['username'] as String? ??
-            supabaseUser.email?.split('@').first ??
-            'User${DateTime.now().millisecondsSinceEpoch}';
-        final user = await _createUserProfile(supabaseUser, username);
-        debugPrint('Created new user profile: ${user.username}');
-        return user;
+        debugPrint('No existing user profile found');
+        
+        // Check if this is a new user (just confirmed email) or deleted user
+        final userCreatedAt = DateTime.parse(supabaseUser.createdAt!);
+        final now = DateTime.now();
+        final timeSinceCreation = now.difference(userCreatedAt).inMinutes;
+        
+        debugPrint('User created ${timeSinceCreation} minutes ago');
+        
+        // If user was created recently (within 10 minutes), it's likely a new signup
+        if (timeSinceCreation <= 10) {
+          debugPrint('Recent user creation detected, creating new profile...');
+          
+          // Create new user profile for email verification signup
+          final username =
+              supabaseUser.userMetadata?['username'] as String? ??
+              supabaseUser.email?.split('@').first ??
+              'User${DateTime.now().millisecondsSinceEpoch}';
+          final user = await _createUserProfile(supabaseUser, username);
+          debugPrint('Created new user profile: ${user.username}');
+          return user;
+        } else {
+          debugPrint('Old user without profile - likely deleted, clearing session');
+          throw Exception('User profile not found - session invalid');
+        }
       }
     } catch (e) {
-      debugPrint('Error loading/creating user profile: $e');
+      debugPrint('Error loading user profile: $e');
+      
+      // If user doesn't exist or there's a foreign key error, clear the session
+      if (e.toString().contains('foreign key constraint') || 
+          e.toString().contains('User profile not found')) {
+        debugPrint('User deleted from Supabase, clearing session...');
+        await _clearInvalidSession();
+        throw Exception('User session invalid - please sign in again');
+      }
+      
       rethrow;
+    }
+  }
+
+  /// Clear invalid session when user doesn't exist
+  Future<void> _clearInvalidSession() async {
+    try {
+      debugPrint('Clearing invalid session...');
+      
+      // Sign out to clear the session
+      await _supabase.auth.signOut();
+      
+      // Update state to unauthenticated
+      _updateState(AuthState(
+        status: AuthStatus.unauthenticated,
+        isDemoMode: false,
+      ));
+      
+      debugPrint('Invalid session cleared successfully');
+    } catch (e) {
+      debugPrint('Error clearing invalid session: $e');
+      // Even if signOut fails, update state to unauthenticated
+      _updateState(AuthState(
+        status: AuthStatus.unauthenticated,
+        isDemoMode: false,
+      ));
     }
   }
 
@@ -683,6 +803,9 @@ class AuthService {
     String username,
   ) async {
     try {
+      // Wait a moment to ensure the auth.users record is fully created
+      await Future.delayed(const Duration(milliseconds: 500));
+      
       final newUser = User(
         id: supabaseUser.id, // Use Supabase user ID as primary key
         authId: supabaseUser.id,
@@ -703,6 +826,37 @@ class AuthService {
       return newUser;
     } catch (e) {
       debugPrint('Error creating user profile: $e');
+      
+      // If it's a foreign key constraint error, try again after a longer delay
+      if (e.toString().contains('foreign key constraint')) {
+        debugPrint('Foreign key constraint error, retrying after delay...');
+        await Future.delayed(const Duration(seconds: 2));
+        
+        try {
+          final retryUser = User(
+            id: supabaseUser.id,
+            authId: supabaseUser.id,
+            username: username,
+            email: supabaseUser.email ?? '',
+            avatarUrl: supabaseUser.userMetadata?['avatar_url'] as String?,
+            totalPoints: 0,
+            level: 1,
+            createdAt: DateTime.now(),
+            lastActiveAt: DateTime.now(),
+            categoryStats: const {},
+            achievements: const [],
+            isOnline: true,
+          );
+          
+          await _createUserInDatabase(retryUser);
+          debugPrint('Created user profile on retry: ${retryUser.username}');
+          return retryUser;
+        } catch (retryError) {
+          debugPrint('Retry failed: $retryError');
+          rethrow;
+        }
+      }
+      
       rethrow;
     }
   }
@@ -730,11 +884,26 @@ class AuthService {
   /// Create user in database
   Future<void> _createUserInDatabase(User user) async {
     try {
-      await _supabase
-          .from('users')
-          .insert(user.toSupabase());
+      debugPrint('Creating user in database with auth_id: ${user.authId}');
+      
+      // Verify the auth user exists first
+      final authUser = _supabase.auth.currentUser;
+      if (authUser == null || authUser.id != user.authId) {
+        throw Exception('Auth user not found or ID mismatch');
+      }
+      
+      await _supabase.from('users').insert(user.toSupabase());
+      debugPrint('User successfully created in database');
     } catch (e) {
       debugPrint('Error creating user in database: $e');
+      
+      // If it's a foreign key constraint, provide more helpful error info
+      if (e.toString().contains('foreign key constraint')) {
+        debugPrint('Foreign key constraint violation - auth user may not exist yet');
+        debugPrint('Current auth user: ${_supabase.auth.currentUser?.id}');
+        debugPrint('Trying to create user with auth_id: ${user.authId}');
+      }
+      
       rethrow;
     }
   }
@@ -742,10 +911,7 @@ class AuthService {
   /// Update user in database
   Future<void> _updateUserInDatabase(User user) async {
     try {
-      await _supabase
-          .from('users')
-          .update(user.toSupabase())
-          .eq('id', user.id);
+      await _supabase.from('users').update(user.toSupabase()).eq('id', user.id);
     } catch (e) {
       debugPrint('Error updating user in database: $e');
       rethrow;
@@ -769,22 +935,190 @@ class AuthService {
     }
   }
 
+  /// Handle Supabase authentication response
+  Future<AuthResult> _handleAuthResponse(
+    AuthResponse response,
+    String operation, {
+    String? username,
+  }) async {
+    debugPrint('Handling $operation response: user=${response.user?.id}, session=${response.session?.accessToken != null}');
+
+    // Case 1: Successful authentication with session
+    if (response.session != null && response.user != null) {
+      try {
+        final User user;
+        if (operation == 'sign up' && username != null) {
+          user = await _createUserProfile(response.user!, username);
+        } else {
+          user = await _loadOrCreateUserProfile(response.user!);
+        }
+        
+        _updateState(AuthState(
+          status: AuthStatus.authenticated,
+          user: user,
+          isDemoMode: false,
+        ));
+        
+        debugPrint('$operation successful: ${user.username}');
+        return AuthResult.success(user);
+      } catch (e) {
+        debugPrint('Error creating/loading user profile: $e');
+        _updateState(AuthState(
+          status: AuthStatus.error,
+          error: 'Failed to create user profile',
+          isDemoMode: false,
+        ));
+        return AuthResult.failure(
+          AuthErrorType.unknownError,
+          'Failed to create user profile',
+        );
+      }
+    }
+
+    // Case 2: User created but needs email verification (signup only)
+    if (response.user != null && response.session == null && operation == 'sign up') {
+      _updateState(AuthState(
+        status: AuthStatus.unauthenticated,
+        isDemoMode: false,
+      ));
+
+      final user = response.user!;
+      
+      // Check if user already exists using Supabase response indicators
+      final bool userAlreadyExists = user.identities?.isEmpty ?? true;
+      final bool confirmationSent = user.confirmationSentAt != null;
+      
+      debugPrint('Signup analysis: userAlreadyExists=$userAlreadyExists, confirmationSent=$confirmationSent');
+      debugPrint('User identities: ${user.identities?.length ?? 0}');
+      debugPrint('Confirmation sent at: ${user.confirmationSentAt}');
+      
+      if (userAlreadyExists) {
+        // User already exists - identities array is empty for existing users
+        debugPrint('User already exists (empty identities)');
+        return AuthResult.failure(
+          AuthErrorType.emailAlreadyInUse,
+          'This email is already registered. Please sign in instead or use a different email.',
+        );
+      } else if (confirmationSent) {
+        // New user created, confirmation email sent
+        debugPrint('New user created, email verification required');
+        return AuthResult.failure(
+          AuthErrorType.emailNotVerified,
+          'Please check your email and click the confirmation link to complete your account setup.',
+        );
+      } else {
+        // New user created and confirmed (email confirmation disabled)
+        debugPrint('New user created and confirmed');
+        return AuthResult.failure(
+          AuthErrorType.unknownError,
+          'Account created but authentication failed. Please try signing in.',
+        );
+      }
+    }
+
+    // Case 3: No user or session returned (should not happen with valid requests)
+    _updateState(AuthState(
+      status: AuthStatus.unauthenticated,
+      isDemoMode: false,
+    ));
+    
+    debugPrint('$operation failed: no user or session returned');
+    return AuthResult.failure(
+      AuthErrorType.unknownError,
+      '${operation.substring(0, 1).toUpperCase()}${operation.substring(1)} failed',
+    );
+  }
+
+  /// Handle Supabase authentication exceptions
+  AuthResult _handleAuthException(AuthException exception, String operation) {
+    final errorType = _mapAuthException(exception);
+    final errorMessage = _getErrorMessage(exception, operation);
+    
+    debugPrint('$operation failed with AuthException: ${exception.message}');
+
+    // Determine appropriate state based on error type
+    if (_isUserInputError(errorType)) {
+      _updateState(AuthState(
+        status: AuthStatus.unauthenticated,
+        isDemoMode: false,
+      ));
+    } else {
+      _updateState(AuthState(
+        status: AuthStatus.error,
+        error: errorMessage,
+        isDemoMode: false,
+      ));
+    }
+
+    return AuthResult.failure(errorType, errorMessage);
+  }
+
+  /// Check if error is due to user input (should stay unauthenticated)
+  bool _isUserInputError(AuthErrorType errorType) {
+    return [
+      AuthErrorType.invalidCredentials,
+      AuthErrorType.userNotFound,
+      AuthErrorType.emailNotVerified,
+      AuthErrorType.emailAlreadyInUse,
+      AuthErrorType.weakPassword,
+    ].contains(errorType);
+  }
+
+  /// Get user-friendly error message
+  String _getErrorMessage(AuthException exception, String operation) {
+    final errorType = _mapAuthException(exception);
+    
+    switch (errorType) {
+      case AuthErrorType.invalidCredentials:
+        return operation == 'sign in' 
+          ? 'Invalid email or password. Please check your credentials and try again.'
+          : 'Invalid credentials provided.';
+      
+      case AuthErrorType.emailAlreadyInUse:
+        return 'This email is already registered. Please sign in instead or use a different email.';
+      
+      case AuthErrorType.weakPassword:
+        return 'Password is too weak. Please use at least 8 characters with uppercase, lowercase, and numbers.';
+      
+      case AuthErrorType.emailNotVerified:
+        return 'Please verify your email address before signing in.';
+      
+      case AuthErrorType.userNotFound:
+        return 'No account found with this email address. Please sign up first.';
+      
+      case AuthErrorType.networkError:
+        return 'Network error. Please check your internet connection and try again.';
+      
+      case AuthErrorType.configurationError:
+        return 'Authentication service is not properly configured.';
+      
+      case AuthErrorType.unknownError:
+      default:
+        return exception.message.isNotEmpty 
+          ? exception.message 
+          : 'An unexpected error occurred during $operation.';
+    }
+  }
+
   /// Map Supabase AuthException to AuthErrorType
   AuthErrorType _mapAuthException(AuthException exception) {
     final message = exception.message.toLowerCase();
-    
-    if (message.contains('network') || message.contains('connection')) {
+
+    // Analyze message content for error detection
+    if (message.contains('network') || message.contains('connection') || message.contains('timeout')) {
       return AuthErrorType.networkError;
-    } else if (message.contains('invalid') && message.contains('credentials')) {
+    } else if (message.contains('invalid') && (message.contains('credentials') || message.contains('login') || message.contains('password'))) {
       return AuthErrorType.invalidCredentials;
     } else if (message.contains('email') && message.contains('not') && message.contains('confirmed')) {
       return AuthErrorType.emailNotVerified;
     } else if (message.contains('user') && message.contains('not') && message.contains('found')) {
       return AuthErrorType.userNotFound;
-    } else if (message.contains('password') && (message.contains('weak') || message.contains('short'))) {
+    } else if (message.contains('password') && (message.contains('weak') || message.contains('short') || message.contains('simple'))) {
       return AuthErrorType.weakPassword;
-    } else if (message.contains('email') && message.contains('already') && message.contains('use')) {
+    } else if (message.contains('email') && (message.contains('already') || message.contains('registered') || message.contains('taken') || message.contains('use'))) {
       return AuthErrorType.emailAlreadyInUse;
+    } else if (message.contains('signup') && message.contains('disabled')) {
+      return AuthErrorType.configurationError;
     } else {
       return AuthErrorType.unknownError;
     }
@@ -797,9 +1131,9 @@ class AuthService {
       debugPrint('Auth state update skipped (service disposed): $newState');
       return;
     }
-    
+
     _currentState = newState;
-    
+
     // Only add to stream if controller is not closed
     if (!_stateController.isClosed) {
       _stateController.add(newState);
@@ -813,7 +1147,7 @@ class AuthService {
   void dispose() {
     debugPrint('Disposing AuthService resources...');
     _isDisposed = true;
-    
+
     try {
       _authSubscription?.cancel();
       _stateController.close();

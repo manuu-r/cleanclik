@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:cleanclik/core/models/leaderboard_entry.dart';
 import 'package:cleanclik/core/models/database_exceptions.dart';
-import 'database_service.dart';
+import 'package:cleanclik/core/services/data/database_service.dart';
 
 /// Database service for leaderboard operations with Supabase integration
 class LeaderboardDatabaseService extends DatabaseService<LeaderboardEntry> {

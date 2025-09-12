@@ -86,7 +86,8 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
 
     switch (action) {
       case 'scan':
-        context.go('/camera');
+        // Navigate to home screen where unified camera button is located
+        context.go('/');
         break;
       case 'inventory':
         setState(() {
@@ -149,35 +150,38 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
           // Main content (AR view takes priority)
           Positioned.fill(child: widget.navigationShell),
 
-          // Floating Action Hub
-          Positioned(
-            right: UIConstants.edgeControlsMargin,
-            bottom:
-                UIConstants.edgeControlsMargin +
-                120, // Above bottom nav and panel
-            child: FloatingActionHub(
-              onActionTap: _onHubAction,
-              onCenterTap: () {
-                // Context-aware center action
-                final currentContext = ref
-                    .read(uiContextServiceProvider)
-                    .currentContext;
-                switch (currentContext.context) {
-                  case UIContext.arCamera:
-                    context.go('/camera');
-                    break;
-                  case UIContext.map:
-                    // Toggle map layers
-                    break;
-                  case UIContext.inventory:
-                    _onPanelToggle();
-                    break;
-                  default:
-                    context.go('/');
-                }
-              },
+          // Floating Action Hub (hidden on home screen)
+          if (!_isHomeScreen())
+            Positioned(
+              right: UIConstants.edgeControlsMargin,
+              bottom:
+                  UIConstants.edgeControlsMargin +
+                  120, // Above bottom nav and panel
+              child: FloatingActionHub(
+                onActionTap: _onHubAction,
+                onCenterTap: () {
+                  // Context-aware center action
+                  final currentContext = ref
+                      .read(uiContextServiceProvider)
+                      .currentContext;
+                  switch (currentContext.context) {
+                    case UIContext.arCamera:
+                      context.go(
+                        '/',
+                      ); // Navigate to home where unified camera button is
+                      break;
+                    case UIContext.map:
+                      // Toggle map layers
+                      break;
+                    case UIContext.inventory:
+                      _onPanelToggle();
+                      break;
+                    default:
+                      context.go('/');
+                  }
+                },
+              ),
             ),
-          ),
 
           // Slide-up panel for inventory/details
           if (_shouldShowPanel())
@@ -215,6 +219,11 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
         location == '/leaderboard';
   }
 
+  bool _isHomeScreen() {
+    final location = GoRouterState.of(context).uri.path;
+    return location == '/';
+  }
+
   String? _getPanelTitle() {
     // Always show "Quick Actions" title across all screens
     return 'Quick Actions';
@@ -243,20 +252,14 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Ready to clean up the city?',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.white),
-            ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: _buildQuickActionCard(
-                    'Start Scanning',
-                    Icons.camera_alt,
-                    () => context.go('/camera'),
+                    'Dashboard',
+                    Icons.home,
+                    () => context.go('/'),
                   ),
                 ),
                 const SizedBox(width: 12),

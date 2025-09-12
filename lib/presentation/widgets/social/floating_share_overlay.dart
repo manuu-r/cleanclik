@@ -10,6 +10,7 @@ import 'package:cleanclik/core/models/achievement_card.dart';
 import 'package:cleanclik/core/models/card_data.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/common/neon_icon_button.dart';
 import 'dart:io';
 
 class FloatingShareOverlay extends ConsumerStatefulWidget {
@@ -290,14 +291,11 @@ class _FloatingShareOverlayState extends ConsumerState<FloatingShareOverlay>
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          IconButton(
-                            onPressed: _close,
-                            icon: Icon(
-                              Icons.close,
-                              // Replaced with .withValues() if it were a Color property. As it is a Color constant, this is fine.
-                              color: Colors.white.withOpacity(0.7),
-                              size: 24,
-                            ),
+                          NeonIconButton(
+                            icon: Icons.close,
+                            color: Colors.white.withValues(alpha: 0.7),
+                            onTap: _close,
+                            tooltip: 'Close',
                           ),
                         ],
                       ),
@@ -480,45 +478,20 @@ class _FloatingShareOverlayState extends ConsumerState<FloatingShareOverlay>
                       SizedBox(
                         width: double.infinity,
                         height: 56,
-                        child: ElevatedButton.icon(
-                          onPressed:
-                              (_generatedCardFile != null ||
+                        child: NeonIconButton.primary(
+                          label: 'Share Now',
+                          icon: Icons.share,
+                          color: (_generatedCardFile != null ||
+                                      _previewCard != null) &&
+                                  !_isGenerating
+                              ? NeonColors.electricGreen
+                              : Colors.grey,
+                          onTap: (_generatedCardFile != null ||
                                       _previewCard != null) &&
                                   !_isGenerating
                               ? _shareCard
                               : null,
-                          icon: const Icon(
-                            Icons.share,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                          label: const Text(
-                            'Share Now',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                (_generatedCardFile != null ||
-                                        _previewCard != null) &&
-                                    !_isGenerating
-                                ? NeonColors.electricGreen
-                                : Colors.grey,
-                            elevation: 8,
-                            shadowColor:
-                                (_generatedCardFile != null ||
-                                        _previewCard != null) &&
-                                    !_isGenerating
-                                // Replaced with .withValues() if it were a Color property. As it is a Color constant, this is fine.
-                                ? NeonColors.electricGreen.withOpacity(0.3)
-                                : Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
+                          buttonSize: ButtonSize.large,
                         ),
                       ),
 

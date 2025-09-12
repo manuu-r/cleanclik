@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'hand_tracking_service.dart';
-import 'android_hand_tracking_service.dart';
-import 'ios_hand_tracking_service.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
+import 'package:cleanclik/core/services/platform/android_hand_tracking_service.dart';
+import 'package:cleanclik/core/services/platform/ios_hand_tracking_service.dart';
 
 /// Factory for creating platform-specific hand tracking services
 class PlatformHandTrackingFactory {

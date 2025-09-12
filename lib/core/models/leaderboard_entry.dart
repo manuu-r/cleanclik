@@ -1,4 +1,4 @@
-import 'user.dart';
+import 'package:cleanclik/core/models/user.dart';
 
 /// Represents a leaderboard entry with user ranking information
 class LeaderboardEntry {

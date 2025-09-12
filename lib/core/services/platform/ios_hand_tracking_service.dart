@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
-import 'hand_tracking_service.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
 
 /// iOS implementation using Apple Vision Framework
 /// Note: This requires platform channel implementation for apple_vision_hand

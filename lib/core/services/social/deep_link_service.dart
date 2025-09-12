@@ -42,6 +42,30 @@ class DeepLinkService {
     }
   }
 
+  /// Check for pending deep links (call when app resumes)
+  Future<void> checkForPendingLinks() async {
+    if (SupabaseConfigService.isDemoMode) return;
+    
+    try {
+      debugPrint('Checking for pending deep links...');
+      final initialLink = await _appLinks.getInitialAppLink();
+      if (initialLink != null) {
+        debugPrint('Found pending deep link: $initialLink');
+        await _processDeepLink(initialLink.toString());
+      } else {
+        debugPrint('No pending deep links found');
+      }
+    } catch (e) {
+      debugPrint('Error checking for pending links: $e');
+    }
+  }
+
+  /// Manually process a deep link URL (for testing or direct calls)
+  Future<void> processDeepLinkUrl(String url) async {
+    debugPrint('Manually processing deep link: $url');
+    await _processDeepLink(url);
+  }
+
   /// Handle the initial link when app is launched via deep link
   Future<void> _handleInitialLink() async {
     try {
@@ -57,15 +81,17 @@ class DeepLinkService {
 
   /// Listen for incoming deep links while app is running
   void _listenForIncomingLinks() {
+    debugPrint('Setting up deep link listener...');
     _linkStreamSubscription = _appLinks.uriLinkStream.listen(
       (Uri uri) {
-        debugPrint('Incoming deep link: $uri');
+        debugPrint('Incoming deep link received: $uri');
         _processDeepLink(uri.toString());
       },
       onError: (error) {
         debugPrint('Deep link stream error: $error');
       },
     );
+    debugPrint('Deep link listener setup complete');
   }
 
   /// Process and handle deep links
@@ -113,37 +139,20 @@ class DeepLinkService {
   /// Handle email verification deep link
   Future<void> _handleEmailVerification(Uri uri) async {
     try {
-      final token = uri.queryParameters['token'];
-      final email = uri.queryParameters['email'];
-
-      if (token == null) {
-        debugPrint('Email verification link missing token');
-        _showMessage(
-          'Invalid verification link - missing token',
-          isError: true,
-        );
-        return;
-      }
-
-      if (email == null) {
-        debugPrint('Email verification link missing email');
-        _showMessage(
-          'Invalid verification link - missing email',
-          isError: true,
-        );
-        return;
-      }
-
-      debugPrint('Processing email verification for: $email');
+      debugPrint('Processing email verification deep link');
+      debugPrint('URI: $uri');
+      debugPrint('Available parameters: ${uri.queryParameters}');
+      
       _showMessage('Verifying your email...', isError: false);
 
-      // For the simplified auth service, email verification is handled automatically
-      // when the user clicks the verification link in Supabase
-      // This would need to be implemented if custom email verification is needed
+      // Let Supabase handle the auth callback directly
+      await _authService.handleAuthCallback(uri.toString());
       
-      // For now, just show a success message and navigate to home
-      _showMessage('Email verified successfully! Welcome to CleanClik!');
-      _navigate('/');
+      // Show success message and let the auth wrapper handle navigation
+      _showMessage('Email verified successfully!');
+      
+      // Don't navigate manually - let the AuthWrapper detect the authentication
+      // and navigate automatically. This prevents race conditions with service disposal.
     } catch (e) {
       debugPrint('Error during email verification: $e');
       _showMessage(

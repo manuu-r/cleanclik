@@ -1,6 +1,6 @@
 import 'package:cleanclik/core/models/database_exceptions.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
-import 'database_service.dart';
+import 'package:cleanclik/core/services/data/database_service.dart';
 
 /// Database service for InventoryItem entities with Supabase integration
 class InventoryDatabaseService extends DatabaseService<InventoryItem> {

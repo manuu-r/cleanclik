@@ -1,99 +1,32 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cleanclik/core/theme/neon_colors.dart';
+
 import 'package:cleanclik/core/theme/app_theme.dart';
+import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/services/location/bin_matching_service.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
-import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
-import 'disposal_confirmation_dialog.dart';
 
-/// Overlay widget that provides visual feedback for bin matching results
-class BinFeedbackOverlay extends StatefulWidget {
+import 'package:cleanclik/presentation/widgets/overlays/disposal_confirmation_dialog.dart';
+import 'package:cleanclik/presentation/widgets/overlays/base_material_overlay.dart';
+
+/// Material 3 overlay widget that provides visual feedback for bin matching results
+class BinFeedbackOverlay extends BaseMaterialOverlay {
   final BinMatchResult matchResult;
-  final VoidCallback onDismiss;
   final Function(List<InventoryItem> itemsToDispose)? onDispose;
 
   const BinFeedbackOverlay({
     super.key,
     required this.matchResult,
-    required this.onDismiss,
+    required super.onDismiss,
     this.onDispose,
+    super.dismissible = true,
+    super.hapticFeedback = true,
   });
 
   @override
-  State<BinFeedbackOverlay> createState() => _BinFeedbackOverlayState();
-}
-
-class _BinFeedbackOverlayState extends State<BinFeedbackOverlay>
-    with TickerProviderStateMixin {
-  late AnimationController _overlayController;
-  late AnimationController _breathingController;
-  late AnimationController _particleController;
-
-  late Animation<double> _overlayAnimation;
-  late Animation<double> _breathingAnimation;
-  late Animation<double> _particleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Initialize animations
-    _overlayController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-
-    _breathingController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-
-    _particleController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _overlayAnimation = CurvedAnimation(
-      parent: _overlayController,
-      curve: Curves.easeOutBack,
-    );
-
-    _breathingAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _breathingController, curve: Curves.easeInOut),
-    );
-
-    _particleAnimation = CurvedAnimation(
-      parent: _particleController,
-      curve: Curves.easeOut,
-    );
-
-    // Start animations
-    _overlayController.forward();
-
-    if (widget.matchResult.isInfoResult) {
-      _breathingController.repeat(reverse: true);
-    }
-
-    if (widget.matchResult.isPositiveResult) {
-      _particleController.forward();
-    }
-
-    // Provide haptic feedback
-    _provideHapticFeedback();
-  }
-
-  @override
-  void dispose() {
-    _overlayController.dispose();
-    _breathingController.dispose();
-    _particleController.dispose();
-    super.dispose();
-  }
-
-  void _provideHapticFeedback() {
-    switch (widget.matchResult.matchType) {
+  void get hapticType {
+    switch (matchResult.matchType) {
       case BinMatchType.perfectMatch:
         HapticFeedback.heavyImpact();
         break;
@@ -109,35 +42,130 @@ class _BinFeedbackOverlayState extends State<BinFeedbackOverlay>
     }
   }
 
-  Color _getOverlayColor() {
-    switch (widget.matchResult.matchType) {
-      case BinMatchType.perfectMatch:
-        return NeonColors.electricGreen;
-      case BinMatchType.partialMatch:
-        return NeonColors.solarYellow;
-      case BinMatchType.noMatch:
-        return NeonColors.glowRed;
-      case BinMatchType.emptyInventory:
-        return NeonColors.oceanBlue;
+  @override
+  AnimationConfig getEntranceAnimation(BuildContext context) {
+    // Use emphasized animation for important feedback
+    return AnimationConfig(
+      duration: context.componentChangeAnimation.duration,
+      curve: Curves.easeOutBack,
+    );
+  }
+
+  @override
+  Widget buildContent(BuildContext context, Animation<double> animation) {
+    return _BinFeedbackContent(
+      matchResult: matchResult,
+      onDispose: onDispose,
+      animation: animation,
+    );
+  }
+
+  @override
+  State<BinFeedbackOverlay> createState() => _BinFeedbackOverlayState();
+}
+
+class _BinFeedbackOverlayState extends State<BinFeedbackOverlay> {
+  // State is now managed by BaseMaterialOverlay
+  @override
+  Widget build(BuildContext context) {
+    return Container(); // This will be handled by BaseMaterialOverlay
+  }
+}
+
+/// Content widget for bin feedback with Material 3 design and micro-animations
+class _BinFeedbackContent extends StatefulWidget {
+  final BinMatchResult matchResult;
+  final Function(List<InventoryItem> itemsToDispose)? onDispose;
+  final Animation<double> animation;
+
+  const _BinFeedbackContent({
+    required this.matchResult,
+    required this.onDispose,
+    required this.animation,
+  });
+
+  @override
+  State<_BinFeedbackContent> createState() => _BinFeedbackContentState();
+}
+
+class _BinFeedbackContentState extends State<_BinFeedbackContent>
+    with TickerProviderStateMixin {
+  late AnimationController _breathingController;
+  late AnimationController _particleController;
+  late Animation<double> _breathingAnimation;
+  late Animation<double> _particleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeSpecializedAnimations();
+  }
+
+  void _initializeSpecializedAnimations() {
+    final animationTheme = Theme.of(context).animationTheme;
+    
+    // Breathing animation for info results
+    _breathingController = AnimationConfig.breathing(animationTheme).createController(this);
+    _breathingAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(
+        parent: _breathingController,
+        curve: animationTheme.breathingCurve,
+      ),
+    );
+
+    // Particle animation for success results
+    _particleController = AnimationConfig.particle(animationTheme).createController(this);
+    _particleAnimation = CurvedAnimation(
+      parent: _particleController,
+      curve: animationTheme.particleCurve,
+    );
+
+    // Start appropriate animations based on match result
+    if (widget.matchResult.isInfoResult) {
+      _breathingController.repeat(reverse: true);
+    }
+
+    if (widget.matchResult.isPositiveResult) {
+      _particleController.forward();
     }
   }
 
-  /// Show the disposal confirmation dialog
+  @override
+  void dispose() {
+    _breathingController.dispose();
+    _particleController.dispose();
+    super.dispose();
+  }
+
+  OverlayStateStyle _getStateStyle() {
+    switch (widget.matchResult.matchType) {
+      case BinMatchType.perfectMatch:
+        return OverlayStateStyles.success();
+      case BinMatchType.partialMatch:
+        return OverlayStateStyles.warning();
+      case BinMatchType.noMatch:
+        return OverlayStateStyles.error();
+      case BinMatchType.emptyInventory:
+        return OverlayStateStyles.info();
+    }
+  }
+
+
+
+  /// Show the disposal confirmation dialog with Material 3 patterns
   void _showDisposalConfirmationDialog() {
     if (widget.onDispose == null) return;
 
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent dismissing by tapping outside
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return DisposalConfirmationDialog(
           matchResult: widget.matchResult,
           onConfirmDisposal: (itemsToDispose) async {
-            // Call the disposal callback
             await widget.onDispose!(itemsToDispose);
           },
           onCancel: () {
-            // Close the dialog
             Navigator.of(dialogContext).pop();
           },
         );
@@ -147,47 +175,45 @@ class _BinFeedbackOverlayState extends State<BinFeedbackOverlay>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _overlayAnimation,
-      builder: (context, child) {
-        return Material(
-          color: Colors.transparent,
-          child: Stack(
-            children: [
-              // Full screen colored overlay
-              _buildColoredOverlay(),
+    final stateStyle = _getStateStyle();
+    
+    return Stack(
+      children: [
+        // Contextual background overlay with Material 3 surface treatment
+        _buildContextualOverlay(stateStyle),
 
-              // Particle effects for success
-              if (widget.matchResult.isPositiveResult) _buildParticleEffects(),
+        // Particle effects for success states
+        if (widget.matchResult.isPositiveResult) 
+          _buildMaterial3ParticleEffects(stateStyle),
 
-              // Main feedback content
-              _buildFeedbackContent(context),
-            ],
-          ),
-        );
-      },
+        // Main feedback content with Material 3 patterns
+        OverlayPatterns.centeredDialog(
+          child: _buildFeedbackContent(context, stateStyle),
+        ),
+      ],
     );
   }
 
-  Widget _buildColoredOverlay() {
-    final overlayColor = _getOverlayColor();
-
+  Widget _buildContextualOverlay(OverlayStateStyle stateStyle) {
     return Positioned.fill(
       child: AnimatedBuilder(
-        animation: _breathingAnimation,
+        animation: widget.matchResult.isInfoResult ? _breathingAnimation : widget.animation,
         builder: (context, child) {
-          final opacity = widget.matchResult.isInfoResult
-              ? 0.1 * _breathingAnimation.value
-              : 0.15;
+          // Enhanced opacity for better visibility (0.25-0.35 range)
+          final baseOpacity = widget.matchResult.isInfoResult ? 0.25 : 0.3;
+          final animationMultiplier = widget.matchResult.isInfoResult 
+              ? _breathingAnimation.value 
+              : widget.animation.value;
+          final opacity = baseOpacity * animationMultiplier;
 
           return Container(
             decoration: BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment.center,
-                radius: 1.5,
+                radius: 1.8,
                 colors: [
-                  overlayColor.withOpacity(opacity),
-                  overlayColor.withOpacity(opacity * 0.3),
+                  stateStyle.backgroundColor.withValues(alpha: opacity),
+                  stateStyle.backgroundColor.withValues(alpha: opacity * 0.4),
                   Colors.transparent,
                 ],
               ),
@@ -198,15 +224,16 @@ class _BinFeedbackOverlayState extends State<BinFeedbackOverlay>
     );
   }
 
-  Widget _buildParticleEffects() {
+  Widget _buildMaterial3ParticleEffects(OverlayStateStyle stateStyle) {
     return Positioned.fill(
       child: AnimatedBuilder(
         animation: _particleAnimation,
         builder: (context, child) {
           return CustomPaint(
-            painter: _ParticleEffectPainter(
+            painter: _Material3ParticleEffectPainter(
               progress: _particleAnimation.value,
-              color: NeonColors.electricGreen,
+              color: stateStyle.primaryColor,
+              style: stateStyle,
             ),
           );
         },
@@ -214,189 +241,272 @@ class _BinFeedbackOverlayState extends State<BinFeedbackOverlay>
     );
   }
 
-  Widget _buildFeedbackContent(BuildContext context) {
-    return Center(
-      child: ScaleTransition(
-        scale: _overlayAnimation,
-        child: GlassmorphismContainer(
-          margin: const EdgeInsets.all(UIConstants.spacing6),
-          padding: const EdgeInsets.all(UIConstants.spacing6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon and main message
-              _buildMainMessage(context),
-
-              // Additional info if available
-              if (widget.matchResult.additionalInfo != null) ...[
-                const SizedBox(height: UIConstants.spacing4),
-                _buildAdditionalInfo(context),
-              ],
-
-              // Item breakdown for partial matches
-              if (widget.matchResult.isWarningResult) ...[
-                const SizedBox(height: UIConstants.spacing4),
-                _buildItemBreakdown(context),
-              ],
-
-              // Action buttons
-              const SizedBox(height: UIConstants.spacing6),
-              _buildActionButtons(context),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainMessage(BuildContext context) {
+  Widget _buildFeedbackContent(BuildContext context, OverlayStateStyle stateStyle) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Icon with breathing animation for info messages
-        AnimatedBuilder(
-          animation: widget.matchResult.isInfoResult
-              ? _breathingAnimation
-              : _overlayAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: widget.matchResult.isInfoResult
-                  ? _breathingAnimation.value
-                  : 1.0,
-              child: Text(
-                widget.matchResult.icon,
-                style: const TextStyle(fontSize: 48),
-              ),
-            );
-          },
-        ),
+        // Icon and main message with Material 3 micro-animations
+        _buildMainMessage(context, stateStyle),
+
+        // Additional info if available
+        if (widget.matchResult.additionalInfo != null) ...[
+          const SizedBox(height: UIConstants.spacing4),
+          _buildAdditionalInfo(context, stateStyle),
+        ],
+
+        // Item breakdown for partial matches
+        if (widget.matchResult.isWarningResult) ...[
+          const SizedBox(height: UIConstants.spacing4),
+          _buildItemBreakdown(context, stateStyle),
+        ],
+
+        // Action buttons with Material 3 styling
+        const SizedBox(height: UIConstants.spacing6),
+        _buildMaterial3ActionButtons(context, stateStyle),
+      ],
+    );
+  }
+
+  Widget _buildMainMessage(BuildContext context, OverlayStateStyle stateStyle) {
+    final theme = Theme.of(context);
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Icon with contextual micro-animations
+        _buildAnimatedIcon(stateStyle),
 
         const SizedBox(height: UIConstants.spacing4),
 
-        // Main message
+        // Main message with Material 3 typography
         Text(
           widget.matchResult.message,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.15,
           ),
           textAlign: TextAlign.center,
         ),
 
-        // Bin info
+        // Bin info with enhanced styling
         const SizedBox(height: UIConstants.spacing2),
-        Text(
-          'Bin: ${widget.matchResult.binInfo.category.codeName}',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-          textAlign: TextAlign.center,
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: UIConstants.spacing3,
+            vertical: UIConstants.spacing1,
+          ),
+          decoration: BoxDecoration(
+            color: stateStyle.backgroundColor,
+            borderRadius: BorderRadius.circular(UIConstants.radiusLarge),
+            border: Border.all(
+              color: stateStyle.borderColor,
+              width: 1,
+            ),
+          ),
+          child: Text(
+            'Bin: ${widget.matchResult.binInfo.category.codeName}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: stateStyle.primaryColor,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildAdditionalInfo(BuildContext context) {
+  Widget _buildAnimatedIcon(OverlayStateStyle stateStyle) {
+    Widget iconWidget = Icon(
+      stateStyle.iconData,
+      size: 48,
+      color: stateStyle.primaryColor,
+    );
+
+    // Apply appropriate micro-animation based on match result
+    if (widget.matchResult.isInfoResult) {
+      return OverlayMicroAnimations.breathing(
+        animation: _breathingAnimation,
+        intensity: 0.05,
+        child: iconWidget,
+      );
+    } else if (widget.matchResult.isPositiveResult) {
+      return OverlayMicroAnimations.pulse(
+        animation: _particleAnimation,
+        color: stateStyle.primaryColor,
+        child: iconWidget,
+      );
+    } else {
+      return AnimatedBuilder(
+        animation: widget.animation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: widget.animation.value,
+            child: iconWidget,
+          );
+        },
+      );
+    }
+  }
+
+  Widget _buildAdditionalInfo(BuildContext context, OverlayStateStyle stateStyle) {
+    final theme = Theme.of(context);
+    
     return Container(
       padding: const EdgeInsets.all(UIConstants.spacing3),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: stateStyle.backgroundColor,
         borderRadius: BorderRadius.circular(UIConstants.radiusMedium),
+        border: Border.all(
+          color: stateStyle.borderColor,
+          width: 1,
+        ),
       ),
       child: Text(
         widget.matchResult.additionalInfo!,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+          height: 1.4,
+        ),
         textAlign: TextAlign.center,
       ),
     );
   }
 
-  Widget _buildItemBreakdown(BuildContext context) {
+  Widget _buildItemBreakdown(BuildContext context, OverlayStateStyle stateStyle) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Matching items
+        // Matching items with Material 3 styling
         if (widget.matchResult.matchingItems.isNotEmpty) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: NeonColors.electricGreen,
-                size: 16,
-              ),
-              const SizedBox(width: UIConstants.spacing1),
-              Text(
-                '${widget.matchResult.matchingItems.length} items can be disposed here',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: NeonColors.electricGreen,
-                ),
-              ),
-            ],
+          _buildBreakdownRow(
+            context: context,
+            icon: Icons.check_circle_outline,
+            color: OverlayStateStyles.success().primaryColor,
+            text: '${widget.matchResult.matchingItems.length} items can be disposed here',
           ),
-          const SizedBox(height: UIConstants.spacing1),
+          const SizedBox(height: UIConstants.spacing2),
         ],
 
-        // Non-matching items
+        // Non-matching items with Material 3 styling
         if (widget.matchResult.nonMatchingItems.isNotEmpty) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.warning,
-                color: NeonColors.solarYellow,
-                size: 16,
-              ),
-              const SizedBox(width: UIConstants.spacing1),
-              Text(
-                '${widget.matchResult.nonMatchingItems.length} items need different bins',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: NeonColors.solarYellow),
-              ),
-            ],
+          _buildBreakdownRow(
+            context: context,
+            icon: Icons.info_outline,
+            color: OverlayStateStyles.warning().primaryColor,
+            text: '${widget.matchResult.nonMatchingItems.length} items need different bins',
           ),
         ],
       ],
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildBreakdownRow({
+    required BuildContext context,
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: UIConstants.spacing3,
+        vertical: UIConstants.spacing2,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(UIConstants.radiusMedium),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 18,
+          ),
+          const SizedBox(width: UIConstants.spacing2),
+          Flexible(
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMaterial3ActionButtons(BuildContext context, OverlayStateStyle stateStyle) {
+    final theme = Theme.of(context);
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // Dismiss button
+        // Dismiss button with Material 3 styling
         TextButton(
-          onPressed: widget.onDismiss,
+          onPressed: () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
-            foregroundColor: Colors.white70,
+            foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.8),
             padding: const EdgeInsets.symmetric(
               horizontal: UIConstants.spacing4,
-              vertical: UIConstants.spacing2,
+              vertical: UIConstants.spacing3,
             ),
-          ),
-          child: const Text('Close'),
-        ),
-
-        // Dispose button (only for matches)
-        if (BinMatchingService.shouldAllowDisposal(widget.matchResult) &&
-            widget.onDispose != null)
-          ElevatedButton(
-            onPressed: _showDisposalConfirmationDialog,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _getOverlayColor(),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: UIConstants.spacing6,
-                vertical: UIConstants.spacing2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(UIConstants.radiusMedium),
+              side: BorderSide(
+                color: theme.colorScheme.outline.withValues(alpha: 0.5),
+                width: 1,
               ),
             ),
-            child: Text(
+          ),
+          child: Text(
+            'Close',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+
+        // Dispose button with Material 3 elevated styling
+        if (BinMatchingService.shouldAllowDisposal(widget.matchResult) &&
+            widget.onDispose != null)
+          FilledButton.icon(
+            onPressed: _showDisposalConfirmationDialog,
+            style: FilledButton.styleFrom(
+              backgroundColor: stateStyle.primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: UIConstants.spacing5,
+                vertical: UIConstants.spacing3,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(UIConstants.radiusMedium),
+              ),
+              elevation: 2,
+            ),
+            icon: Icon(
+              widget.matchResult.isPositiveResult 
+                  ? Icons.delete_outline 
+                  : Icons.check_circle_outline,
+              size: 18,
+            ),
+            label: Text(
               widget.matchResult.isPositiveResult
                   ? 'Dispose All'
                   : 'Dispose Matching',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
       ],
@@ -404,33 +514,60 @@ class _BinFeedbackOverlayState extends State<BinFeedbackOverlay>
   }
 }
 
-/// Custom painter for particle effects during successful matches
-class _ParticleEffectPainter extends CustomPainter {
+/// Material 3 particle effect painter with enhanced visual design
+class _Material3ParticleEffectPainter extends CustomPainter {
   final double progress;
   final Color color;
+  final OverlayStateStyle style;
 
-  _ParticleEffectPainter({required this.progress, required this.color});
+  _Material3ParticleEffectPainter({
+    required this.progress,
+    required this.color,
+    required this.style,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (progress == 0.0) return;
 
-    final paint = Paint()
-      ..color = color.withOpacity((1.0 - progress) * 0.8)
-      ..style = PaintingStyle.fill;
-
     final center = Offset(size.width / 2, size.height / 2);
-    final particleCount = 20;
+    final particleCount = 16; // Reduced for cleaner look
+    
+    // Create multiple layers for depth
+    _paintParticleLayer(canvas, center, particleCount, 1.0);
+    _paintParticleLayer(canvas, center, particleCount ~/ 2, 0.6);
+  }
 
-    for (int i = 0; i < particleCount; i++) {
-      final angle = (i / particleCount) * 2 * 3.14159;
-      final distance = progress * 150;
-      final particleSize = (1.0 - progress) * 8;
+  void _paintParticleLayer(Canvas canvas, Offset center, int count, double layerIntensity) {
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = color.withValues(alpha: (1.0 - progress) * 0.7 * layerIntensity);
+
+    for (int i = 0; i < count; i++) {
+      final angle = (i / count) * 2 * math.pi;
+      final distance = progress * 120 * layerIntensity;
+      
+      // Variable particle sizes for organic feel
+      final baseSize = (1.0 - progress) * 6;
+      final sizeVariation = 1.0 + 0.3 * math.sin(angle * 3);
+      final particleSize = baseSize * sizeVariation;
 
       final x = center.dx + distance * math.cos(angle);
       final y = center.dy + distance * math.sin(angle);
 
-      canvas.drawCircle(Offset(x, y), particleSize, paint);
+      // Draw particles with subtle gradient effect
+      final particleCenter = Offset(x, y);
+      final gradient = RadialGradient(
+        colors: [
+          color.withValues(alpha: (1.0 - progress) * 0.8 * layerIntensity),
+          color.withValues(alpha: (1.0 - progress) * 0.2 * layerIntensity),
+        ],
+      );
+
+      final rect = Rect.fromCircle(center: particleCenter, radius: particleSize);
+      paint.shader = gradient.createShader(rect);
+      
+      canvas.drawCircle(particleCenter, particleSize, paint);
     }
   }
 

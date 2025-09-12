@@ -10,7 +10,7 @@ import 'package:cleanclik/core/models/category_stats.dart';
 import 'package:cleanclik/core/models/sync_status.dart';
 import 'package:cleanclik/core/services/auth/auth_service.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
-import 'database_service_provider.dart';
+import 'package:cleanclik/core/services/data/database_service_provider.dart';
 
 part 'data_migration_service.g.dart';
 

@@ -30,6 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _signInWithEmail() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -42,16 +43,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _passwordController.text,
       );
 
+      if (!mounted) return;
+
       if (result.success) {
-        if (mounted) {
-          context.go(Routes.home);
-        }
+        context.go(Routes.home);
       } else {
         setState(() {
           _errorMessage = result.error?.message ?? 'Sign in failed';
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'An unexpected error occurred';
       });
@@ -65,6 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -74,16 +77,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final authService = ref.read(authServiceProvider);
       final result = await authService.signInWithGoogle();
 
+      if (!mounted) return;
+
       if (result.success) {
-        if (mounted) {
-          context.go(Routes.home);
-        }
+        context.go(Routes.home);
       } else {
         setState(() {
           _errorMessage = result.error?.message ?? 'Google sign in failed';
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'An unexpected error occurred';
       });
@@ -294,9 +298,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                               onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
+                                if (mounted) {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                }
                               },
                             ),
                             filled: true,

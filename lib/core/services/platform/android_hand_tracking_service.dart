@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:hand_landmarker/hand_landmarker.dart';
-import 'hand_tracking_service.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
 
 /// Android implementation using hand_landmarker package
 class AndroidHandTrackingService implements HandTrackingService {

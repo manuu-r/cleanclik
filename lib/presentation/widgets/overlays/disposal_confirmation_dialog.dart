@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cleanclik/core/services/location/bin_matching_service.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
+import 'package:cleanclik/core/theme/app_theme.dart';
+
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/overlays/base_material_overlay.dart';
 
 class DisposalConfirmationDialog extends StatefulWidget {
   final BinMatchResult matchResult;
@@ -69,74 +72,89 @@ class _DisposalConfirmationDialogState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final stateStyle = _getStateStyle();
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      child: GlassmorphismContainer(
-        padding: const EdgeInsets.all(24),
+      child: GlassmorphismContainer.primary(
+        padding: const EdgeInsets.all(UIConstants.spacing6),
+        hasGlow: true,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header with bin info
-            Row(
-              children: [
-                Icon(_getBinIcon(), color: _getBinColor(), size: 32),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.matchResult.binInfo.binId,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '${widget.matchResult.binInfo.category.codeName} Bin',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: _getBinColor(),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Match result message
+            // Header with bin info using Material 3 styling
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(UIConstants.spacing4),
               decoration: BoxDecoration(
-                color: _getMessageBackgroundColor().withAlpha(
-                  (0.2 * 255).toInt(),
-                ),
-                borderRadius: BorderRadius.circular(12),
+                color: stateStyle.backgroundColor,
+                borderRadius: BorderRadius.circular(UIConstants.radiusMedium),
                 border: Border.all(
-                  color: _getMessageBackgroundColor().withAlpha(
-                    (0.4 * 255).toInt(),
-                  ),
+                  color: stateStyle.borderColor,
                   width: 1,
                 ),
               ),
               child: Row(
                 children: [
-                  Text(
-                    widget.matchResult.icon,
-                    style: const TextStyle(fontSize: 24),
+                  Icon(
+                    _getBinIcon(), 
+                    color: stateStyle.primaryColor, 
+                    size: 32,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: UIConstants.spacing3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.matchResult.binInfo.binId,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${widget.matchResult.binInfo.category.codeName} Bin',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: stateStyle.primaryColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: UIConstants.spacing6),
+
+            // Match result message with Material 3 styling
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(UIConstants.spacing4),
+              decoration: BoxDecoration(
+                color: stateStyle.backgroundColor,
+                borderRadius: BorderRadius.circular(UIConstants.radiusMedium),
+                border: Border.all(
+                  color: stateStyle.borderColor,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    stateStyle.iconData,
+                    color: stateStyle.primaryColor,
+                    size: 24,
+                  ),
+                  const SizedBox(width: UIConstants.spacing3),
                   Expanded(
                     child: Text(
                       widget.matchResult.message,
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: Colors.white,
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w500,
+                        height: 1.4,
                       ),
                     ),
                   ),
@@ -318,95 +336,70 @@ class _DisposalConfirmationDialogState
 
             const SizedBox(height: 32),
 
-            // Action buttons
+            // Action buttons with Material 3 styling
             Row(
               children: [
                 Expanded(
                   child: TextButton(
                     onPressed: _isDisposing ? null : widget.onCancel,
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                      padding: const EdgeInsets.symmetric(vertical: UIConstants.spacing4),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(UIConstants.radiusMedium),
                         side: BorderSide(
                           color: _isDisposing
-                              ? Colors.grey.withAlpha((0.3 * 255).toInt())
-                              : Colors.white.withAlpha((0.3 * 255).toInt()),
+                              ? theme.colorScheme.outline.withValues(alpha: 0.3)
+                              : theme.colorScheme.outline.withValues(alpha: 0.5),
                           width: 1,
                         ),
                       ),
                     ),
                     child: Text(
                       'Cancel',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: _isDisposing
-                            ? Colors.grey.withAlpha((0.5 * 255).toInt())
-                            : Colors.white.withAlpha((0.8 * 255).toInt()),
-                        fontWeight: FontWeight.w600,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: UIConstants.spacing4),
                 Expanded(
                   flex: 2,
-                  child: ElevatedButton(
-                    onPressed:
-                        (widget.matchResult.matchingItems.isNotEmpty &&
-                            !_isDisposing)
+                  child: FilledButton.icon(
+                    onPressed: (widget.matchResult.matchingItems.isNotEmpty && !_isDisposing)
                         ? _handleDisposal
                         : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          (widget.matchResult.matchingItems.isNotEmpty &&
-                              !_isDisposing)
-                          ? NeonColors.electricGreen
-                          : Colors.grey.withAlpha((0.5 * 255).toInt()),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: (widget.matchResult.matchingItems.isNotEmpty && !_isDisposing)
+                          ? stateStyle.primaryColor
+                          : theme.colorScheme.outline.withValues(alpha: 0.5),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: UIConstants.spacing4),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(UIConstants.radiusMedium),
                       ),
-                      elevation:
-                          (widget.matchResult.matchingItems.isNotEmpty &&
-                              !_isDisposing)
-                          ? 4
-                          : 0,
+                      elevation: (widget.matchResult.matchingItems.isNotEmpty && !_isDisposing) ? 2 : 0,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_isDisposing) ...[
-                          SizedBox(
-                            width: 20,
-                            height: 20,
+                    icon: _isDisposing
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
+                              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Disposing...',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ] else ...[
-                          Icon(Icons.delete_outline, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            widget.matchResult.matchingItems.isNotEmpty
-                                ? 'Dispose Items'
-                                : 'No Items to Dispose',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ],
+                          )
+                        : const Icon(Icons.delete_outline, size: 18),
+                    label: Text(
+                      _isDisposing
+                          ? 'Disposing...'
+                          : widget.matchResult.matchingItems.isNotEmpty
+                              ? 'Dispose Items'
+                              : 'No Items to Dispose',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -433,31 +426,16 @@ class _DisposalConfirmationDialogState
     }
   }
 
-  Color _getBinColor() {
-    switch (widget.matchResult.binInfo.category.id) {
-      case 'recycle':
-        return NeonColors.electricGreen;
-      case 'organic':
-        return NeonColors.oceanBlue;
-      case 'ewaste':
-        return NeonColors.earthOrange;
-      case 'hazardous':
-        return NeonColors.toxicPurple;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _getMessageBackgroundColor() {
+  OverlayStateStyle _getStateStyle() {
     switch (widget.matchResult.matchType) {
       case BinMatchType.perfectMatch:
-        return NeonColors.electricGreen;
+        return OverlayStateStyles.success();
       case BinMatchType.partialMatch:
-        return NeonColors.solarYellow;
+        return OverlayStateStyles.warning();
       case BinMatchType.noMatch:
-        return NeonColors.glowRed;
+        return OverlayStateStyles.error();
       case BinMatchType.emptyInventory:
-        return NeonColors.oceanBlue;
+        return OverlayStateStyles.info();
     }
   }
 

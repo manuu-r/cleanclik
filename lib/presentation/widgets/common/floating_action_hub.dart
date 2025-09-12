@@ -289,7 +289,7 @@ class _FloatingActionHubState extends ConsumerState<FloatingActionHub>
     return NeonIconButton(
       icon: iconData,
       color: color,
-      size: UIConstants.hubActionSize,
+      buttonSize: ButtonSize.medium,
       onTap: () => _onActionTap(action),
       tooltip: _getActionTooltip(action),
     );
@@ -298,7 +298,7 @@ class _FloatingActionHubState extends ConsumerState<FloatingActionHub>
   IconData _getActionIcon(String action) {
     switch (action) {
       case 'scan':
-        return Icons.qr_code_scanner;
+        return Icons.home; // Changed to home icon since it navigates to home
       case 'inventory':
         return Icons.inventory;
       case 'nearby_bins':
@@ -383,7 +383,7 @@ class _FloatingActionHubState extends ConsumerState<FloatingActionHub>
   String _getActionTooltip(String action) {
     switch (action) {
       case 'scan':
-        return 'Scan Objects';
+        return 'Dashboard'; // Updated tooltip
       case 'inventory':
         return 'View Inventory';
       case 'nearby_bins':

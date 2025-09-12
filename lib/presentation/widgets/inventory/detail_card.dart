@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/common/neon_icon_button.dart';
 
 enum DetailType { bin, hotspot, mission, friend }
 
@@ -63,9 +64,11 @@ class DetailCard extends StatelessWidget {
             ),
           ],
         ),
-        IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: onClose,
+        NeonIconButton(
+          icon: Icons.close,
+          color: Colors.white,
+          onTap: onClose,
+          tooltip: 'Close',
         ),
       ],
     );
@@ -225,18 +228,12 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: color, size: 20),
-      label: Text(label, style: TextStyle(color: color)),
-      style: TextButton.styleFrom(
-        backgroundColor: color.withOpacity(0.1),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: color.withOpacity(0.3)),
-        ),
-      ),
+    return NeonIconButton.secondary(
+      label: label,
+      icon: icon,
+      color: color,
+      onTap: onPressed,
+      buttonSize: ButtonSize.small,
     );
   }
 }

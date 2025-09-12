@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cleanclik/core/models/detected_object.dart';
 import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
 import 'package:cleanclik/core/services/platform/hand_coordinate_transformer.dart';
-import 'inventory_service.dart';
+import 'package:cleanclik/core/services/business/inventory_service.dart';
 
 /// Unified pickup detection service combining simplified grasp detection with proximity analysis
 /// Replaces both IntelligentPickupService and GeometricPickupService with a single, optimized solution

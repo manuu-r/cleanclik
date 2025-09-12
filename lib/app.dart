@@ -16,12 +16,15 @@ class CleanClikApp extends ConsumerStatefulWidget {
   ConsumerState<CleanClikApp> createState() => _CleanClikAppState();
 }
 
-class _CleanClikAppState extends ConsumerState<CleanClikApp> {
+class _CleanClikAppState extends ConsumerState<CleanClikApp> with WidgetsBindingObserver {
   GoRouter? _router;
 
   @override
   void initState() {
     super.initState();
+
+    // Add lifecycle observer to handle app resume
+    WidgetsBinding.instance.addObserver(this);
 
     // Initialize logging service with production-appropriate defaults
     if (kDebugMode) {
@@ -35,6 +38,45 @@ class _CleanClikAppState extends ConsumerState<CleanClikApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeServices();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('App resumed - checking for deep links and refreshing auth state');
+      // Check for pending deep links and refresh auth state
+      _handleAppResume();
+    }
+  }
+
+  Future<void> _handleAppResume() async {
+    try {
+      // First check for any pending deep links
+      final deepLinkService = ref.read(deepLinkServiceProvider);
+      await deepLinkService.checkForPendingLinks();
+      
+      // Then refresh auth state
+      await _refreshAuthState();
+    } catch (e) {
+      debugPrint('Error handling app resume: $e');
+    }
+  }
+
+  Future<void> _refreshAuthState() async {
+    try {
+      final authService = ref.read(authServiceProvider);
+      await authService.refreshAuthState();
+    } catch (e) {
+      debugPrint('Error refreshing auth state: $e');
+    }
   }
 
   Future<void> _initializeServices() async {
@@ -58,6 +100,9 @@ class _CleanClikAppState extends ConsumerState<CleanClikApp> {
     // Set navigation callback
     deepLinkService.setNavigationCallback((route, {extra}) {
       if (_router != null && mounted) {
+        // Refresh auth state when processing deep links (email verification)
+        _refreshAuthState();
+        
         if (extra != null) {
           _router!.push(route, extra: extra);
         } else {
@@ -69,17 +114,22 @@ class _CleanClikAppState extends ConsumerState<CleanClikApp> {
     // Set message callback
     deepLinkService.setMessageCallback((message, {isError = false}) {
       if (mounted) {
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: isError
-                ? Theme.of(context).colorScheme.errorContainer
-                : Theme.of(context).colorScheme.primaryContainer,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: isError ? 5 : 3),
-          ),
-        );
+        try {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: isError
+                  ? Theme.of(context).colorScheme.errorContainer
+                  : Theme.of(context).colorScheme.primaryContainer,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: isError ? 5 : 3),
+            ),
+          );
+        } catch (e) {
+          // ScaffoldMessenger not available yet, just log the message
+          debugPrint('Deep link message: $message');
+        }
       }
     });
   }

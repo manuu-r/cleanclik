@@ -58,15 +58,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     debugPrint('ProfileScreen: authService.currentUser = ${authService.currentUser?.username}');
     debugPrint('ProfileScreen: authService.isAuthenticated = ${authService.isAuthenticated}');
     
-    // Initialize auth service if needed
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authService = ref.read(authServiceProvider);
-      debugPrint('ProfileScreen: AuthService authenticated: ${authService.isAuthenticated}');
-      debugPrint('ProfileScreen: Current user: ${authService.currentUser?.username}');
-      
-      // Always try to initialize to ensure streams are properly set up
-      authService.initialize();
-    });
+    // Auth service is already initialized by the provider, no need to reinitialize
 
     // Create mock user stats for now since userStatsProvider is missing
     final userStats = <String, dynamic>{
@@ -566,17 +558,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
                 const SizedBox(height: 24),
 
-                // Category Breakdown
-                Text(
-                  'Category Breakdown',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                // Category Breakdown with shader mask
+                ShaderMask(
+                  shaderCallback: (bounds) =>
+                      arTheme.neonGradient.createShader(bounds),
+                  child: Text(
+                    'Category Breakdown',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
 
                 GlassmorphismContainer(
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       _CategoryBreakdown(
@@ -588,7 +586,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         color: AppColors.ecoGems,
                         icon: Icons.recycling,
                       ),
-                      const Divider(),
+                      const SizedBox(height: 16),
                       _CategoryBreakdown(
                         category: 'FuelShards',
                         count:
@@ -598,7 +596,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         color: AppColors.fuelShards,
                         icon: Icons.eco,
                       ),
-                      const Divider(),
+                      const SizedBox(height: 16),
                       _CategoryBreakdown(
                         category: 'VoidDust',
                         count:
@@ -608,7 +606,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         color: AppColors.voidDust,
                         icon: Icons.delete,
                       ),
-                      const Divider(),
+                      const SizedBox(height: 16),
                       _CategoryBreakdown(
                         category: 'SparkCores',
                         count:
@@ -618,7 +616,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         color: AppColors.sparkCores,
                         icon: Icons.electrical_services,
                       ),
-                      const Divider(),
+                      const SizedBox(height: 16),
                       _CategoryBreakdown(
                         category: 'ToxicCrystals',
                         count:
@@ -990,34 +988,79 @@ class _CategoryBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withAlpha((0.05 * 255).toInt()),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withAlpha((0.3 * 255).toInt()),
+          width: 1,
+        ),
+      ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: color.withAlpha((0.1 * 255).toInt()),
-              borderRadius: BorderRadius.circular(8),
+              color: color.withAlpha((0.2 * 255).toInt()),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: color.withAlpha((0.5 * 255).toInt()),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withAlpha((0.3 * 255).toInt()),
+                  blurRadius: 8,
+                  spreadRadius: 0,
+                ),
+              ],
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              category,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  category,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Collected items',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withOpacity(0.7),
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            '$count items',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$count',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'items',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: color.withAlpha((0.8 * 255).toInt()),
+                ),
+              ),
+            ],
           ),
         ],
       ),

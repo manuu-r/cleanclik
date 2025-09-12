@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'achievement.dart';
+import 'package:cleanclik/core/models/achievement.dart';
 
 class AchievementCard {
   final String id;

@@ -1204,7 +1204,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           NeonIconButton(
             icon: Icons.navigation,
             color: NeonColors.solarYellow,
-            size: 40,
+            buttonSize: ButtonSize.small,
             onTap: _testNavigation,
             tooltip: 'Test Navigation',
           ),
@@ -1212,7 +1212,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           NeonIconButton(
             icon: Icons.add_location,
             color: NeonColors.toxicPurple,
-            size: 40,
+            buttonSize: ButtonSize.small,
             onTap: _addTestBin,
             tooltip: 'Add Test Bin',
           ),
@@ -1220,7 +1220,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           NeonIconButton(
             icon: Icons.near_me,
             color: NeonColors.electricGreen,
-            size: 40,
+            buttonSize: ButtonSize.small,
             onTap: _showNearestBin,
             tooltip: 'Nearest Bin',
           ),
@@ -1228,7 +1228,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           NeonIconButton(
             icon: Icons.my_location,
             color: NeonColors.oceanBlue,
-            size: 40,
+            buttonSize: ButtonSize.small,
             onTap: _goToCurrentLocation,
             tooltip: 'My Location',
           ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cleanclik/core/models/waste_category.dart';
 import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
-import 'qr_bin_service.dart';
+import 'package:cleanclik/core/services/camera/qr_bin_service.dart';
 
 /// Service for detecting disposal actions using hand tracking and geometric analysis
 class DisposalDetectionService {

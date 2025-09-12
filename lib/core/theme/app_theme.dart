@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cleanclik/core/theme/app_colors.dart';
+import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 
 /// UI constants for the AR-first design system with Material 3 expressive design
@@ -38,8 +39,15 @@ class UIConstants {
 
   // Glassmorphism (Material 3 surface treatments)
   static const double glassBlurRadius = 10.0;
-  static const double glassOpacity = 0.15;
+  static const double glassOpacity = 0.15; // Legacy - use GlassLevel instead
   static const double glassBorderOpacity = 0.2;
+  
+  // Enhanced Glassmorphism System (0.25-0.35 opacity range)
+  static const double glassPrimaryOpacity = 0.35; // High importance content
+  static const double glassSecondaryOpacity = 0.25; // Medium importance content
+  static const double glassTertiaryOpacity = 0.15; // Low importance content
+  static const double glassEnhancedBlurRadius = 12.0; // Improved blur
+  static const double glassEnhancedBorderOpacity = 0.3; // Better contrast
 
   // Border Radius (aligned to 4dp increments)
   static const double radiusSmall = 4.0;
@@ -49,13 +57,34 @@ class UIConstants {
   static const double radiusXXLarge = 24.0;
   static const double radiusRound = 28.0;
 
-  // Animations (Material 3 motion tokens)
+  // Enhanced Animation Tokens (Material 3 motion system)
   static const double breathingAnimationDuration = 2000.0;
   static const double morphingAnimationDuration = 400.0;
   static const double particleAnimationDuration = 1500.0;
   static const double fastAnimationDuration = 200.0;
   static const double mediumAnimationDuration = 300.0;
   static const double slowAnimationDuration = 500.0;
+  
+  // Material 3 Motion Tokens
+  static const double motionDurationShort1 = 50.0; // Micro-interactions
+  static const double motionDurationShort2 = 100.0; // Simple transitions
+  static const double motionDurationShort3 = 150.0; // Small component changes
+  static const double motionDurationShort4 = 200.0; // Medium component changes
+  static const double motionDurationMedium1 = 250.0; // Large component changes
+  static const double motionDurationMedium2 = 300.0; // Complex transitions
+  static const double motionDurationMedium3 = 350.0; // Screen transitions
+  static const double motionDurationMedium4 = 400.0; // Large screen changes
+  static const double motionDurationLong1 = 450.0; // Complex screen transitions
+  static const double motionDurationLong2 = 500.0; // Full screen changes
+  static const double motionDurationLong3 = 550.0; // Complex animations
+  static const double motionDurationLong4 = 600.0; // Extended animations
+  
+  // Material 3 Easing Curves (implemented as curve names for reference)
+  // Use with Curves.easeInOut, Curves.easeOut, etc.
+  static const String motionEasingStandard = 'easeInOut'; // Standard easing
+  static const String motionEasingDecelerate = 'easeOut'; // Decelerate easing
+  static const String motionEasingAccelerate = 'easeIn'; // Accelerate easing
+  static const String motionEasingEmphasized = 'easeInOutCubic'; // Emphasized easing
 
   // Touch Targets
   static const double thumbReachRadius = 75.0;
@@ -93,21 +122,56 @@ class UIConstants {
 }
 
 class AppTheme {
+  /// Material 3 expressive color scheme for light theme
+  static ColorScheme get _lightColorScheme {
+    return ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.light,
+    ).copyWith(
+      // Primary colors
+      primary: AppColors.primary,
+      onPrimary: Colors.white,
+      primaryContainer: NeonColors.electricGreen.withValues(alpha: 0.12),
+      onPrimaryContainer: AppColors.primary,
+      
+      // Secondary colors
+      secondary: AppColors.secondary,
+      onSecondary: Colors.white,
+      secondaryContainer: NeonColors.oceanBlue.withValues(alpha: 0.12),
+      onSecondaryContainer: NeonColors.oceanBlue,
+      
+      // Tertiary colors
+      tertiary: AppColors.accent,
+      onTertiary: Colors.white,
+      tertiaryContainer: AppColors.accent.withValues(alpha: 0.12),
+      onTertiaryContainer: AppColors.accent,
+      
+      // Surface colors
+      surface: AppColors.surface,
+      onSurface: AppColors.onSurface,
+      surfaceContainerLowest: const Color(0xFFFFFFFF),
+      surfaceContainerLow: const Color(0xFFF7F2FA),
+      surfaceContainer: const Color(0xFFF1ECF4),
+      surfaceContainerHigh: const Color(0xFFEBE6EE),
+      surfaceContainerHighest: const Color(0xFFE6E0E9),
+      surfaceTint: NeonColors.surfaceTintLight,
+      
+      // Outline colors
+      outline: NeonColors.outlineLight,
+      outlineVariant: NeonColors.outlineVariantLight,
+      
+      // Error colors
+      error: AppColors.error,
+      onError: Colors.white,
+      errorContainer: AppColors.error.withValues(alpha: 0.12),
+      onErrorContainer: AppColors.error,
+    );
+  }
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme:
-          ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            brightness: Brightness.light,
-          ).copyWith(
-            primary: AppColors.primary,
-            secondary: AppColors.secondary,
-            tertiary: AppColors.accent,
-            surface: AppColors.surface,
-            onSurface: AppColors.onSurface,
-            error: AppColors.error,
-          ),
+      colorScheme: _lightColorScheme,
       extensions: [
         ARThemeExtension.light(),
         AnimationThemeExtension.standard(),
@@ -176,21 +240,56 @@ class AppTheme {
     );
   }
 
+  /// Material 3 expressive color scheme for dark theme
+  static ColorScheme get _darkColorScheme {
+    return ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.dark,
+    ).copyWith(
+      // Primary colors
+      primary: NeonColors.electricGreen,
+      onPrimary: const Color(0xFF003910),
+      primaryContainer: const Color(0xFF005319),
+      onPrimaryContainer: NeonColors.glowGreen,
+      
+      // Secondary colors
+      secondary: NeonColors.oceanBlue,
+      onSecondary: const Color(0xFF001D36),
+      secondaryContainer: const Color(0xFF004B73),
+      onSecondaryContainer: NeonColors.glowBlue,
+      
+      // Tertiary colors
+      tertiary: AppColors.accent,
+      onTertiary: const Color(0xFF003910),
+      tertiaryContainer: const Color(0xFF005319),
+      onTertiaryContainer: AppColors.accent,
+      
+      // Surface colors
+      surface: AppColors.darkSurface,
+      onSurface: AppColors.darkOnSurface,
+      surfaceContainerLowest: const Color(0xFF0F0D13),
+      surfaceContainerLow: const Color(0xFF1D1B20),
+      surfaceContainer: const Color(0xFF211F26),
+      surfaceContainerHigh: const Color(0xFF2B2930),
+      surfaceContainerHighest: const Color(0xFF36343B),
+      surfaceTint: NeonColors.surfaceTintDark,
+      
+      // Outline colors
+      outline: NeonColors.outlineDark,
+      outlineVariant: NeonColors.outlineVariantDark,
+      
+      // Error colors
+      error: AppColors.error,
+      onError: const Color(0xFF690005),
+      errorContainer: const Color(0xFF93000A),
+      onErrorContainer: const Color(0xFFFFDAD6),
+    );
+  }
+
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme:
-          ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            brightness: Brightness.dark,
-          ).copyWith(
-            primary: AppColors.primary,
-            secondary: AppColors.secondary,
-            tertiary: AppColors.accent,
-            surface: AppColors.darkSurface,
-            onSurface: AppColors.darkOnSurface,
-            error: AppColors.error,
-          ),
+      colorScheme: _darkColorScheme,
       extensions: [ARThemeExtension.dark(), AnimationThemeExtension.standard()],
       appBarTheme: const AppBarTheme(
         centerTitle: true,

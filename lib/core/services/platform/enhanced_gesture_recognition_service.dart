@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
-import 'hand_tracking_service.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
 
 /// Enhanced gesture recognition using MediaPipe hand landmarks
 class EnhancedGestureRecognitionService {

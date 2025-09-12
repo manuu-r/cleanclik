@@ -1,6 +1,6 @@
 import 'package:cleanclik/core/models/category_stats.dart';
 import 'package:cleanclik/core/models/database_exceptions.dart';
-import 'database_service.dart';
+import 'package:cleanclik/core/services/data/database_service.dart';
 
 /// Database service for CategoryStats entities with Supabase integration
 class CategoryStatsDatabaseService extends DatabaseService<CategoryStats> {

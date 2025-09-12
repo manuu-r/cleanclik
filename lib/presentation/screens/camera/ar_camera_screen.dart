@@ -11,9 +11,9 @@ import 'package:cleanclik/core/services/location/bin_location_service.dart';
 import 'package:cleanclik/core/models/detected_object.dart';
 import 'package:cleanclik/core/models/camera_mode.dart';
 import 'package:cleanclik/presentation/widgets/camera/qr_scanner_overlay.dart';
-import 'ar_camera_services.dart';
-import 'ar_camera_processing.dart';
-import 'ar_camera_ui.dart';
+import 'package:cleanclik/presentation/screens/camera/ar_camera_services.dart';
+import 'package:cleanclik/presentation/screens/camera/ar_camera_processing.dart';
+import 'package:cleanclik/presentation/screens/camera/ar_camera_ui.dart';
 
 class ARCameraScreen extends ConsumerStatefulWidget {
   final CameraMode initialMode;

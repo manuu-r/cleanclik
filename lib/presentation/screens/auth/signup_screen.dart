@@ -35,6 +35,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Future<void> _signUpWithEmail() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -49,24 +50,28 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       );
       debugPrint('Created new user profile: ${result.success.toString()}');
 
+      if (!mounted) return;
+
       if (result.success) {
-        if (mounted) {
-          context.go(Routes.home);
-        }
+        context.go(Routes.home);
       } else if (result.error?.type == AuthErrorType.emailNotVerified) {
-        if (mounted) {
-          // Navigate to email verification screen
-          context.push(
-            Routes.emailVerification,
-            extra: _emailController.text.trim(),
-          );
-        }
+        // Navigate to email verification screen
+        context.push(
+          Routes.emailVerification,
+          extra: _emailController.text.trim(),
+        );
+      } else if (result.error?.type == AuthErrorType.emailAlreadyInUse) {
+        // Show error message - no auto-redirect
+        setState(() {
+          _errorMessage = result.error?.message ?? 'This email is already registered. Please sign in instead.';
+        });
       } else {
         setState(() {
           _errorMessage = result.error?.message ?? 'Sign up failed';
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'An unexpected error occurred';
       });
@@ -80,6 +85,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -89,16 +95,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       final authService = ref.read(authServiceProvider);
       final result = await authService.signInWithGoogle();
 
+      if (!mounted) return;
+
       if (result.success) {
-        if (mounted) {
-          context.go(Routes.home);
-        }
+        context.go(Routes.home);
       } else {
         setState(() {
           _errorMessage = result.error?.message ?? 'Google sign in failed';
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'An unexpected error occurred';
       });
@@ -144,7 +151,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
 
                 // Logo and welcome message
                 Container(
@@ -162,10 +169,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     children: [
                       Icon(
                         Icons.eco,
-                        size: 60,
+                        size: 50,
                         color: theme.colorScheme.primary,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Text(
                         'Join CleanClik',
                         style: theme.textTheme.headlineMedium?.copyWith(
@@ -174,7 +181,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         'Start your journey towards a cleaner environment',
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -186,7 +193,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
 
                 // Error message
                 if (_errorMessage != null) ...[
@@ -199,27 +206,78 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         color: theme.colorScheme.error.withValues(alpha: 0.3),
                       ),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.error_outline,
-                          color: theme.colorScheme.onErrorContainer,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: TextStyle(
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
                               color: theme.colorScheme.onErrorContainer,
-                              fontWeight: FontWeight.w500,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onErrorContainer,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Show "Go to Login" button for email already in use
+                        if (_errorMessage!.contains('already registered')) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 16,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Already have an account?',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurface,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => context.go(Routes.login),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                 ],
 
                 // Sign up form
@@ -295,7 +353,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
                         // Email field
                         TextFormField(
@@ -346,7 +404,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
                         // Password field
                         TextFormField(
@@ -369,9 +427,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                               onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
+                                if (mounted) {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                }
                               },
                             ),
                             filled: true,
@@ -413,7 +473,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
                         // Confirm password field
                         TextFormField(
@@ -437,10 +497,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                               onPressed: () {
-                                setState(() {
-                                  _obscureConfirmPassword =
-                                      !_obscureConfirmPassword;
-                                });
+                                if (mounted) {
+                                  setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  });
+                                }
                               },
                             ),
                             filled: true,
@@ -481,7 +543,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 // Sign up button
                 FilledButton(
@@ -525,7 +587,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 // Divider
                 Row(
@@ -544,7 +606,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 // Google sign up button
                 OutlinedButton.icon(
@@ -559,7 +621,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
 
                 // Sign in link
                 Row(

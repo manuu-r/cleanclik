@@ -46,7 +46,7 @@ class LeaderboardService {
 
   // Configuration
   static const Duration cacheExpiry = Duration(minutes: 5);
-  static const Duration refreshInterval = Duration(seconds: 30);
+  static const Duration refreshInterval = Duration(minutes: 2); // Reduced frequency
   static const String cacheKeyPrefix = 'leaderboard_cache_';
   static const String userRankCacheKey = 'user_rank_cache';
 
@@ -369,6 +369,16 @@ class LeaderboardService {
   /// Sync leaderboard data (for offline/online sync)
   Future<void> syncLeaderboardData() async {
     try {
+      // Skip sync if cache is still valid (within 30 seconds)
+      if (isCacheValid && _lastCacheUpdate != null) {
+        final timeSinceLastUpdate = DateTime.now().difference(_lastCacheUpdate!);
+        if (timeSinceLastUpdate < const Duration(seconds: 30)) {
+          debugPrint('🏆 [LEADERBOARD] Skipping sync - cache is fresh (${timeSinceLastUpdate.inSeconds}s old)');
+          _syncStatusController.add(SyncStatus.success());
+          return;
+        }
+      }
+
       _syncStatusController.add(SyncStatus.syncing());
 
       // Refresh leaderboard data

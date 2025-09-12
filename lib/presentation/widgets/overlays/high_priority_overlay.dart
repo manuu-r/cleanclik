@@ -1,13 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
+import 'package:cleanclik/presentation/widgets/overlays/base_material_overlay.dart';
 
-/// A high-priority overlay that appears above all other UI elements including floating action hubs
-class HighPriorityOverlay extends StatelessWidget {
+/// A high-priority Material 3 overlay that appears above all other UI elements
+class HighPriorityOverlay extends BaseMaterialOverlay {
+  final Widget content;
+
+  const HighPriorityOverlay({
+    super.key,
+    required this.content,
+    super.onDismiss,
+    super.backgroundColor,
+    super.dismissible = true,
+    super.hapticFeedback = false,
+  });
+
+  @override
+  AnimationConfig getEntranceAnimation(BuildContext context) {
+    return AnimationConfig(
+      duration: context.simpleTransitionAnimation.duration,
+      curve: Curves.easeOutQuart,
+    );
+  }
+
+  @override
+  Widget buildContent(BuildContext context, Animation<double> animation) {
+    return content;
+  }
+
+  @override
+  State<HighPriorityOverlay> createState() => _HighPriorityOverlayState();
+
+  /// Show Material 3 high-priority overlay
+  static Future<T?> show<T>({
+    required BuildContext context,
+    required Widget child,
+    VoidCallback? onDismiss,
+    Color? backgroundColor,
+    bool dismissible = true,
+    bool useRootNavigator = true,
+  }) {
+    try {
+      return showDialog<T>(
+        context: context,
+        barrierColor: Colors.transparent,
+        barrierDismissible: dismissible,
+        useRootNavigator: useRootNavigator,
+        builder: (context) => HighPriorityOverlay(
+          content: child,
+          onDismiss: onDismiss,
+          backgroundColor: backgroundColor,
+          dismissible: dismissible,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error showing high priority overlay: $e');
+      return Future.value(null);
+    }
+  }
+}
+
+class _HighPriorityOverlayState extends State<HighPriorityOverlay> {
+  // State is managed by BaseMaterialOverlay
+  @override
+  Widget build(BuildContext context) {
+    return Container(); // This will be handled by BaseMaterialOverlay
+  }
+}
+
+/// Legacy high-priority overlay for backward compatibility
+class LegacyHighPriorityOverlay extends StatelessWidget {
   final Widget child;
   final VoidCallback? onBackgroundTap;
   final Color? backgroundColor;
   final bool dismissible;
 
-  const HighPriorityOverlay({
+  const LegacyHighPriorityOverlay({
     super.key,
     required this.child,
     this.onBackgroundTap,
@@ -21,7 +89,7 @@ class HighPriorityOverlay extends StatelessWidget {
       color: Colors.transparent,
       child: Stack(
         children: [
-          // High-priority background
+          // High-priority background with Material 3 surface treatment
           Positioned.fill(
             child: GestureDetector(
               onTap: dismissible
@@ -32,7 +100,10 @@ class HighPriorityOverlay extends StatelessWidget {
                           }
                         })
                   : null,
-              child: Container(color: backgroundColor ?? Colors.black54),
+              child: Container(
+                color: backgroundColor ?? 
+                    Theme.of(context).colorScheme.scrim.withValues(alpha: 0.6),
+              ),
             ),
           ),
 
@@ -43,8 +114,8 @@ class HighPriorityOverlay extends StatelessWidget {
     );
   }
 
-  /// Show this overlay with maximum priority
-  static Future<T?> show<T>({
+  /// Show legacy overlay for backward compatibility
+  static Future<T?> showLegacy<T>({
     required BuildContext context,
     required Widget child,
     VoidCallback? onBackgroundTap,
@@ -58,7 +129,7 @@ class HighPriorityOverlay extends StatelessWidget {
         barrierColor: Colors.transparent,
         barrierDismissible: dismissible,
         useRootNavigator: useRootNavigator,
-        builder: (context) => HighPriorityOverlay(
+        builder: (context) => LegacyHighPriorityOverlay(
           onBackgroundTap: onBackgroundTap,
           backgroundColor: backgroundColor,
           dismissible: dismissible,
@@ -66,7 +137,7 @@ class HighPriorityOverlay extends StatelessWidget {
         ),
       );
     } catch (e) {
-      print('Error showing high priority overlay: $e');
+      debugPrint('Error showing legacy high priority overlay: $e');
       return Future.value(null);
     }
   }

@@ -4,6 +4,7 @@ import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/theme/app_theme.dart';
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/common/neon_icon_button.dart';
 
 /// QR Scanner overlay that appears over the camera view
 class QRScannerOverlay extends StatefulWidget {
@@ -211,13 +212,15 @@ class _QRScannerOverlayState extends State<QRScannerOverlay>
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: UIConstants.spacing4),
-              ElevatedButton(
-                onPressed: () {
+              NeonIconButton.primary(
+                label: 'Retry',
+                color: Colors.green,
+                onTap: () {
                   setState(() {
                     _errorMessage = null;
                   });
                 },
-                child: const Text('Retry'),
+                buttonSize: ButtonSize.medium,
               ),
             ],
           ),
@@ -249,9 +252,11 @@ class _QRScannerOverlayState extends State<QRScannerOverlay>
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  onPressed: widget.onClose,
-                  icon: const Icon(Icons.close, color: Colors.white),
+                NeonIconButton(
+                  icon: Icons.close,
+                  color: Colors.white,
+                  onTap: widget.onClose,
+                  tooltip: 'Close',
                 ),
               ],
             ),
@@ -329,20 +334,19 @@ class _QRScannerOverlayState extends State<QRScannerOverlay>
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           // Torch toggle
-          IconButton(
-            onPressed: _toggleTorch,
-            icon: Icon(
-              Icons.flash_on,
-              color: _flashEnabled ? NeonColors.solarYellow : Colors.white,
-            ),
+          NeonIconButton(
+            icon: Icons.flash_on,
+            color: _flashEnabled ? NeonColors.solarYellow : Colors.white,
+            onTap: _toggleTorch,
             tooltip: 'Toggle Flashlight',
           ),
 
           // Reset scanner
           if (!_isScanning)
-            IconButton(
-              onPressed: _resetScanner,
-              icon: const Icon(Icons.refresh, color: Colors.white),
+            NeonIconButton(
+              icon: Icons.refresh,
+              color: Colors.white,
+              onTap: _resetScanner,
               tooltip: 'Scan Again',
             ),
         ],
