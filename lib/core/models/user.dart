@@ -165,13 +165,14 @@ class User {
 
   /// Get points needed for next level
   int get pointsToNextLevel {
-    final nextLevel = level + 1;
-    final nextLevelThreshold = _getLevelThreshold(nextLevel);
+    if (level >= 6) return 0; // Max level reached
+    final nextLevelThreshold = _getLevelThreshold(level + 1);
     return nextLevelThreshold - totalPoints;
   }
 
   /// Get progress to next level (0.0 to 1.0)
   double get levelProgress {
+    if (level >= 6) return 1.0; // Max level reached
     final currentLevelThreshold = _getLevelThreshold(level);
     final nextLevelThreshold = _getLevelThreshold(level + 1);
     final pointsInCurrentLevel = totalPoints - currentLevelThreshold;

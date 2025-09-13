@@ -1,4 +1,143 @@
 Launching lib/main.dart on Pixel 8 in debug mode...
-Running Gradle task 'assembleDebug'...                           1,877ms
+Running Gradle task 'assembleDebug'...                              6.1s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...          10.6s
+Installing build/app/outputs/flutter-apk/app-debug.apk...          11.9s
+D/FlutterJNI(16168): Beginning load of flutter...
+D/FlutterJNI(16168): flutter (null) was loaded normally!
+I/flutter (16168): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator(16168): Attaching Geolocator to activity
+D/FlutterGeolocator(16168): Creating service.
+D/FlutterGeolocator(16168): Binding to location service.
+I/WindowExtensionsImpl(16168): Initializing Window Extensions, vendor API level=9, activity embedding enabled=true
+D/WindowOnBackDispatcher(16168): setTopOnBackInvokedCallback (unwrapped): android.view.ViewRootImpl$$ExternalSyntheticLambda12@69be2ef
+Syncing files to device Pixel 8...                              
+I/flutter (16168): supabase.supabase_flutter: INFO: ***** Supabase init completed ***** 
+I/.vibe.vibesweep(16168): Compiler allocated 4970KB to compile void android.view.ViewRootImpl.performTraversals()
+Syncing files to device Pixel 8...                                  40ms
+
+Flutter run key commands.
+r Hot reload. 🔥🔥🔥
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on Pixel 8 is available at: http://127.0.0.1:64308/nT4bfZC59wc=/
+D/FlutterGeolocator(16168): Geolocator foreground service connected
+D/FlutterGeolocator(16168): Initializing Geolocator services
+D/FlutterGeolocator(16168): Flutter engine connected. Connected engine count 1
+The Flutter DevTools debugger and profiler on Pixel 8 is available at: http://127.0.0.1:9100?uri=http://127.0.0.1:64308/nT4bfZC59wc=/
+D/WindowLayoutComponentImpl(16168): Register WindowLayoutInfoListener on Context=com.cleancity.vibe.vibesweep.MainActivity@3771617, of which baseContext=android.app.ContextImpl@ac74ea6
+I/HWUI    (16168): Using FreeType backend (prop=Auto)
+I/flutter (16168): Supabase initialized successfully
+I/flutter (16168): Checking existing session...
+I/flutter (16168): Found active Supabase session for user: sai914152@gmail.com
+I/flutter (16168): Handling sign in for user: cb1edd4f-add1-4a06-94e4-c9f09965e1f5
+I/flutter (16168): Loading user profile for auth ID: cb1edd4f-add1-4a06-94e4-c9f09965e1f5
+I/flutter (16168): Supabase auth state changed: AuthChangeEvent.initialSession (isSigningOut: false)
+I/flutter (16168): Session user: sai914152@gmail.com, confirmed: 2025-09-12T15:15:52.423149Z
+I/flutter (16168): Unhandled auth event: AuthChangeEvent.initialSession
+I/flutter (16168): Initializing AuthService...
+I/flutter (16168): Checking existing session...
+I/flutter (16168): Found active Supabase session for user: sai914152@gmail.com
+I/flutter (16168): Handling sign in for user: cb1edd4f-add1-4a06-94e4-c9f09965e1f5
+I/flutter (16168): User profile creation already in progress for: cb1edd4f-add1-4a06-94e4-c9f09965e1f5
+I/Choreographer(16168): Skipped 68 frames!  The application may be doing too much work on its main thread.
+D/ImeBackDispatcher(16168): switch root view (mImeCallbacks.size=0)
+D/InsetsController(16168): hide(ime())
+I/ImeTracker(16168): com.cleancity.vibe.vibesweep:a2b4a906: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+I/flutter (16168): Found existing user profile: sai9141
+D/ProfileInstaller(16168): Installing profile for com.cleancity.vibe.vibesweep
+I/flutter (16168): Auth state updated: AuthState(status: AuthStatus.authenticated, user: sai9141, error: null, isDemoMode: false)
+I/flutter (16168): User signed in successfully: sai9141 (sai914152@gmail.com)
+I/flutter (16168): Auth state updated: AuthState(status: AuthStatus.authenticated, user: sai9141, error: null, isDemoMode: false)
+I/flutter (16168): User signed in successfully: sai9141 (sai914152@gmail.com)
+I/flutter (16168): Setting up deep link listener...
+I/flutter (16168): Deep link listener setup complete
+I/flutter (16168): Deep link service initialized successfully
+I/flutter (16168): Disposing deep link service...
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Initialized with default values
+I/flutter (16168): 📦 [CONSOLIDATED_INVENTORY] Loading from Supabase database...
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Loaded 3 items from database
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Loaded session stats from storage
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Inventory load complete: 3 items
+I/flutter (16168): 🔄 [CONSOLIDATED_INVENTORY] Setting up real-time subscription for user: cb1edd4f-add1-4a06-94e4-c9f09965e1f5
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Real-time subscription established
+I/flutter (16168): 🔄 [CONSOLIDATED_INVENTORY] Received real-time update: 3 items
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Real-time update processed: 3 items
+I/flutter (16168): 💾 [CONSOLIDATED_INVENTORY] Data cached to storage successfully
+I/flutter (16168): 🏆 [LEADERBOARD_PROVIDER] Loading leaderboard for period: LeaderboardPeriod.daily
+I/flutter (16168): 🏆 [LEADERBOARD_PROVIDER] Service still loading
+I/flutter (16168): 🏆 [LEADERBOARD_PROVIDER] Loading leaderboard for period: LeaderboardPeriod.daily
+I/flutter (16168): 🏆 [LEADERBOARD_PROVIDER] Service loaded, getting leaderboard page
+I/flutter (16168): 🏆 [LEADERBOARD] Getting leaderboard page: page=1, pageSize=20, filter=LeaderboardFilter.all, sort=LeaderboardSort.points, forceRefresh=false
+I/flutter (16168): 🏆 [LEADERBOARD] Fetching from database for user: cb1edd4f-add1-4a06-94e4-c9f09965e1f5
+I/flutter (16168): Creating new SyncService instance
+I/flutter (16168): User authenticated, triggering initial sync...
+I/flutter (16168): Network status changed: online
+I/flutter (16168): 🏆 [LEADERBOARD] Database connection test: SUCCESS
+I/flutter (16168): 🏆 [DB] Building leaderboard query with filter: LeaderboardFilter.all, sort: LeaderboardSort.points
+I/flutter (16168): 🏆 [DB] Executing leaderboard query...
+I/flutter (16168): Starting complete data synchronization...
+I/flutter (16168): Syncing user data...
+I/flutter (16168): Syncing inventory data...
+I/flutter (16168): 📦 [CONSOLIDATED_INVENTORY] Starting inventory data synchronization...
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Inventory data synchronized successfully
+I/flutter (16168): Syncing leaderboard data...
+I/flutter (16168): 🏆 [LEADERBOARD] Skipping sync - cache is fresh (0s old)
+I/flutter (16168): Complete data synchronization finished successfully
+I/flutter (16168): 🏆 [DB] Query returned 19 rows
+I/flutter (16168): 🏆 [LEADERBOARD] Successfully fetched 19 entries from database
+I/flutter (16168): 🏆 [LEADERBOARD_PROVIDER] Got 19 entries
+I/flutter (16168): 📤 [LEADERBOARD_SCREEN] _showShareOptions() called
+I/flutter (16168): ✅ [LEADERBOARD_SCREEN] Share dialog shown successfully
+W/WindowOnBackDispatcher(16168): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(16168): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter (16168): 📤 [LEADERBOARD_SCREEN] Starting direct share...
+I/flutter (16168): 👤 [LEADERBOARD_SCREEN] Current user: sai9141, Points: 63
+I/flutter (16168): 🎯 [LEADERBOARD_SCREEN] Achievement card created: 🎉 Just reached 63 points on CleanClik! Join me in making our city cleaner! #CleanClik #CleanCity
+I/flutter (16168): 🔧 [LEADERBOARD_SCREEN] Social service obtained, attempting share...
+I/flutter (16168): 📱 [SOCIAL_SHARING_SERVICE] shareAchievementCard called for platform: system
+I/flutter (16168): 📱 [SOCIAL_SHARING_SERVICE] Card details - ID: card_points_63_1757777357048, shareText length: 97
+I/flutter (16168): ✅ [SOCIAL_SHARING_SERVICE] Share completed for system
+I/flutter (16168): ✅ [LEADERBOARD_SCREEN] Share completed successfully
+D/ImeBackDispatcher(16168): Clear (mImeCallbacks.size=0)
+D/ImeBackDispatcher(16168): switch root view (mImeCallbacks.size=0)
+D/VRI[MainActivity](16168): visibilityChanged oldVisibility=true newVisibility=false
+D/ViewRootImpl(16168): Skipping stats log for color mode
+D/ImeBackDispatcher(16168): switch root view (mImeCallbacks.size=0)
+I/flutter (16168): App resumed - checking for deep links and refreshing auth state
+I/flutter (16168): Checking for pending deep links...
+I/flutter (16168): Disposing deep link service...
+I/flutter (16168): No pending deep links found
+I/flutter (16168): Refreshing authentication state...
+I/flutter (16168): Checking existing session...
+I/flutter (16168): Found active Supabase session for user: sai914152@gmail.com
+I/flutter (16168): Handling sign in for user: cb1edd4f-add1-4a06-94e4-c9f09965e1f5
+I/flutter (16168): Loading user profile for auth ID: cb1edd4f-add1-4a06-94e4-c9f09965e1f5
+D/InsetsController(16168): hide(ime())
+I/ImeTracker(16168): com.cleancity.vibe.vibesweep:3a006240: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+I/flutter (16168): Found existing user profile: sai9141
+I/flutter (16168): Auth state updated: AuthState(status: AuthStatus.authenticated, user: sai9141, error: null, isDemoMode: false)
+I/flutter (16168): User signed in successfully: sai9141 (sai914152@gmail.com)
+I/flutter (16168): 🔄 [CONSOLIDATED_INVENTORY] Received real-time update: 3 items
+I/flutter (16168): Disposing SyncService resources...
+I/flutter (16168): SyncService disposed successfully
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Real-time update processed: 3 items
+I/flutter (16168): Creating new SyncService instance
+I/flutter (16168): User authenticated, triggering initial sync...
+I/flutter (16168): 💾 [CONSOLIDATED_INVENTORY] Data cached to storage successfully
+I/flutter (16168): Network status changed: online
+I/flutter (16168): Starting complete data synchronization...
+I/flutter (16168): Syncing user data...
+I/flutter (16168): Syncing inventory data...
+I/flutter (16168): 📦 [CONSOLIDATED_INVENTORY] Starting inventory data synchronization...
+I/flutter (16168): ✅ [CONSOLIDATED_INVENTORY] Inventory data synchronized successfully
+I/flutter (16168): Syncing leaderboard data...
+I/flutter (16168): 🏆 [LEADERBOARD] Skipping sync - cache is fresh (1s old)
+I/flutter (16168): Complete data synchronization finished successfully
+I/flutter (16168): Supabase auth state changed: AuthChangeEvent.tokenRefreshed (isSigningOut: false)
+I/flutter (16168): Session user: sai914152@gmail.com, confirmed: 2025-09-12T15:15:52.423149Z
+I/flutter (16168): Token refreshed automatically
+Lost connection to device.

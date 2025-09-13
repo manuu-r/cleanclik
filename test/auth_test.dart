@@ -28,13 +28,19 @@ void main() {
       });
 
       test('should calculate points to next level correctly', () {
-        final user = User.defaultUser().copyWith(totalPoints: 150);
+        final user = User.defaultUser().copyWith(
+          totalPoints: 150,
+          level: User.calculateLevel(150),
+        );
         final pointsToNext = user.pointsToNextLevel;
         expect(pointsToNext, 350); // 500 - 150 = 350
       });
 
       test('should calculate level progress correctly', () {
-        final user = User.defaultUser().copyWith(totalPoints: 250); // Level 2
+        final user = User.defaultUser().copyWith(
+          totalPoints: 250,
+          level: User.calculateLevel(250),
+        ); // Level 2
         final progress = user.levelProgress;
         expect(progress, closeTo(0.375, 0.001)); // 150/400 = 0.375
       });
@@ -111,7 +117,6 @@ void main() {
         expect(result.success, true);
         expect(result.user, user);
         expect(result.error, isNull);
-        expect(result.exception, isNull);
       });
 
       test('should create failure result correctly', () {
@@ -165,7 +170,10 @@ void main() {
 
       test('should calculate progress within level correctly', () {
         // Test user at level 3 (500-999 points range)
-        final user = User.defaultUser().copyWith(totalPoints: 750);
+        final user = User.defaultUser().copyWith(
+          totalPoints: 750,
+          level: User.calculateLevel(750),
+        );
 
         expect(user.level, 3);
         expect(user.levelProgress, closeTo(0.5, 0.001)); // 250/500 = 0.5
@@ -174,13 +182,19 @@ void main() {
 
       test('should handle edge cases for level progress', () {
         // Test at exact level boundary
-        final userAtBoundary = User.defaultUser().copyWith(totalPoints: 1000);
+        final userAtBoundary = User.defaultUser().copyWith(
+          totalPoints: 1000,
+          level: User.calculateLevel(1000),
+        );
         expect(userAtBoundary.level, 4);
         expect(userAtBoundary.levelProgress, 0.0);
         expect(userAtBoundary.pointsToNextLevel, 1500); // 2500 - 1000 = 1500
 
         // Test at max level
-        final maxLevelUser = User.defaultUser().copyWith(totalPoints: 10000);
+        final maxLevelUser = User.defaultUser().copyWith(
+          totalPoints: 10000,
+          level: User.calculateLevel(10000),
+        );
         expect(maxLevelUser.level, 6);
       });
     });

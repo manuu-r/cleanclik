@@ -6,7 +6,7 @@ part of 'inventory_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$inventoryServiceHash() => r'03a99ac43571aa812b93ff1376983afc4c294637';
+String _$inventoryServiceHash() => r'08fc4986be5aaa862623c05291038a977fd56c8f';
 
 /// Service for managing user's carrying inventory, bin matching, and session tracking
 ///
