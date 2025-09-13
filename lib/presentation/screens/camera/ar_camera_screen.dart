@@ -170,18 +170,28 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
 
     // Set up QR controller callbacks
     _qrController.setOnShowOverlay((overlay) {
+      print('🎭 [AR_CAMERA] Received overlay show request: ${overlay.runtimeType}');
       if (mounted) {
+        print('✅ [AR_CAMERA] Widget is mounted, setting overlay state');
         setState(() {
           _activeOverlay = overlay;
         });
+        print('📱 [AR_CAMERA] Overlay state updated, should be visible now');
+      } else {
+        print('❌ [AR_CAMERA] Widget not mounted, cannot show overlay');
       }
     });
 
     _qrController.setOnHideOverlay(() {
+      print('🎭 [AR_CAMERA] Received overlay hide request');
       if (mounted) {
+        print('✅ [AR_CAMERA] Hiding overlay');
         setState(() {
           _activeOverlay = null;
         });
+        print('📱 [AR_CAMERA] Overlay hidden');
+      } else {
+        print('❌ [AR_CAMERA] Widget not mounted, cannot hide overlay');
       }
     });
 
@@ -461,7 +471,14 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
                   ),
 
                 // Active overlay (QR scanner or bin feedback)
-                if (_activeOverlay != null) _activeOverlay!,
+                if (_activeOverlay != null) ...[
+                  Builder(
+                    builder: (context) {
+                      print('🎭 [AR_CAMERA] Rendering active overlay: ${_activeOverlay.runtimeType}');
+                      return _activeOverlay!;
+                    },
+                  ),
+                ],
               ],
             );
           },
@@ -570,15 +587,13 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
   void _handleQRScanned(String qrData) {
     print('📱 [AR_CAMERA] QR code scanned: ${qrData.length} characters');
 
-    // Close QR scanner first
-    _closeQRScanner();
-
-    // Process QR data through controller
+    // Process QR data through controller (this will handle overlay transitions)
     _qrController.handleQRScan(qrData);
   }
 
   /// Close QR scanner
   void _closeQRScanner() async {
+    print('📱 [AR_CAMERA] Closing QR scanner...');
     if (mounted) {
       setState(() {
         _activeOverlay = null;
@@ -589,6 +604,7 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
         await _switchToARMode();
       }
     }
+    print('✅ [AR_CAMERA] QR scanner closed');
   }
 
   /// Synchronize UI state between main screen and UI module

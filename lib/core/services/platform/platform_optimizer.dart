@@ -25,14 +25,14 @@ class PlatformOptimizer {
       aspectRatio: 9 / 16,
     ),
     SocialPlatform.system: const CardDimensions(
-      width: 1080,
+      width: 1920,
       height: 1080,
-      aspectRatio: 1.0,
+      aspectRatio: 16 / 9,
     ),
     SocialPlatform.generic: const CardDimensions(
-      width: 1080,
+      width: 1920,
       height: 1080,
-      aspectRatio: 1.0,
+      aspectRatio: 16 / 9,
     ),
   };
 

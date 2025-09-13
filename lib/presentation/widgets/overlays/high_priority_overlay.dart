@@ -18,7 +18,7 @@ class HighPriorityOverlay extends BaseMaterialOverlay {
   @override
   AnimationConfig getEntranceAnimation(BuildContext context) {
     return AnimationConfig(
-      duration: context.simpleTransitionAnimation.duration,
+      duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutQuart,
     );
   }

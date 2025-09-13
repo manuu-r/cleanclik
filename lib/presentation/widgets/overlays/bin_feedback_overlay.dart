@@ -45,42 +45,37 @@ class BinFeedbackOverlay extends BaseMaterialOverlay {
   @override
   AnimationConfig getEntranceAnimation(BuildContext context) {
     // Use emphasized animation for important feedback
+    // Use default duration to avoid theme access during initialization
     return AnimationConfig(
-      duration: context.componentChangeAnimation.duration,
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutBack,
     );
   }
 
   @override
   Widget buildContent(BuildContext context, Animation<double> animation) {
+    print('🎭 [BIN_FEEDBACK_OVERLAY] Building content for match type: ${matchResult.matchType}');
     return _BinFeedbackContent(
       matchResult: matchResult,
       onDispose: onDispose,
+      onDismiss: onDismiss,
       animation: animation,
     );
   }
 
-  @override
-  State<BinFeedbackOverlay> createState() => _BinFeedbackOverlayState();
-}
-
-class _BinFeedbackOverlayState extends State<BinFeedbackOverlay> {
-  // State is now managed by BaseMaterialOverlay
-  @override
-  Widget build(BuildContext context) {
-    return Container(); // This will be handled by BaseMaterialOverlay
-  }
 }
 
 /// Content widget for bin feedback with Material 3 design and micro-animations
 class _BinFeedbackContent extends StatefulWidget {
   final BinMatchResult matchResult;
   final Function(List<InventoryItem> itemsToDispose)? onDispose;
+  final VoidCallback? onDismiss;
   final Animation<double> animation;
 
   const _BinFeedbackContent({
     required this.matchResult,
     required this.onDispose,
+    required this.onDismiss,
     required this.animation,
   });
 
@@ -94,15 +89,27 @@ class _BinFeedbackContentState extends State<_BinFeedbackContent>
   late AnimationController _particleController;
   late Animation<double> _breathingAnimation;
   late Animation<double> _particleAnimation;
+  bool _animationsInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeSpecializedAnimations();
+    // Don't initialize animations here - wait for didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_animationsInitialized) {
+      _initializeSpecializedAnimations();
+      _animationsInitialized = true;
+    }
   }
 
   void _initializeSpecializedAnimations() {
-    final animationTheme = Theme.of(context).animationTheme;
+    final theme = Theme.of(context);
+    final animationTheme = theme.extension<AnimationThemeExtension>() ?? 
+                          AnimationThemeExtension.standard();
     
     // Breathing animation for info results
     _breathingController = AnimationConfig.breathing(animationTheme).createController(this);
@@ -121,19 +128,23 @@ class _BinFeedbackContentState extends State<_BinFeedbackContent>
     );
 
     // Start appropriate animations based on match result
-    if (widget.matchResult.isInfoResult) {
-      _breathingController.repeat(reverse: true);
-    }
+    if (mounted) {
+      if (widget.matchResult.isInfoResult) {
+        _breathingController.repeat(reverse: true);
+      }
 
-    if (widget.matchResult.isPositiveResult) {
-      _particleController.forward();
+      if (widget.matchResult.isPositiveResult) {
+        _particleController.forward();
+      }
     }
   }
 
   @override
   void dispose() {
-    _breathingController.dispose();
-    _particleController.dispose();
+    if (_animationsInitialized) {
+      _breathingController.dispose();
+      _particleController.dispose();
+    }
     super.dispose();
   }
 
@@ -199,12 +210,12 @@ class _BinFeedbackContentState extends State<_BinFeedbackContent>
       child: AnimatedBuilder(
         animation: widget.matchResult.isInfoResult ? _breathingAnimation : widget.animation,
         builder: (context, child) {
-          // Enhanced opacity for better visibility (0.25-0.35 range)
+          // Enhanced opacity for better visibility (0.25-0.35 range) with safe clamping
           final baseOpacity = widget.matchResult.isInfoResult ? 0.25 : 0.3;
           final animationMultiplier = widget.matchResult.isInfoResult 
-              ? _breathingAnimation.value 
-              : widget.animation.value;
-          final opacity = baseOpacity * animationMultiplier;
+              ? _breathingAnimation.value.clamp(0.0, 2.0) 
+              : widget.animation.value.clamp(0.0, 1.0);
+          final opacity = (baseOpacity * animationMultiplier).clamp(0.0, 1.0);
 
           return Container(
             decoration: BoxDecoration(
@@ -454,7 +465,12 @@ class _BinFeedbackContentState extends State<_BinFeedbackContent>
       children: [
         // Dismiss button with Material 3 styling
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            // First dismiss the overlay
+            Navigator.of(context).pop();
+            // Then call the onDismiss callback to reset scanning state
+            widget.onDismiss?.call();
+          },
           style: TextButton.styleFrom(
             foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.8),
             padding: const EdgeInsets.symmetric(
@@ -541,7 +557,7 @@ class _Material3ParticleEffectPainter extends CustomPainter {
   void _paintParticleLayer(Canvas canvas, Offset center, int count, double layerIntensity) {
     final paint = Paint()
       ..style = PaintingStyle.fill
-      ..color = color.withValues(alpha: (1.0 - progress) * 0.7 * layerIntensity);
+      ..color = color.withValues(alpha: ((1.0 - progress) * 0.7 * layerIntensity).clamp(0.0, 1.0));
 
     for (int i = 0; i < count; i++) {
       final angle = (i / count) * 2 * math.pi;
@@ -559,8 +575,8 @@ class _Material3ParticleEffectPainter extends CustomPainter {
       final particleCenter = Offset(x, y);
       final gradient = RadialGradient(
         colors: [
-          color.withValues(alpha: (1.0 - progress) * 0.8 * layerIntensity),
-          color.withValues(alpha: (1.0 - progress) * 0.2 * layerIntensity),
+          color.withValues(alpha: ((1.0 - progress) * 0.8 * layerIntensity).clamp(0.0, 1.0)),
+          color.withValues(alpha: ((1.0 - progress) * 0.2 * layerIntensity).clamp(0.0, 1.0)),
         ],
       );
 

@@ -48,9 +48,12 @@ class SocialSharingService {
       }
 
       // Use share_plus to share the achievement card text
-      await Share.share(card.shareText, subject: 'My VibeSweep Achievement');
+      await Share.share(
+        card.shareText, 
+        subject: 'My CleanClik Achievement',
+      );
 
-      // Share.share() doesn't return a boolean, but we can consider it successful if no exception occurred
+      // Share.share() doesn't return a result in older versions, assume success if no exception
       print('✅ [$_logTag] Share completed for ${platform.name}');
       return true;
     } catch (e) {
@@ -94,12 +97,10 @@ class SocialSharingService {
       await Share.shareXFiles(
         [XFile(cardFile.path)],
         text: shareText,
-        subject: 'My VibeSweep Achievement',
+        subject: 'My CleanClik Achievement',
       );
 
-      print(
-        '✅ [$_logTag] Social card shared successfully for ${platform.name}',
-      );
+      print('✅ [$_logTag] Social card shared successfully for ${platform.name}');
       return true;
     } catch (e) {
       print('❌ [$_logTag] Failed to share social card to ${platform.name}: $e');
@@ -118,6 +119,7 @@ class SocialSharingService {
       }
 
       await Share.share(text);
+      
       print('✅ [$_logTag] Text shared successfully');
       return true;
     } catch (e) {
@@ -211,11 +213,9 @@ class SocialSharingService {
         return await shareAchievementCard(card, platform);
       }
 
-      await Share.share(customText, subject: 'My VibeSweep Achievement');
+      await Share.share(customText, subject: 'My CleanClik Achievement');
 
-      print(
-        '✅ [$_logTag] Custom text shared successfully for ${platform.name}',
-      );
+      print('✅ [$_logTag] Custom text shared successfully for ${platform.name}');
       return true;
     } catch (e) {
       print('❌ [$_logTag] Failed to share custom text to ${platform.name}: $e');

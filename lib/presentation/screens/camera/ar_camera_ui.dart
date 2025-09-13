@@ -75,7 +75,7 @@ class ARCameraUI {
 
         // Object overlays
         if (_showObjectOverlays)
-          ..._buildObjectOverlays(constraints, cameraController),
+          ..._buildObjectOverlays(context, constraints, cameraController),
 
         // Hand overlays
         if (_showHandOverlays) ..._buildHandOverlays(constraints),
@@ -124,6 +124,7 @@ class ARCameraUI {
 
   /// Build object detection overlays
   List<Widget> _buildObjectOverlays(
+    BuildContext context,
     BoxConstraints constraints,
     CameraController? cameraController,
   ) {
@@ -145,6 +146,8 @@ class ARCameraUI {
         object: obj,
         status: ObjectStatus.detected,
         transformedRect: transformedRect,
+        showTooltip: true,
+        screenSize: MediaQuery.of(context).size,
       );
     }).toList();
   }

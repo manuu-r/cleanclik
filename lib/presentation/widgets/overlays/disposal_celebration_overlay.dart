@@ -39,16 +39,6 @@ class DisposalCelebrationOverlay extends BaseMaterialOverlay {
     );
   }
 
-  @override
-  State<DisposalCelebrationOverlay> createState() => _DisposalCelebrationOverlayState();
-}
-
-class _DisposalCelebrationOverlayState extends State<DisposalCelebrationOverlay> {
-  // State is now managed by BaseMaterialOverlay
-  @override
-  Widget build(BuildContext context) {
-    return Container(); // This will be handled by BaseMaterialOverlay
-  }
 }
 
 /// Content widget for disposal celebration with Material 3 design and animations
@@ -73,16 +63,28 @@ class _DisposalCelebrationContentState extends State<_DisposalCelebrationContent
   late AnimationController _pulseController;
   late Animation<double> _pointsAnimation;
   late Animation<double> _pulseAnimation;
+  bool _animationsInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeCelebrationAnimations();
-    _startCelebrationSequence();
+    // Don't initialize animations here - wait for didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_animationsInitialized) {
+      _initializeCelebrationAnimations();
+      _startCelebrationSequence();
+      _animationsInitialized = true;
+    }
   }
 
   void _initializeCelebrationAnimations() {
-    final animationTheme = Theme.of(context).animationTheme;
+    final theme = Theme.of(context);
+    final animationTheme = theme.extension<AnimationThemeExtension>() ?? 
+                          AnimationThemeExtension.standard();
     
     // Points animation with Material 3 emphasized curve
     _pointsController = AnimationController(
@@ -112,6 +114,8 @@ class _DisposalCelebrationContentState extends State<_DisposalCelebrationContent
   }
 
   void _startCelebrationSequence() async {
+    if (!mounted) return;
+    
     // Start pulse animation immediately
     _pulseController.repeat(reverse: true);
     
@@ -130,8 +134,10 @@ class _DisposalCelebrationContentState extends State<_DisposalCelebrationContent
 
   @override
   void dispose() {
-    _pointsController.dispose();
-    _pulseController.dispose();
+    if (_animationsInitialized) {
+      _pointsController.dispose();
+      _pulseController.dispose();
+    }
     super.dispose();
   }
 

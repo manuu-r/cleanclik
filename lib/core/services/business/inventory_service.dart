@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -14,6 +15,19 @@ import 'package:cleanclik/core/services/auth/supabase_config_service.dart';
 import 'package:cleanclik/core/services/auth/auth_service.dart';
 
 part 'inventory_service.g.dart';
+
+/// Generate a simple UUID-like string for database compatibility
+String _generateUuid() {
+  final chars = '0123456789abcdef';
+  return '${_randomString(8, chars)}-${_randomString(4, chars)}-${_randomString(4, chars)}-${_randomString(4, chars)}-${_randomString(12, chars)}';
+}
+
+String _randomString(int length, String chars) {
+  final random = Random();
+  return String.fromCharCodes(Iterable.generate(
+    length, (_) => chars.codeUnitAt(random.nextInt(chars.length))
+  ));
+}
 
 /// Unified inventory item model combining functionality from both services
 class InventoryItem {
@@ -40,7 +54,7 @@ class InventoryItem {
   /// Create from DetectedObject (from camera detection)
   factory InventoryItem.fromDetectedObject(DetectedObject detectedObject) {
     return InventoryItem(
-      id: 'item_${DateTime.now().millisecondsSinceEpoch}_${detectedObject.trackingId}',
+      id: _generateUuid(),
       trackingId: detectedObject.trackingId,
       category: detectedObject.category,
       displayName: detectedObject.codeName,
@@ -58,7 +72,7 @@ class InventoryItem {
   /// Create from CarriedItem (backward compatibility)
   factory InventoryItem.fromCarriedItem(CarriedItem carriedItem) {
     return InventoryItem(
-      id: 'carried_${DateTime.now().millisecondsSinceEpoch}_${carriedItem.trackingId}',
+      id: _generateUuid(),
       trackingId: carriedItem.trackingId,
       category: carriedItem.category.id,
       displayName: carriedItem.codeName,
@@ -347,6 +361,8 @@ class InventoryService extends _$InventoryService {
     await _ensureLoaded();
   }
 
+
+
   // ===== GETTERS AND PROPERTIES =====
 
   /// Current inventory items
@@ -614,26 +630,66 @@ class InventoryService extends _$InventoryService {
 
     print('📦 [$_logTag] Removing ${trackingIds.length} items from inventory');
 
-    final removedCount = _inventory.length;
-    _inventory.removeWhere((item) => trackingIds.contains(item.trackingId));
-    final actualRemovedCount = removedCount - _inventory.length;
-
-    if (actualRemovedCount > 0) {
-      // Update session stats
-      _sessionStats = _sessionStats.copyWith(
-        totalItemsDisposed:
-            _sessionStats.totalItemsDisposed + actualRemovedCount,
-      );
-
-      // Persist to storage immediately after removing items
-      await _saveToStorage();
-
-      // Notify Riverpod that state has changed
-      ref.notifyListeners();
-
-      print('✅ [$_logTag] Removed $actualRemovedCount items from inventory');
-    } else {
+    // Find items to remove and get their IDs for database deletion
+    final itemsToRemove = _inventory.where((item) => trackingIds.contains(item.trackingId)).toList();
+    
+    if (itemsToRemove.isEmpty) {
       print('⚠️ [$_logTag] No items found to remove');
+      return;
+    }
+
+    try {
+      final currentUser = ref.read(authServiceProvider).currentUser;
+
+      // Remove from database first if user is authenticated
+      if (currentUser != null && SupabaseConfigService.isFullyConfigured) {
+        print('🗄️ [$_logTag] Removing ${itemsToRemove.length} items from database...');
+        
+        for (final item in itemsToRemove) {
+          final result = await _dbService.delete(item.id);
+          if (!result.isSuccess) {
+            print('❌ [$_logTag] Failed to remove item ${item.id} from database: ${result.error}');
+            // Continue with local operation for offline support
+          } else {
+            print('✅ [$_logTag] Item ${item.id} removed from database');
+          }
+        }
+      }
+
+      // Remove from local memory (optimistic update)
+      final removedCount = _inventory.length;
+      _inventory.removeWhere((item) => trackingIds.contains(item.trackingId));
+      final actualRemovedCount = removedCount - _inventory.length;
+
+      if (actualRemovedCount > 0) {
+        // Update session stats
+        _sessionStats = _sessionStats.copyWith(
+          totalItemsDisposed: _sessionStats.totalItemsDisposed + actualRemovedCount,
+        );
+
+        // Persist to storage immediately after removing items
+        await _saveToStorage();
+
+        // Notify Riverpod that state has changed
+        ref.notifyListeners();
+
+        print('✅ [$_logTag] Removed $actualRemovedCount items from inventory');
+      }
+    } catch (e) {
+      print('❌ [$_logTag] Error during bulk item removal: $e');
+      // Still try to remove locally for offline support
+      final removedCount = _inventory.length;
+      _inventory.removeWhere((item) => trackingIds.contains(item.trackingId));
+      final actualRemovedCount = removedCount - _inventory.length;
+      
+      if (actualRemovedCount > 0) {
+        _sessionStats = _sessionStats.copyWith(
+          totalItemsDisposed: _sessionStats.totalItemsDisposed + actualRemovedCount,
+        );
+        await _saveToStorage();
+        ref.notifyListeners();
+        print('✅ [$_logTag] Removed $actualRemovedCount items locally (offline mode)');
+      }
     }
   }
 
@@ -727,7 +783,17 @@ class InventoryService extends _$InventoryService {
       '🏆 [$_logTag] Awarding $totalPoints points for ${disposedItems.length} disposed items',
     );
 
-    // Add points to total
+    try {
+      // Add points to user profile in database
+      final authService = ref.read(authServiceProvider);
+      await authService.addPoints(totalPoints);
+      print('✅ [$_logTag] Points added to user profile in database');
+    } catch (e) {
+      print('❌ [$_logTag] Failed to add points to user profile: $e');
+      // Continue with local tracking for offline support
+    }
+
+    // Add points to local total for session tracking
     _totalPoints += totalPoints;
 
     // Update session stats
@@ -737,17 +803,14 @@ class InventoryService extends _$InventoryService {
           _sessionStats.totalItemsDisposed + disposedItems.length,
     );
 
-    // Note: Achievement and user stats updates should be handled by the calling code
-    // to avoid circular dependencies between services
-
-    // Persist to storage immediately
+    // Persist session data to storage
     await _saveToStorage();
 
     // Notify Riverpod that state has changed
     ref.notifyListeners();
 
     print(
-      '✅ [$_logTag] Points awarded successfully. Total points: $_totalPoints',
+      '✅ [$_logTag] Points awarded successfully. Session total: $_totalPoints',
     );
   }
 

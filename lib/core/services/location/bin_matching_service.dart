@@ -212,11 +212,6 @@ class BinMatchingService {
     BinInfo binInfo,
     List<InventoryItem> inventoryItems,
   ) {
-    if (binInfo.category == null) {
-      print('❌ [$_logTag] Invalid bin category');
-      return false;
-    }
-
     // Check if any items have valid categories
     final validItems = inventoryItems
         .where((item) => WasteCategory.fromId(item.category) != null)

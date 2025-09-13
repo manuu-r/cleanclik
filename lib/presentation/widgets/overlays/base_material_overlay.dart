@@ -42,12 +42,20 @@ abstract class BaseMaterialOverlay extends StatefulWidget {
   
   /// Get the entrance animation configuration
   AnimationConfig getEntranceAnimation(BuildContext context) {
-    return entranceAnimation ?? context.componentChangeAnimation;
+    // Use safe defaults to avoid theme access during initialization
+    return entranceAnimation ?? AnimationConfig(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+    );
   }
   
   /// Get the exit animation configuration
   AnimationConfig getExitAnimation(BuildContext context) {
-    return exitAnimation ?? context.simpleTransitionAnimation;
+    // Use safe defaults to avoid theme access during initialization
+    return exitAnimation ?? AnimationConfig(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInCubic,
+    );
   }
 
   @override
@@ -64,12 +72,22 @@ class _BaseMaterialOverlayState extends State<BaseMaterialOverlay>
   late Animation<Offset> _slideAnimation;
   
   bool _isExiting = false;
+  bool _animationsInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeAnimations();
-    _startEntranceAnimation();
+    // Don't initialize animations here - wait for didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_animationsInitialized) {
+      _initializeAnimations();
+      _startEntranceAnimation();
+      _animationsInitialized = true;
+    }
   }
 
   void _initializeAnimations() {
@@ -144,15 +162,26 @@ class _BaseMaterialOverlayState extends State<BaseMaterialOverlay>
 
   @override
   Widget build(BuildContext context) {
+    if (!_animationsInitialized) {
+      // Return a simple loading state while animations initialize
+      return Material(
+        color: Colors.transparent,
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.6),
+          child: widget.buildContent(context, const AlwaysStoppedAnimation(1.0)),
+        ),
+      );
+    }
+
     return Material(
       color: Colors.transparent,
       child: AnimatedBuilder(
         animation: Listenable.merge([_entranceAnimation, _exitAnimation]),
         builder: (context, child) {
-          // Calculate combined opacity for entrance/exit
-          final entranceOpacity = _entranceAnimation.value;
-          final exitOpacity = _isExiting ? 1.0 - _exitAnimation.value : 1.0;
-          final combinedOpacity = entranceOpacity * exitOpacity;
+          // Calculate combined opacity for entrance/exit with safe clamping
+          final entranceOpacity = _entranceAnimation.value.clamp(0.0, 1.0);
+          final exitOpacity = _isExiting ? (1.0 - _exitAnimation.value).clamp(0.0, 1.0) : 1.0;
+          final combinedOpacity = (entranceOpacity * exitOpacity).clamp(0.0, 1.0);
           
           return Opacity(
             opacity: combinedOpacity,

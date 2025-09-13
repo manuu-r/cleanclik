@@ -100,6 +100,7 @@ class _QRScannerOverlayState extends State<QRScannerOverlay>
   }
 
   void _resetScanner() {
+    print('🔄 [QR_SCANNER] Resetting scanner state...');
     setState(() {
       _isScanning = true;
       _errorMessage = null;
@@ -107,6 +108,12 @@ class _QRScannerOverlayState extends State<QRScannerOverlay>
 
     // Resume camera if it was paused
     _qrController?.resumeCamera();
+    print('✅ [QR_SCANNER] Scanner reset complete');
+  }
+
+  /// Public method to reset scanner from external calls
+  void resetScannerState() {
+    _resetScanner();
   }
 
   @override

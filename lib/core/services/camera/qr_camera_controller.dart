@@ -111,6 +111,46 @@ class QRCameraController {
     print('✅ [$_logTag] QR scanner stopped');
   }
 
+  /// Reset scanning state to allow new scans
+  void _resetScanningState() {
+    print('🔄 [$_logTag] Resetting scanning state...');
+    _currentMatchResult = null;
+    
+    // Reset disposal detection service
+    _disposalService.reset();
+    
+    // Clear any existing overlays
+    if (_onHideOverlay != null) {
+      _onHideOverlay!();
+    }
+    
+    print('✅ [$_logTag] Scanning state reset');
+  }
+
+  /// Handle overlay dismissal (when user cancels or closes overlay)
+  void _handleOverlayDismiss() {
+    print('🎭 [$_logTag] Overlay dismissed by user');
+    
+    // Reset the scanning state to allow new scans
+    _resetScanningState();
+    
+    // Restart QR scanning to allow immediate rescanning
+    if (_isQRScannerActive) {
+      print('🔄 [$_logTag] Restarting QR scanner for new scan...');
+      // Add a small delay to ensure the previous overlay is fully dismissed
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_isQRScannerActive && _onShowOverlay != null) {
+          _onShowOverlay!(
+            QRScannerOverlay(
+              onQRScanned: _handleQRDetection,
+              onClose: stopQRScanning,
+            ),
+          );
+        }
+      });
+    }
+  }
+
   /// Handle QR code detection
   Future<void> _handleQRDetection(String qrData) async {
     print(
@@ -141,6 +181,8 @@ class QRCameraController {
     if (binInfo == null) {
       print('❌ [$_logTag] Failed to parse QR code for disposal');
       _showMessage('Invalid QR Code: ${QRBinService.getErrorMessage(qrData)}');
+      // Reset scanning state to allow retry
+      _resetScanningState();
       return;
     }
 
@@ -163,14 +205,19 @@ class QRCameraController {
     BinMatchingService.logMatchResult(matchResult);
 
     // Show bin feedback overlay
+    print('🎭 [$_logTag] Attempting to show bin feedback overlay...');
     if (_onShowOverlay != null) {
+      print('✅ [$_logTag] Overlay callback is available, showing overlay');
       _onShowOverlay!(
         BinFeedbackOverlay(
           matchResult: matchResult,
           onDispose: (itemsToDispose) => _handleDisposal(matchResult),
-          onDismiss: stopQRScanning,
+          onDismiss: _handleOverlayDismiss,
         ),
       );
+      print('📱 [$_logTag] Overlay widget created and callback invoked');
+    } else {
+      print('❌ [$_logTag] No overlay callback available!');
     }
 
     print(
@@ -369,6 +416,38 @@ class QRCameraController {
     );
   }
 
+  /// Get current controller state for debugging
+  Map<String, dynamic> getControllerState() {
+    return {
+      'is_qr_scanner_active': _isQRScannerActive,
+      'has_current_match_result': _currentMatchResult != null,
+      'current_match_type': _currentMatchResult?.matchType.toString(),
+      'inventory_summary': _inventoryService.getInventorySummary(),
+      'disposal_service_status': _disposalService.getDebugInfo(),
+    };
+  }
+
+  /// Force reset all state (for debugging/recovery)
+  Future<void> forceReset() async {
+    print('🔧 [$_logTag] Force resetting all controller state...');
+    
+    // Stop scanning
+    _isQRScannerActive = false;
+    
+    // Clear match result
+    _currentMatchResult = null;
+    
+    // Reset disposal service
+    _disposalService.reset();
+    
+    // Hide any overlays
+    if (_onHideOverlay != null) {
+      _onHideOverlay!();
+    }
+    
+    print('✅ [$_logTag] Force reset complete');
+  }
+
   /// Dispose of the controller
   Future<void> dispose() async {
     print('🎮 [$_logTag] Disposing QR camera controller...');
@@ -377,7 +456,7 @@ class QRCameraController {
     await stopQRScanning();
 
     // Dispose services
-    await _inventoryService.dispose();
+    _disposalService.dispose();
 
     print('✅ [$_logTag] QR camera controller disposed');
   }

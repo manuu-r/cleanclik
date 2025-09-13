@@ -8,12 +8,12 @@ import 'package:cleanclik/core/models/achievement_card.dart';
 
 import 'package:cleanclik/core/services/social/leaderboard_service.dart';
 import 'package:cleanclik/core/services/social/social_sharing_service.dart';
+import 'package:cleanclik/core/services/social/social_card_generation_service.dart';
 import 'package:cleanclik/core/services/auth/auth_service.dart';
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
 import 'package:cleanclik/presentation/widgets/animations/particle_system.dart';
 
-import 'package:cleanclik/presentation/widgets/social/floating_share_overlay.dart';
-import 'package:cleanclik/presentation/widgets/overlays/high_priority_overlay.dart';
+
 import 'package:cleanclik/presentation/widgets/common/sync_status_indicator.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
@@ -572,17 +572,239 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
   void _showShareOptions() {
     print('📤 [LEADERBOARD_SCREEN] _showShareOptions() called');
-    // Use high-priority overlay to appear above the floating action hub
+    
     try {
-      HighPriorityOverlay.show(
+      // Use a simpler dialog approach to avoid overlay complexity
+      showDialog(
         context: context,
-        child: const FloatingShareOverlay(),
+        barrierDismissible: true,
+        builder: (context) => _buildSimpleShareDialog(context),
       );
-      print(
-        '✅ [LEADERBOARD_SCREEN] HighPriorityOverlay.show() called successfully',
-      );
+      print('✅ [LEADERBOARD_SCREEN] Share dialog shown successfully');
     } catch (e) {
       print('❌ [LEADERBOARD_SCREEN] Error showing share options: $e');
+      // Fallback to direct sharing
+      _shareDirectly();
+    }
+  }
+
+  Widget _buildSimpleShareDialog(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        margin: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Share Your Achievement',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Share button
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _shareDirectly();
+                },
+                icon: const Icon(Icons.share, color: Colors.white),
+                label: const Text(
+                  'Share Now',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: NeonColors.electricGreen,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            Text(
+              'Generate and share a beautiful achievement card!',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareDirectly() async {
+    try {
+      print('📤 [LEADERBOARD_SCREEN] Starting image card generation and share...');
+      
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser == null) {
+        print('❌ [LEADERBOARD_SCREEN] No current user found');
+        _showErrorMessage('Unable to share: No user data available');
+        return;
+      }
+
+      print('👤 [LEADERBOARD_SCREEN] Current user: ${currentUser.username}, Points: ${currentUser.totalPoints}');
+
+      // Show loading message
+      _showLoadingMessage('Generating your achievement card...');
+
+      try {
+        // Generate card data
+        final cardGenerationService = ref.read(socialCardGenerationServiceProvider);
+        final cardData = await cardGenerationService.aggregateUserData(ref);
+        
+        print('📊 [LEADERBOARD_SCREEN] Card data aggregated successfully');
+
+        // Generate the visual card image
+        final cardFile = await cardGenerationService.generateCard(
+          template: CardTemplate.achievement,
+          data: cardData,
+          platform: SocialPlatform.system,
+        );
+
+        print('🎨 [LEADERBOARD_SCREEN] Card image generated: ${cardFile.path}');
+
+        // Share the image using the social sharing service
+        final socialService = ref.read(socialSharingServiceProvider);
+        final success = await socialService.shareSocialCard(
+          cardFile,
+          'Check out my CleanClik achievement! 🌍♻️ #CleanClik #CleanCity',
+          SocialPlatform.system,
+        );
+
+        if (success) {
+          print('✅ [LEADERBOARD_SCREEN] Image card shared successfully');
+          _showSuccessMessage('Achievement card shared successfully!');
+        } else {
+          print('❌ [LEADERBOARD_SCREEN] Share failed or was dismissed');
+          _showErrorMessage('Share was cancelled or unavailable.');
+        }
+      } catch (cardError) {
+        print('⚠️ [LEADERBOARD_SCREEN] Card generation failed, falling back to text: $cardError');
+        
+        // Fallback to text sharing if card generation fails
+        final card = AchievementCard.pointsMilestone(
+          points: currentUser.totalPoints,
+          username: currentUser.username,
+          totalItems: currentUser.totalItemsCollected,
+          accuracy: 95.0,
+        );
+
+        final socialService = ref.read(socialSharingServiceProvider);
+        final success = await socialService.shareAchievementCard(
+          card,
+          SocialPlatform.system,
+        );
+
+        if (success) {
+          print('✅ [LEADERBOARD_SCREEN] Fallback text share completed');
+          _showSuccessMessage('Achievement shared successfully!');
+        } else {
+          _showErrorMessage('Share was cancelled or unavailable.');
+        }
+      }
+    } catch (e, stackTrace) {
+      print('❌ [LEADERBOARD_SCREEN] Error in direct share: $e');
+      print('📍 [LEADERBOARD_SCREEN] Stack trace: $stackTrace');
+      _showErrorMessage('An error occurred while sharing: ${e.toString()}');
+    }
+  }
+
+  void _showSuccessMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(message),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  void _showErrorMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(message),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  void _showLoadingMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(message),
+            ],
+          ),
+          backgroundColor: NeonColors.electricGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
