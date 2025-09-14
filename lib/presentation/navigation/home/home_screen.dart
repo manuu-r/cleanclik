@@ -6,6 +6,7 @@ import 'package:cleanclik/core/theme/neon_colors.dart';
 
 import 'package:cleanclik/core/services/business/inventory_service.dart';
 import 'package:cleanclik/core/services/system/performance_service.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
 import 'package:cleanclik/core/theme/app_theme.dart';
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
 import 'package:cleanclik/presentation/widgets/common/home_stat_card.dart';
@@ -53,7 +54,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.black.withOpacity(0.9),
         elevation: 0,
         title: ShaderMask(
           shaderCallback: (bounds) => arTheme.neonGradient.createShader(bounds),
@@ -62,16 +63,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {
-              // TODO: Implement notifications
-            },
-            tooltip: 'Notifications',
-          ),
-          const SizedBox(width: 8),
-        ],
+        centerTitle: true,
       ),
       body: Stack(
         children: [
@@ -100,17 +92,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
           // Main content
           SingleChildScrollView(
+            physics: const BouncingScrollPhysics(), // Restore natural scroll physics
+            clipBehavior: Clip.none, // Allow natural clipping
             padding: EdgeInsets.fromLTRB(
-              UIConstants.sideMargin,
-              16, // Reduced top padding since no extendBodyBehindAppBar
-              UIConstants.sideMargin,
-              120, // Bottom padding for navigation bar and floating action hub
+              UIConstants.spacing6, // Increased outer padding from 16 to 24
+              20, // Slightly increased top padding
+              UIConstants.spacing6, // Increased outer padding from 16 to 24
+              180, // Bottom padding to account for potential 160px expanded navigation panel
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Welcome Section with glassmorphism
                 GlassmorphismContainer(
+                  borderRadius: BorderRadius.circular(UIConstants.radiusXXLarge), // Increased border radius
                   padding: EdgeInsets.all(UIConstants.cardPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,7 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                       SizedBox(height: UIConstants.spacing3),
                       Text(
-                        'Ready to make your city cleaner? Start by scanning trash with your camera!',
+                        'Hunt trash with your scanner and level up the city!',
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: Colors.white.withAlpha((0.9 * 255).toInt()),
                         ),
@@ -172,70 +167,86 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 SizedBox(height: UIConstants.sectionSpacing),
 
                 // Quick Stats with neon progress rings
-                ShaderMask(
-                  shaderCallback: (bounds) =>
-                      arTheme.neonGradient.createShader(bounds),
-                  child: Text(
-                    'Your Impact Today',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                Center(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) =>
+                        arTheme.neonGradient.createShader(bounds),
+                    child: Text(
+                      "Eco Score today",
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
                 SizedBox(height: UIConstants.spacing5),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: HomeStatCard.inventory(
-                        itemCount: inventory.inventory.length,
-                        showBreathing: inventory.inventory.isNotEmpty,
-                        onTap: () => context.push('/profile'),
-                      ),
+                // Improved eco score today row with better sizing and radius
+                SizedBox(
+                  height: 120, // Increased height to fix 20px bottom overflow
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 95, // Proper width to prevent overflow
+                          child: HomeStatCard.inventory(
+                            itemCount: inventory.inventory.length,
+                            showBreathing: inventory.inventory.isNotEmpty,
+                            onTap: () => context.push('/profile'),
+                          ),
+                        ),
+                        SizedBox(width: UIConstants.spacing3), // Reduced spacing
+                        SizedBox(
+                          width: 95, // Proper width to prevent overflow
+                          child: HomeStatCard.points(
+                            points: inventory.totalPoints,
+                            onTap: () => context.push('/leaderboard'),
+                          ),
+                        ),
+                        SizedBox(width: UIConstants.spacing3), // Reduced spacing
+                        SizedBox(
+                          width: 95, // Proper width to prevent overflow
+                          child: HomeStatCard.streak(
+                            streak: 0,
+                            onTap: () => context.push('/profile'),
+                          ),
+                        ),
+                        SizedBox(width: UIConstants.spacing3), // Reduced spacing
+                        SizedBox(
+                          width: 95, // Proper width to prevent overflow
+                          child: Consumer(
+                            builder: (context, ref, child) {
+                              final currentUser = ref.watch(currentUserProvider);
+                              return HomeStatCard.rank(
+                                rank: currentUser?.rank ?? 0,
+                                onTap: () => context.push('/leaderboard'),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: UIConstants.spacing4),
-                    Expanded(
-                      child: HomeStatCard.points(
-                        points: inventory.totalPoints,
-                        onTap: () => context.push('/leaderboard'),
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: UIConstants.spacing4),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: HomeStatCard.streak(
-                        streak: 0,
-                        onTap: () => context.push('/profile'),
-                      ),
-                    ),
-                    SizedBox(width: UIConstants.spacing4),
-                    Expanded(
-                      child: HomeStatCard.rank(
-                        rank: 0,
-                        onTap: () => context.push('/leaderboard'),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
 
                 const SizedBox(height: 32),
 
                 // Current Inventory with glassmorphism
                 if (inventory.inventory.isNotEmpty) ...[
-                  ShaderMask(
-                    shaderCallback: (bounds) =>
-                        arTheme.neonGradient.createShader(bounds),
-                    child: Text(
-                      'Current Inventory',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  Center(
+                    child: ShaderMask(
+                      shaderCallback: (bounds) =>
+                          arTheme.neonGradient.createShader(bounds),
+                      child: Text(
+                        'Trash Stash',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
@@ -243,6 +254,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   BreathingWidget(
                     enabled: performanceService.shouldShowAnimations,
                     child: GlassmorphismContainer(
+                      borderRadius: BorderRadius.circular(UIConstants.radiusXXLarge), // Increased border radius
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
@@ -265,35 +277,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   const SizedBox(height: 32),
                 ],
 
-                // Category Guide with glassmorphism
-                ShaderMask(
-                  shaderCallback: (bounds) =>
-                      arTheme.neonGradient.createShader(bounds),
-                  child: Text(
-                    'Waste Categories',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                // Category Guide
+                Center(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) =>
+                        arTheme.neonGradient.createShader(bounds),
+                    child: Text(
+                      'Loot Types',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                GlassmorphismContainer.secondary(
-                  padding: EdgeInsets.all(UIConstants.spacing5),
-                  child: Column(
-                    children: [
-                      CategoryItem.ecoGems(),
-                      SizedBox(height: UIConstants.spacing4),
-                      CategoryItem.fuelShards(),
-                      SizedBox(height: UIConstants.spacing4),
-                      CategoryItem.voidDust(),
-                      SizedBox(height: UIConstants.spacing4),
-                      CategoryItem.sparkCores(),
-                      SizedBox(height: UIConstants.spacing4),
-                      CategoryItem.toxicCrystals(),
-                    ],
-                  ),
+                Column(
+                  children: [
+                    CategoryItem.ecoGems(),
+                    SizedBox(height: UIConstants.spacing4),
+                    CategoryItem.fuelShards(),
+                    SizedBox(height: UIConstants.spacing4),
+                    CategoryItem.voidDust(),
+                    SizedBox(height: UIConstants.spacing4),
+                    CategoryItem.sparkCores(),
+                    SizedBox(height: UIConstants.spacing4),
+                    CategoryItem.toxicCrystals(),
+                  ],
                 ),
                 const SizedBox(height: 32),
               ],
@@ -351,12 +363,9 @@ class _ActionButton extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      constraints: const BoxConstraints(
-        minHeight: 100,
-        maxHeight: 120,
-      ),
+      constraints: const BoxConstraints(minHeight: 80, maxHeight: 100), // Proper height for action button content
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
+        borderRadius: BorderRadius.circular(UIConstants.radiusRound), // More circular border radius
         gradient: isPrimary
             ? LinearGradient(
                 colors: [color, color.withValues(alpha: 0.8)],
@@ -372,16 +381,16 @@ class _ActionButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
+          borderRadius: BorderRadius.circular(UIConstants.radiusRound), // More circular border radius
           child: Padding(
-            padding: EdgeInsets.all(UIConstants.spacing3),
+            padding: EdgeInsets.all(UIConstants.spacing2), // Reduced padding to fit in smaller container
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: isPrimary
                         ? Colors.white.withValues(alpha: 0.2)
@@ -399,32 +408,32 @@ class _ActionButton extends StatelessWidget {
                   child: Icon(
                     icon,
                     color: isPrimary ? Colors.white : color,
-                    size: 18,
+                    size: 16,
                   ),
                 ),
-                SizedBox(height: UIConstants.spacing2),
+                SizedBox(height: UIConstants.spacing1), // Reduced spacing
                 Text(
                   label,
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: isPrimary ? Colors.white : color,
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 12, // Reduced font size
                   ),
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 1, // Reduced to single line
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: UIConstants.spacing1),
+                SizedBox(height: 2), // Minimal spacing
                 Text(
                   description,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: isPrimary
                         ? Colors.white.withValues(alpha: 0.8)
                         : Colors.white.withValues(alpha: 0.7),
-                    fontSize: 10,
+                    fontSize: 9, // Reduced font size
                   ),
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 1, // Reduced to single line
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

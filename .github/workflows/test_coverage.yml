@@ -1,177 +1,172 @@
 name: CleanClik Test Coverage
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
-
+on: {}
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.24.0'
-        channel: 'stable'
-        
-    - name: Install dependencies
-      run: flutter pub get
-      
-    - name: Generate Riverpod code
-      run: dart run build_runner build --delete-conflicting-outputs
-      
-    - name: Verify generated files are up to date
-      run: |
-        if [ -n "$(git status --porcelain)" ]; then
-          echo "Generated files are not up to date. Please run 'dart run build_runner build' and commit the changes."
-          git status
-          exit 1
-        fi
-        
-    - name: Run Flutter analyze
-      run: flutter analyze
-      
-    - name: Install lcov for coverage processing
-      run: sudo apt-get install -y lcov
-      
-    - name: Run unit tests with coverage
-      run: |
-        flutter test --coverage --exclude-tags=integration,golden test/unit/
-        
-    - name: Run widget tests with coverage
-      run: |
-        flutter test --coverage --exclude-tags=integration,golden test/widget/
-        
-    - name: Run integration tests
-      run: |
-        flutter test --exclude-tags=golden test/integration/
-        
-    - name: Process coverage data
-      run: |
-        # Remove generated files from coverage
-        lcov --remove coverage/lcov.info \
-          '**/*.g.dart' \
-          '**/*.freezed.dart' \
-          '**/generated_plugin_registrant.dart' \
-          '**/firebase_options.dart' \
-          'test/**' \
-          --output-file coverage/lcov_filtered.info
-          
-        # Generate coverage summary
-        lcov --summary coverage/lcov_filtered.info
-        
-    - name: Run coverage analysis
-      run: dart run scripts/coverage_analysis.dart
-      
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: coverage/lcov_filtered.info
-        flags: unittests
-        name: cleanclik-coverage
-        fail_ci_if_error: true
-        
-    - name: Generate coverage badge
-      uses: schneegans/dynamic-badges-action@v1.6.0
-      with:
-        auth: ${{ secrets.GIST_SECRET }}
-        gistID: ${{ secrets.GIST_ID }}
-        filename: cleanclik-coverage.json
-        label: Coverage
-        message: ${{ env.COVERAGE_PERCENTAGE }}%
-        color: ${{ env.COVERAGE_COLOR }}
-        
-    - name: Comment coverage on PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const fs = require('fs');
-          
-          // Read coverage summary
-          const coverageSummary = fs.readFileSync('coverage/coverage_summary.txt', 'utf8');
-          
-          // Create comment body
-          const body = `## 📊 Test Coverage Report
-          
-          ${coverageSummary}
-          
-          ### Coverage Details
-          - **Overall**: Must be ≥85%
-          - **Services**: Must be ≥85%
-          - **Supabase Integration**: Must be ≥90%
-          - **Models**: Must be ≥95%
-          
-          View detailed coverage report in the [Codecov dashboard](https://codecov.io/gh/${{ github.repository }}/pull/${{ github.event.number }}).
-          `;
-          
-          // Post comment
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: body
-          });
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Riverpod code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Verify generated files are up to date
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Generated files are not up to date. Please run 'dart run build_runner build' and commit the changes."
+            git status
+            exit 1
+          fi
+
+      - name: Run Flutter analyze
+        run: flutter analyze
+
+      - name: Install lcov for coverage processing
+        run: sudo apt-get install -y lcov
+
+      - name: Run unit tests with coverage
+        run: |
+          flutter test --coverage --exclude-tags=integration,golden test/unit/
+
+      - name: Run widget tests with coverage
+        run: |
+          flutter test --coverage --exclude-tags=integration,golden test/widget/
+
+      - name: Run integration tests
+        run: |
+          flutter test --exclude-tags=golden test/integration/
+
+      - name: Process coverage data
+        run: |
+          # Remove generated files from coverage
+          lcov --remove coverage/lcov.info \
+            '**/*.g.dart' \
+            '**/*.freezed.dart' \
+            '**/generated_plugin_registrant.dart' \
+            '**/firebase_options.dart' \
+            'test/**' \
+            --output-file coverage/lcov_filtered.info
+
+          # Generate coverage summary
+          lcov --summary coverage/lcov_filtered.info
+
+      - name: Run coverage analysis
+        run: dart run scripts/coverage_analysis.dart
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage/lcov_filtered.info
+          flags: unittests
+          name: cleanclik-coverage
+          fail_ci_if_error: true
+
+      - name: Generate coverage badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ secrets.GIST_ID }}
+          filename: cleanclik-coverage.json
+          label: Coverage
+          message: ${{ env.COVERAGE_PERCENTAGE }}%
+          color: ${{ env.COVERAGE_COLOR }}
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read coverage summary
+            const coverageSummary = fs.readFileSync('coverage/coverage_summary.txt', 'utf8');
+
+            // Create comment body
+            const body = `## 📊 Test Coverage Report
+
+            ${coverageSummary}
+
+            ### Coverage Details
+            - **Overall**: Must be ≥85%
+            - **Services**: Must be ≥85%
+            - **Supabase Integration**: Must be ≥90%
+            - **Models**: Must be ≥95%
+
+            View detailed coverage report in the [Codecov dashboard](https://codecov.io/gh/${{ github.repository }}/pull/${{ github.event.number }}).
+            `;
+
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
 
   golden-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.24.0'
-        channel: 'stable'
-        
-    - name: Install dependencies
-      run: flutter pub get
-      
-    - name: Generate Riverpod code
-      run: dart run build_runner build --delete-conflicting-outputs
-      
-    - name: Run golden tests
-      run: flutter test --tags=golden test/golden/
-      
-    - name: Upload golden test failures
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: golden-test-failures
-        path: test/golden/failures/
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Riverpod code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Run golden tests
+        run: flutter test --tags=golden test/golden/
+
+      - name: Upload golden test failures
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: golden-test-failures
+          path: test/golden/failures/
 
   performance-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.24.0'
-        channel: 'stable'
-        
-    - name: Install dependencies
-      run: flutter pub get
-      
-    - name: Generate Riverpod code
-      run: dart run build_runner build --delete-conflicting-outputs
-      
-    - name: Run performance tests
-      run: flutter test --tags=performance test/performance/
-      
-    - name: Upload performance results
-      uses: actions/upload-artifact@v3
-      with:
-        name: performance-results
-        path: test/performance/results/
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Riverpod code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Run performance tests
+        run: flutter test --tags=performance test/performance/
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: test/performance/results/

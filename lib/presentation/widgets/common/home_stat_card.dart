@@ -42,7 +42,7 @@ class HomeStatCard extends ConsumerWidget {
   }) {
     return HomeStatCard(
       key: key,
-      title: 'Items Carrying',
+      title: 'Items',
       value: itemCount,
       maxValue: maxItems,
       icon: Icons.inventory_outlined,
@@ -61,7 +61,7 @@ class HomeStatCard extends ConsumerWidget {
   }) {
     return HomeStatCard(
       key: key,
-      title: 'Points Earned',
+      title: 'Points',
       value: points,
       maxValue: maxPoints,
       icon: Icons.star_outline,
@@ -79,7 +79,7 @@ class HomeStatCard extends ConsumerWidget {
   }) {
     return HomeStatCard(
       key: key,
-      title: 'Current Streak',
+      title: 'Streak',
       value: streak,
       maxValue: maxStreak,
       icon: Icons.local_fire_department_outlined,
@@ -113,40 +113,44 @@ class HomeStatCard extends ConsumerWidget {
     final progress = maxValue > 0 ? (value / maxValue).clamp(0.0, 1.0) : 0.0;
 
     Widget card = GlassmorphismContainer.secondary(
-      padding: EdgeInsets.all(UIConstants.spacing4),
+      borderRadius: BorderRadius.circular(UIConstants.radiusXXLarge), // Increased border radius for eco score cards
+      padding: EdgeInsets.all(UIConstants.spacing2), // Reduced padding
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(UIConstants.radiusLarge),
+          borderRadius: BorderRadius.circular(UIConstants.radiusXXLarge), // Increased border radius for eco score cards
           child: Padding(
-            padding: EdgeInsets.all(UIConstants.spacing2),
+            padding: EdgeInsets.all(UIConstants.spacing1), // Minimal inner padding
             child: customContent ?? Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ProgressRing(
                   progress: progress,
-                  size: 60,
+                  size: 40, // Reduced size to fit better
                   color: color,
                   showGlow: performanceService.shouldShowAnimations,
-                  child: Icon(icon, size: 24, color: Colors.white),
+                  child: Icon(icon, size: 18, color: Colors.white), // Reduced icon size
                 ),
-                SizedBox(height: UIConstants.spacing3),
+                SizedBox(height: UIConstants.spacing2), // Reduced spacing
                 Text(
                   '$value',
-                  style: theme.textTheme.headlineSmall?.copyWith(
+                  style: theme.textTheme.titleMedium?.copyWith( // Smaller text style
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(height: UIConstants.spacing1),
+                SizedBox(height: 2), // Minimal spacing
                 Text(
                   title,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.white.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w500,
+                    fontSize: 10, // Smaller font size
                   ),
                   textAlign: TextAlign.center,
+                  maxLines: 2, // Allow wrapping for longer titles
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (subtitle != null) ...[
                   SizedBox(height: UIConstants.spacing1),

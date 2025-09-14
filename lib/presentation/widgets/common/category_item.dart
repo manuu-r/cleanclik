@@ -136,7 +136,7 @@ class CategoryItem extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(UIConstants.radiusLarge),
+                  borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
                   border: Border.all(
                     color: color.withValues(alpha: 0.5),
                     width: 1,

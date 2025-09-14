@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
+import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 
 /// Hand skeleton connections based on MediaPipe hand topology
 class HandConnections {
@@ -73,28 +74,28 @@ class HandSkeletonPainter extends CustomPainter {
   final Size previewSize;
   final CameraLensDirection lensDirection;
   final int sensorOrientation;
+  final ARThemeExtension arTheme;
 
   HandSkeletonPainter({
     required this.hands,
     required this.previewSize,
     required this.lensDirection,
     required this.sensorOrientation,
+    required this.arTheme,
     this.showLandmarkNumbers = false,
     this.showConfidence = true,
-    this.landmarkRadius = 4.0,
-    this.connectionStrokeWidth = 2.0,
+    this.landmarkRadius = 2.0,
+    this.connectionStrokeWidth = 1.0,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (hands.isEmpty) return;
 
-    // Follow official hand_landmarker example transformation pattern
     final scale = size.width / previewSize.height;
 
     canvas.save();
 
-    // Apply canvas transformations like the official example
     final center = Offset(size.width / 2, size.height / 2);
     canvas.translate(center.dx, center.dy);
     canvas.rotate(sensorOrientation * math.pi / 180);
@@ -106,7 +107,6 @@ class HandSkeletonPainter extends CustomPainter {
 
     canvas.scale(scale);
 
-    // Draw all hands
     for (int handIndex = 0; handIndex < hands.length; handIndex++) {
       final hand = hands[handIndex];
       _drawHand(canvas, hand, handIndex, scale);
@@ -114,7 +114,6 @@ class HandSkeletonPainter extends CustomPainter {
 
     canvas.restore();
 
-    // Draw hand info outside of canvas transformations
     if (showConfidence) {
       for (int handIndex = 0; handIndex < hands.length; handIndex++) {
         final hand = hands[handIndex];
@@ -129,16 +128,16 @@ class HandSkeletonPainter extends CustomPainter {
     int handIndex,
     double scale,
   ) {
-    // Choose colors based on handedness and hand index
-    final isLeftHand = hand.handedness == 'Left';
-    final baseColor = isLeftHand ? Colors.blue : Colors.red;
-    final confidenceAlpha = (hand.confidence * 255).clamp(100, 255).toInt();
+    final confidenceAlpha = (hand.confidence * 255).clamp(150, 255).toInt();
 
-    // Draw connections first (so they appear behind landmarks)
-    _drawConnections(canvas, hand, baseColor, confidenceAlpha, scale);
+    final connectionPaint = Paint()
+      ..strokeWidth = connectionStrokeWidth / scale
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..color = arTheme.neonAccent.withAlpha(confidenceAlpha);
+    _drawConnections(canvas, hand, connectionPaint, scale);
 
-    // Draw landmarks
-    _drawLandmarks(canvas, hand, baseColor, confidenceAlpha, scale);
+    _drawLandmarks(canvas, hand, confidenceAlpha, scale);
   }
 
   Offset _transformLandmark(Offset landmark) {
@@ -155,15 +154,10 @@ class HandSkeletonPainter extends CustomPainter {
   void _drawConnections(
     Canvas canvas,
     HandLandmark hand,
-    Color baseColor,
-    int alpha,
+    Paint paint,
     double scale,
   ) {
-    final paint = Paint()
-      ..color = baseColor.withAlpha(alpha)
-      ..strokeWidth = connectionStrokeWidth / scale
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    const double separation = 1.5;
 
     for (final connection in HandConnections.all) {
       if (connection.length == 2) {
@@ -178,7 +172,29 @@ class HandSkeletonPainter extends CustomPainter {
           final startPoint = _transformLandmark(startLandmark);
           final endPoint = _transformLandmark(endLandmark);
 
-          canvas.drawLine(startPoint, endPoint, paint);
+          final dx = endPoint.dx - startPoint.dx;
+          final dy = endPoint.dy - startPoint.dy;
+          final length = math.sqrt(dx * dx + dy * dy);
+
+          if (length == 0) continue;
+
+          final offsetX = -dy / length * separation / scale;
+          final offsetY = dx / length * separation / scale;
+
+          final p1Start = Offset(
+            startPoint.dx + offsetX,
+            startPoint.dy + offsetY,
+          );
+          final p1End = Offset(endPoint.dx + offsetX, endPoint.dy + offsetY);
+
+          final p2Start = Offset(
+            startPoint.dx - offsetX,
+            startPoint.dy - offsetY,
+          );
+          final p2End = Offset(endPoint.dx - offsetX, endPoint.dy - offsetY);
+
+          canvas.drawLine(p1Start, p1End, paint);
+          canvas.drawLine(p2Start, p2End, paint);
         }
       }
     }
@@ -187,77 +203,25 @@ class HandSkeletonPainter extends CustomPainter {
   void _drawLandmarks(
     Canvas canvas,
     HandLandmark hand,
-    Color baseColor,
     int alpha,
     double scale,
   ) {
     final landmarkPaint = Paint()
-      ..color = baseColor.withAlpha(alpha)
+      ..color = arTheme.neonAccent.withAlpha(alpha)
       ..style = PaintingStyle.fill;
-
-    final borderPaint = Paint()
-      ..color = Colors.white.withAlpha(alpha)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0 / scale;
 
     for (int i = 0; i < hand.landmarks.length; i++) {
       final landmark = hand.landmarks[i];
       final transformedPoint = _transformLandmark(landmark);
 
-      // Draw landmark circle with border
       canvas.drawCircle(
         transformedPoint,
         landmarkRadius / scale,
         landmarkPaint,
       );
-      canvas.drawCircle(transformedPoint, landmarkRadius / scale, borderPaint);
 
-      // Draw landmark numbers if enabled
       if (showLandmarkNumbers) {
         _drawLandmarkNumber(canvas, transformedPoint, i, alpha, scale);
-      }
-    }
-
-    // Highlight key landmarks with different colors
-    _drawKeyLandmarks(canvas, hand, alpha, scale);
-  }
-
-  void _drawKeyLandmarks(
-    Canvas canvas,
-    HandLandmark hand,
-    int alpha,
-    double scale,
-  ) {
-    // Highlight wrist
-    if (hand.landmarks.isNotEmpty) {
-      final wristPaint = Paint()
-        ..color = Colors.green.withAlpha(alpha)
-        ..style = PaintingStyle.fill;
-      final wristPoint = _transformLandmark(hand.landmarks[0]);
-      canvas.drawCircle(wristPoint, (landmarkRadius + 2) / scale, wristPaint);
-    }
-
-    // Highlight fingertips
-    final fingertipIndices = [
-      HandLandmarkIndex.thumbTip,
-      HandLandmarkIndex.indexFingerTip,
-      HandLandmarkIndex.middleFingerTip,
-      HandLandmarkIndex.ringFingerTip,
-      HandLandmarkIndex.pinkyTip,
-    ];
-
-    final fingertipPaint = Paint()
-      ..color = Colors.yellow.withAlpha(alpha)
-      ..style = PaintingStyle.fill;
-
-    for (final index in fingertipIndices) {
-      if (index < hand.landmarks.length) {
-        final fingertipPoint = _transformLandmark(hand.landmarks[index]);
-        canvas.drawCircle(
-          fingertipPoint,
-          (landmarkRadius + 1) / scale,
-          fingertipPaint,
-        );
       }
     }
   }
@@ -352,7 +316,8 @@ class HandSkeletonPainter extends CustomPainter {
         connectionStrokeWidth != oldDelegate.connectionStrokeWidth ||
         previewSize != oldDelegate.previewSize ||
         lensDirection != oldDelegate.lensDirection ||
-        sensorOrientation != oldDelegate.sensorOrientation;
+        sensorOrientation != oldDelegate.sensorOrientation ||
+        arTheme != oldDelegate.arTheme;
   }
 }
 
@@ -383,6 +348,8 @@ class HandOverlayWidget extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final arTheme = Theme.of(context).arTheme;
+
     return CustomPaint(
       size: Size.infinite,
       painter: HandSkeletonPainter(
@@ -390,6 +357,7 @@ class HandOverlayWidget extends StatelessWidget {
         previewSize: previewSize,
         lensDirection: lensDirection,
         sensorOrientation: sensorOrientation,
+        arTheme: arTheme,
         showLandmarkNumbers: showLandmarkNumbers,
         showConfidence: showConfidence,
       ),

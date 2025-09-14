@@ -14,14 +14,14 @@ class DetailCard extends StatelessWidget {
   final EdgeInsets padding;
 
   const DetailCard({
-    Key? key,
+    super.key,
     required this.type,
     required this.title,
     required this.details,
     required this.actions,
     required this.onClose,
     this.padding = const EdgeInsets.all(16.0),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -219,12 +219,12 @@ class ActionButton extends StatelessWidget {
   final Color color;
 
   const ActionButton({
-    Key? key,
+    super.key,
     required this.icon,
     required this.label,
     required this.onPressed,
     this.color = Colors.blue,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

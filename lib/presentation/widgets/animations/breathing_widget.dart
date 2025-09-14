@@ -11,9 +11,9 @@ class BreathingWidget extends StatefulWidget {
   const BreathingWidget({
     super.key,
     required this.child,
-    this.duration = const Duration(milliseconds: 2000),
-    this.minScale = 0.95,
-    this.maxScale = 1.05,
+    this.duration = const Duration(milliseconds: 3000),
+    this.minScale = 0.98,
+    this.maxScale = 1.02,
     this.enabled = true,
   });
 
