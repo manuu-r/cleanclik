@@ -49,13 +49,13 @@ class UIConstants {
   static const double glassEnhancedBlurRadius = 12.0; // Improved blur
   static const double glassEnhancedBorderOpacity = 0.3; // Better contrast
 
-  // Border Radius (aligned to 4dp increments)
-  static const double radiusSmall = 4.0;
-  static const double radiusMedium = 8.0;
-  static const double radiusLarge = 12.0;
-  static const double radiusXLarge = 16.0;
-  static const double radiusXXLarge = 24.0;
-  static const double radiusRound = 28.0;
+  // Border Radius (Material 3 Expressive - larger, more rounded)
+  static const double radiusSmall = 12.0;
+  static const double radiusMedium = 20.0;
+  static const double radiusLarge = 24.0;
+  static const double radiusXLarge = 32.0;
+  static const double radiusXXLarge = 40.0;
+  static const double radiusRound = 50.0;
 
   // Enhanced Animation Tokens (Material 3 motion system)
   static const double breathingAnimationDuration = 2000.0;
@@ -211,29 +211,30 @@ class AppTheme {
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
           ),
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         shadowColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UIConstants.radiusXLarge)),
         color: AppColors.surface,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
           borderSide: BorderSide(color: AppColors.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
           borderSide: BorderSide(color: AppColors.outline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
           borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
@@ -326,29 +327,30 @@ class AppTheme {
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
           ),
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         shadowColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(UIConstants.radiusXLarge)),
         color: AppColors.darkSurface,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.darkSurface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
           borderSide: BorderSide(color: AppColors.darkOutline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
           borderSide: BorderSide(color: AppColors.darkOutline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(UIConstants.radiusXLarge),
           borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
       ),

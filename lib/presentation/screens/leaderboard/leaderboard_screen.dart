@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleanclik/core/theme/app_colors.dart';
 import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
+import 'package:cleanclik/core/theme/app_theme.dart';
 import 'package:cleanclik/core/models/leaderboard_entry.dart';
 import 'package:cleanclik/core/models/achievement_card.dart';
 
@@ -202,9 +203,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     final leaderboardServiceAsync = ref.watch(leaderboardServiceProvider);
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: EdgeInsets.fromLTRB(UIConstants.spacing6, 16, UIConstants.spacing6, 16), // Increased side margins to match home screen
       child: GlassmorphismContainer(
-        padding: const EdgeInsets.all(20),
+        borderRadius: BorderRadius.circular(UIConstants.radiusXXLarge), // Increased border radius to match home screen
+        padding: const EdgeInsets.all(24), // Slightly increased padding
         child: Row(
           children: [
             Container(
@@ -236,7 +238,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                     ).arTheme.neonGradient.createShader(bounds),
                     child: Text(
                       currentUser != null
-                          ? '#${currentUser.rank} (${currentUser.totalPoints} points)'
+                          ? '#${currentUser.rank ?? '--'} (${currentUser.totalPoints} points)'
                           : '#-- (0 points)',
                       style: const TextStyle(
                         fontSize: 18,
@@ -298,7 +300,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
         return leaderboardAsync.when(
           data: (users) => ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
+            padding: EdgeInsets.fromLTRB(UIConstants.spacing6, 8, UIConstants.spacing6, 140), // Increased side padding to match home screen
             itemCount: users.length,
             itemBuilder: (context, index) {
               final entry = users[index];
@@ -321,162 +323,122 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
   Widget _buildLeaderboardItem(LeaderboardEntry entry) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16), // Increased margin for better spacing
       child: GlassmorphismContainer(
-        padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(UIConstants.radiusXXLarge), // Increased border radius to match home screen
+        padding: const EdgeInsets.all(20), // Increased padding
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Rank Badge with animation for current user
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: entry.isCurrentUser
-                    ? NeonColors.electricGreen.withOpacity(0.3)
-                    : _getRankColor(entry.rank).withAlpha((0.15 * 255).round()),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: entry.isCurrentUser
-                      ? NeonColors.electricGreen
-                      : _getRankColor(entry.rank).withOpacity(0.3),
-                  width: entry.isCurrentUser ? 2 : 1,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // User Avatar (removed rank badge from front)
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: entry.isCurrentUser
+                        ? NeonColors.electricGreen.withOpacity(0.2)
+                        : AppColors.primary.withAlpha((0.15 * 255).round()),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: entry.isCurrentUser
+                          ? NeonColors.electricGreen.withOpacity(0.5)
+                          : AppColors.primary.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.person,
+                    color: entry.isCurrentUser ? Colors.white : AppColors.primary,
+                    size: 24,
+                  ),
                 ),
-                boxShadow: entry.isCurrentUser
-                    ? [
-                        BoxShadow(
-                          color: NeonColors.electricGreen.withOpacity(0.3),
-                          blurRadius: 8,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Center(
-                child: entry.rank <= 3
-                    ? Icon(
-                        _getRankIcon(entry.rank),
-                        color: entry.isCurrentUser
-                            ? Colors.white
-                            : _getRankColor(entry.rank),
-                        size: 22,
-                      )
-                    : Text(
-                        '${entry.rank}',
-                        style: TextStyle(
-                          color: entry.isCurrentUser
-                              ? Colors.white
-                              : _getRankColor(entry.rank),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-              ),
-            ),
 
-            const SizedBox(width: 16),
+                const SizedBox(width: 16),
 
-            // User Avatar
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: entry.isCurrentUser
-                    ? NeonColors.electricGreen.withOpacity(0.2)
-                    : AppColors.primary.withAlpha((0.15 * 255).round()),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: entry.isCurrentUser
-                      ? NeonColors.electricGreen.withOpacity(0.5)
-                      : AppColors.primary.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Icon(
-                Icons.person,
-                color: entry.isCurrentUser ? Colors.white : AppColors.primary,
-                size: 22,
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            // User Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
+                // User Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         entry.username,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 18,
                           color: entry.isCurrentUser
                               ? NeonColors.electricGreen
                               : Colors.white,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Level ${entry.level}',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Level ${entry.level}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            // Points and Badge
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${entry.totalPoints}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: entry.isCurrentUser
-                        ? NeonColors.electricGreen
-                        : AppColors.primary,
-                  ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'points',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.6),
-                  ),
+
+                const SizedBox(width: 12),
+
+                // Points and rank section
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Points and pts in one line
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${entry.totalPoints}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: entry.isCurrentUser
+                                  ? NeonColors.electricGreen
+                                  : AppColors.primary,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ' pts',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8), // Space before rank
+                    // Rank below points
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getRankColor(entry.rank).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _getRankColor(entry.rank).withOpacity(0.4),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        '#${entry.rank}',
+                        style: TextStyle(
+                          color: _getRankColor(entry.rank),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                if (entry.level >= 5) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text('🏆', style: const TextStyle(fontSize: 10)),
-                  ),
-                ],
               ],
             ),
-          ],
-        ),
       ),
     );
   }
@@ -490,7 +452,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
         return Container(
           height: 120,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          margin: EdgeInsets.symmetric(horizontal: UIConstants.spacing6), // Increased margin to match home screen
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -515,7 +477,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                         width: 200,
                         margin: const EdgeInsets.only(right: 12),
                         child: GlassmorphismContainer(
-                          padding: const EdgeInsets.all(12),
+                          borderRadius: BorderRadius.circular(UIConstants.radiusXXLarge), // Increased border radius to match home screen
+                          padding: const EdgeInsets.all(16), // Increased padding
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

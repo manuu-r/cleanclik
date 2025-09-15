@@ -6,6 +6,7 @@ import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/services/auth/auth_service.dart';
 import 'package:cleanclik/core/services/system/performance_service.dart';
+import 'package:cleanclik/core/theme/app_theme.dart';
 
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
 
@@ -40,8 +41,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     super.dispose();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final ref = this.ref;
@@ -55,19 +54,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final authService = ref.read(authServiceProvider);
     debugPrint('ProfileScreen: authState = ${authStateAsync.toString()}');
     debugPrint('ProfileScreen: currentUser = ${currentUser?.toString()}');
-    debugPrint('ProfileScreen: authService.currentUser = ${authService.currentUser?.username}');
-    debugPrint('ProfileScreen: authService.isAuthenticated = ${authService.isAuthenticated}');
-    
+    debugPrint(
+      'ProfileScreen: authService.currentUser = ${authService.currentUser?.username}',
+    );
+    debugPrint(
+      'ProfileScreen: authService.isAuthenticated = ${authService.isAuthenticated}',
+    );
+
     // Auth service is already initialized by the provider, no need to reinitialize
 
     // Create mock user stats for now since userStatsProvider is missing
     final userStats = <String, dynamic>{
       'totalPoints': currentUser?.totalPoints ?? 0,
       'totalItemsCollected': 0,
-      'accountAge': currentUser != null 
-          ? DateTime.now().difference(currentUser.createdAt).inDays 
+      'accountAge': currentUser != null
+          ? DateTime.now().difference(currentUser.createdAt).inDays
           : 0,
-      'rank': 1,
+      'rank': currentUser?.rank ?? 0,
       'achievements': <String>[],
       'categoryStats': <String, dynamic>{},
     };
@@ -112,16 +115,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
           // Main content
           SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-              16,
-              16, // Reduced top padding
-              16,
+            padding: EdgeInsets.fromLTRB(
+              UIConstants.spacing6, // Increased outer padding to match home screen
+              20, // Slightly increased top padding
+              UIConstants.spacing6, // Increased outer padding to match home screen
               140,
             ), // Bottom padding for floating hub
             child: Column(
               children: [
                 // Profile Header with glassmorphism - Horizontal Layout
                 GlassmorphismContainer(
+                  borderRadius: BorderRadius.circular(UIConstants.radiusLarge), // Material 3 standard border radius
                   padding: const EdgeInsets.all(24),
                   child: Row(
                     children: [
@@ -151,14 +155,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       // User Info with shader mask
                       Expanded(
                         flex: 2,
-                        child: currentUser != null 
+                        child: currentUser != null
                             ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   ShaderMask(
-                                    shaderCallback: (bounds) =>
-                                        arTheme.neonGradient.createShader(bounds),
+                                    shaderCallback: (bounds) => arTheme
+                                        .neonGradient
+                                        .createShader(bounds),
                                     child: Text(
                                       currentUser.username,
                                       style: const TextStyle(
@@ -184,8 +189,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   ShaderMask(
-                                    shaderCallback: (bounds) =>
-                                        arTheme.neonGradient.createShader(bounds),
+                                    shaderCallback: (bounds) => arTheme
+                                        .neonGradient
+                                        .createShader(bounds),
                                     child: const Text(
                                       'Guest User',
                                       style: TextStyle(
@@ -271,24 +277,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       });
                       return const SizedBox.shrink();
                     }
-                    
+
                     // User is authenticated, show user data
                     final user = authState.user;
-                    debugPrint('ProfileScreen: User data = ${user?.toString()}');
-                    
+                    debugPrint(
+                      'ProfileScreen: User data = ${user?.toString()}',
+                    );
+
                     // Additional debug info for logout section
                     if (user != null) {
-                      debugPrint('ProfileScreen: Logout section - user = ${user.username}');
+                      debugPrint(
+                        'ProfileScreen: Logout section - user = ${user.username}',
+                      );
                     }
                     return user != null
                         ? GlassmorphismContainer(
+                            borderRadius: BorderRadius.circular(UIConstants.radiusLarge), // Material 3 standard border radius
                             padding: const EdgeInsets.all(20),
                             child: Row(
                               children: [
                                 // Level Progress
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '${user.pointsToNextLevel} pts to next level',
@@ -300,10 +312,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                       const SizedBox(height: 8),
                                       LinearProgressIndicator(
                                         value: user.levelProgress,
-                                        backgroundColor: Colors.white.withOpacity(0.2),
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          NeonColors.electricGreen,
-                                        ),
+                                        backgroundColor: Colors.white
+                                            .withOpacity(0.2),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              NeonColors.electricGreen,
+                                            ),
                                       ),
                                     ],
                                   ),
@@ -312,6 +326,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                             ),
                           )
                         : GlassmorphismContainer(
+                            borderRadius: BorderRadius.circular(UIConstants.radiusLarge), // Material 3 standard border radius
                             padding: const EdgeInsets.all(20),
                             child: Column(
                               children: [
@@ -346,6 +361,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           );
                   },
                   loading: () => GlassmorphismContainer(
+                    borderRadius: BorderRadius.circular(UIConstants.radiusLarge), // Material 3 standard border radius
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
@@ -365,6 +381,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   error: (error, stack) {
                     debugPrint('ProfileScreen: Auth error: $error');
                     return GlassmorphismContainer(
+                      borderRadius: BorderRadius.circular(UIConstants.radiusLarge), // Material 3 standard border radius
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
@@ -402,7 +419,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   shaderCallback: (bounds) =>
                       arTheme.neonGradient.createShader(bounds),
                   child: Text(
-                    'Your Impact',
+                    'Eco Legacy',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -412,58 +429,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
                 const SizedBox(height: 20),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ARStatCard(
-                        title: 'Total Points',
-                        value: userStats['totalPoints'] ?? 0,
-                        maxValue: 10000,
-                        icon: Icons.star,
-                        color: NeonColors.earthOrange,
-                        performanceService: performanceService,
-                      ),
+                // Eco legacy cards matching eco score style
+                SizedBox(
+                  height: 120, // Increased height to fix 20px bottom overflow
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 95, // Match eco score width to prevent overflow
+                          child: _ARStatCard(
+                            title: 'Points',
+                            value: userStats['totalPoints'] ?? 0,
+                            maxValue: 10000,
+                            icon: Icons.star,
+                            color: NeonColors.earthOrange,
+                            performanceService: performanceService,
+                          ),
+                        ),
+                        SizedBox(width: UIConstants.spacing3), // Match eco score spacing
+                        SizedBox(
+                          width: 95, // Match eco score width to prevent overflow
+                          child: _ARStatCard(
+                            title: 'Items',
+                            value: userStats['totalItemsCollected'] ?? 0,
+                            maxValue: 100,
+                            icon: Icons.delete_outline,
+                            color: NeonColors.electricGreen,
+                            performanceService: performanceService,
+                          ),
+                        ),
+                        SizedBox(width: UIConstants.spacing3), // Match eco score spacing
+                        SizedBox(
+                          width: 95, // Match eco score width to prevent overflow
+                          child: _ARStatCard(
+                            title: 'Days',
+                            value: userStats['accountAge'] ?? 0,
+                            maxValue: 365,
+                            icon: Icons.local_fire_department,
+                            color: NeonColors.toxicPurple,
+                            performanceService: performanceService,
+                          ),
+                        ),
+                        SizedBox(width: UIConstants.spacing3), // Match eco score spacing
+                        SizedBox(
+                          width: 95, // Match eco score width to prevent overflow
+                          child: _ARStatCard(
+                            title: 'Rank',
+                            value: userStats['rank'] ?? 0,
+                            maxValue: 100,
+                            icon: Icons.emoji_events,
+                            color: NeonColors.oceanBlue,
+                            performanceService: performanceService,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _ARStatCard(
-                        title: 'Items Collected',
-                        value: userStats['totalItemsCollected'] ?? 0,
-                        maxValue: 100,
-                        icon: Icons.delete_outline,
-                        color: NeonColors.electricGreen,
-                        performanceService: performanceService,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ARStatCard(
-                        title: 'Account Age',
-                        value: userStats['accountAge'] ?? 0,
-                        maxValue: 365,
-                        icon: Icons.local_fire_department,
-                        color: NeonColors.toxicPurple,
-                        performanceService: performanceService,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _ARStatCard(
-                        title: 'Current Rank',
-                        value: userStats['rank'] ?? 0,
-                        maxValue: 100,
-                        icon: Icons.emoji_events,
-                        color: NeonColors.oceanBlue,
-                        performanceService: performanceService,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
 
                 const SizedBox(height: 24),
@@ -483,7 +505,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
                 const SizedBox(height: 20),
 
+                // Achievements with border container
                 GlassmorphismContainer(
+                  borderRadius: BorderRadius.circular(UIConstants.radiusLarge), // Material 3 standard border radius
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
@@ -526,8 +550,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 .contains('recycling_champion'),
                         progress:
                             (((userStats['categoryStats']
-                                                as Map<String, dynamic>? ??
-                                            {})['recycle'] as int? ??
+                                                    as Map<String, dynamic>? ??
+                                                {})['recycle']
+                                            as int? ??
                                         0) /
                                     10.0)
                                 .clamp(0.0, 1.0),
@@ -544,8 +569,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 .contains('ewaste_collector'),
                         progress:
                             (((userStats['categoryStats']
-                                                as Map<String, dynamic>? ??
-                                            {})['ewaste'] as int? ??
+                                                    as Map<String, dynamic>? ??
+                                                {})['ewaste']
+                                            as int? ??
                                         0) /
                                     10.0)
                                 .clamp(0.0, 1.0),
@@ -563,7 +589,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   shaderCallback: (bounds) =>
                       arTheme.neonGradient.createShader(bounds),
                   child: Text(
-                    'Category Breakdown',
+                    'Loot Breakdown',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -573,106 +599,112 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
                 const SizedBox(height: 20),
 
-                GlassmorphismContainer(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _CategoryBreakdown(
-                        category: 'EcoGems',
-                        count:
-                            (userStats['categoryStats'] as Map<String, dynamic>? ??
-                                {})['recycle'] as int? ??
-                            0,
-                        color: AppColors.ecoGems,
-                        icon: Icons.recycling,
-                      ),
-                      const SizedBox(height: 16),
-                      _CategoryBreakdown(
-                        category: 'FuelShards',
-                        count:
-                            (userStats['categoryStats'] as Map<String, dynamic>? ??
-                                {})['organic'] as int? ??
-                            0,
-                        color: AppColors.fuelShards,
-                        icon: Icons.eco,
-                      ),
-                      const SizedBox(height: 16),
-                      _CategoryBreakdown(
-                        category: 'VoidDust',
-                        count:
-                            (userStats['categoryStats'] as Map<String, dynamic>? ??
-                                {})['landfill'] as int? ??
-                            0,
-                        color: AppColors.voidDust,
-                        icon: Icons.delete,
-                      ),
-                      const SizedBox(height: 16),
-                      _CategoryBreakdown(
-                        category: 'SparkCores',
-                        count:
-                            (userStats['categoryStats'] as Map<String, dynamic>? ??
-                                {})['ewaste'] as int? ??
-                            0,
-                        color: AppColors.sparkCores,
-                        icon: Icons.electrical_services,
-                      ),
-                      const SizedBox(height: 16),
-                      _CategoryBreakdown(
-                        category: 'ToxicCrystals',
-                        count:
-                            (userStats['categoryStats'] as Map<String, dynamic>? ??
-                                {})['hazardous'] as int? ??
-                            0,
-                        color: AppColors.toxicCrystals,
-                        icon: Icons.warning,
-                      ),
-                    ],
-                  ),
+                // Loot breakdown without outer container
+                Column(
+                  children: [
+                    _CategoryBreakdown(
+                      category: 'EcoGems',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['recycle']
+                              as int? ??
+                          0,
+                      color: AppColors.ecoGems,
+                      icon: Icons.recycling,
+                    ),
+                    const SizedBox(height: 16),
+                    _CategoryBreakdown(
+                      category: 'FuelShards',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['organic']
+                              as int? ??
+                          0,
+                      color: AppColors.fuelShards,
+                      icon: Icons.eco,
+                    ),
+                    const SizedBox(height: 16),
+                    _CategoryBreakdown(
+                      category: 'VoidDust',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['landfill']
+                              as int? ??
+                          0,
+                      color: AppColors.voidDust,
+                      icon: Icons.delete,
+                    ),
+                    const SizedBox(height: 16),
+                    _CategoryBreakdown(
+                      category: 'SparkCores',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['ewaste']
+                              as int? ??
+                          0,
+                      color: AppColors.sparkCores,
+                      icon: Icons.electrical_services,
+                    ),
+                    const SizedBox(height: 16),
+                    _CategoryBreakdown(
+                      category: 'ToxicCrystals',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['hazardous']
+                              as int? ??
+                          0,
+                      color: AppColors.toxicCrystals,
+                      icon: Icons.warning,
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 32),
 
-                // Logout Section - Only show if authenticated
+                // Simple Sign Out Button - Only show if authenticated
                 authStateAsync.when(
                   data: (authState) {
-                    if (!authState.isAuthenticated) return const SizedBox.shrink();
-                    
-                    final user = authState.user;
-                    debugPrint('ProfileScreen: Logout section - user = ${user?.username}');
-                    return GlassmorphismContainer(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          ShaderMask(
-                            shaderCallback: (bounds) =>
-                                arTheme.neonGradient.createShader(bounds),
-                            child: Text(
-                              'Account',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                    if (!authState.isAuthenticated)
+                      return const SizedBox.shrink();
+
+                    return Center(
+                      child: Container(
+                        width: 200,
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handleLogout(context, ref),
+                          icon: Icon(
+                            Icons.logout,
+                            color: Colors.white,
+                            size: 20,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            user != null 
-                                ? 'Signed in as ${user.username}'
-                                : 'Authenticated User',
+                          label: Text(
+                            'Sign Out',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 14,
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          _ARActionButton(
-                            onPressed: () => _handleLogout(context, ref),
-                            icon: Icons.logout,
-                            label: 'Sign Out',
-                            color: NeonColors.toxicPurple,
-                            isPrimary: false,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: NeonColors.toxicPurple,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(UIConstants.radiusLarge),
+                            ),
+                            side: BorderSide(
+                              color: NeonColors.toxicPurple.withOpacity(0.3),
+                              width: 1,
+                            ),
                           ),
-                        ],
+                        ),
                       ),
                     );
                   },
@@ -701,17 +733,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ).createShader(bounds),
           child: const Text(
             'Sign Out',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
         content: Text(
           'Are you sure you want to sign out? Your progress will be saved.',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
-          ),
+          style: TextStyle(color: Colors.white.withOpacity(0.8)),
         ),
         actions: [
           TextButton(
@@ -724,7 +751,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
-              backgroundColor: NeonColors.toxicPurple.withAlpha((0.2 * 255).toInt()),
+              backgroundColor: NeonColors.toxicPurple.withAlpha(
+                (0.2 * 255).toInt(),
+              ),
             ),
             child: const Text(
               'Sign Out',
@@ -739,7 +768,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       // Store navigator reference before async operations
       final navigator = Navigator.of(context);
       final router = GoRouter.of(context);
-      
+
       try {
         // Show loading indicator
         if (context.mounted) {
@@ -756,15 +785,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(
-                      color: NeonColors.toxicPurple,
-                    ),
+                    CircularProgressIndicator(color: NeonColors.toxicPurple),
                     const SizedBox(height: 16),
                     Text(
                       'Signing out...',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                      ),
+                      style: TextStyle(color: Colors.white.withOpacity(0.8)),
                     ),
                   ],
                 ),
@@ -775,7 +800,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
         // Get auth service reference before async operation
         final authService = ref.read(authServiceProvider);
-        
+
         // Perform logout
         await authService.signOut();
 
@@ -798,7 +823,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         router.go('/login');
       } catch (e) {
         debugPrint('Logout error: $e');
-        
+
         // Force close all dialogs
         try {
           while (navigator.canPop()) {
@@ -853,32 +878,41 @@ class _ARStatCard extends StatelessWidget {
     final progress = maxValue > 0 ? (value / maxValue).clamp(0.0, 1.0) : 0.0;
 
     return GlassmorphismContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          ProgressRing(
-            progress: progress,
-            size: 60,
-            color: color,
-            showGlow: performanceService.shouldShowAnimations,
-            child: Icon(icon, size: 24, color: Colors.white),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '$value',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+      borderRadius: BorderRadius.circular(UIConstants.radiusLarge), // Material 3 standard border radius
+      padding: EdgeInsets.all(UIConstants.spacing2), // Reduced padding to match HomeStatCard
+      child: Padding(
+        padding: EdgeInsets.all(UIConstants.spacing1), // Minimal inner padding
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ProgressRing(
+              progress: progress,
+              size: 40, // Reduced size to match HomeStatCard
+              color: color,
+              showGlow: performanceService.shouldShowAnimations,
+              child: Icon(icon, size: 18, color: Colors.white), // Reduced icon size
             ),
-          ),
-          Text(
-            title,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.white.withOpacity(0.8),
+            SizedBox(height: UIConstants.spacing2), // Reduced spacing
+            Text(
+              '$value',
+              style: theme.textTheme.titleMedium?.copyWith( // Smaller text style
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 2), // Minimal spacing
+            Text(
+              title,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 10, // Smaller font size
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2, // Allow wrapping
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -910,21 +944,21 @@ class _ARAchievementItem extends StatelessWidget {
     Widget achievementWidget = Row(
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 52,
+          height: 52,
           decoration: BoxDecoration(
             color: isUnlocked
                 ? color.withAlpha((0.3 * 255).toInt())
                 : Colors.grey.withAlpha((0.2 * 255).toInt()),
-            borderRadius: BorderRadius.circular(12),
+            shape: BoxShape.circle, // Circular border for achievement icons
             border: Border.all(
               color: isUnlocked
                   ? color
                   : Colors.grey.withAlpha((0.5 * 255).toInt()),
-              width: 1,
+              width: 2, // Thicker border for better visibility
             ),
           ),
-          child: Icon(icon, color: isUnlocked ? color : Colors.grey, size: 24),
+          child: Icon(icon, color: isUnlocked ? color : Colors.grey, size: 26), // Slightly larger icon
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -989,28 +1023,28 @@ class _CategoryBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20), // Increased padding for Material 3 expressive
       decoration: BoxDecoration(
         color: color.withAlpha((0.05 * 255).toInt()),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(UIConstants.radiusXLarge), // Material 3 expressive border radius
         border: Border.all(
           color: color.withAlpha((0.3 * 255).toInt()),
-          width: 1,
+          width: 2, // Thicker border for Material 3 expressive
         ),
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               color: color.withAlpha((0.2 * 255).toInt()),
-              borderRadius: BorderRadius.circular(12),
+              shape: BoxShape.circle, // Circular icon container
               border: Border.all(
                 color: color.withAlpha((0.5 * 255).toInt()),
-                width: 1,
+                width: 2, // Thicker border for circular icon
               ),
               boxShadow: [
                 BoxShadow(
@@ -1020,7 +1054,7 @@ class _CategoryBreakdown extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: 26), // Slightly larger icon
           ),
           const SizedBox(width: 16),
           Expanded(

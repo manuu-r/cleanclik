@@ -190,6 +190,10 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
               onToggle: _onPanelToggle,
               title: _getPanelTitle(),
               actions: _getPanelActions(),
+              minHeight: 80.0, // Consistent collapsed height for all screens
+              maxHeight:
+                  250.0, // Lower expanded height since it's just one row of navigation
+              showHandle: true, // Show handle for expansion
               child: _buildPanelContent(),
             ),
 
@@ -203,9 +207,6 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
                 ),
               ),
             ),
-
-          // Context-aware edge controls
-          ..._buildEdgeControls(),
         ],
       ),
     );
@@ -213,6 +214,7 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
 
   bool _shouldShowPanel() {
     final location = GoRouterState.of(context).uri.path;
+    // Show panel on all main screens for navigation
     return location == '/' ||
         location == '/map' ||
         location == '/profile' ||
@@ -230,14 +232,7 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
   }
 
   List<Widget>? _getPanelActions() {
-    return [
-      IconButton(
-        icon: const Icon(Icons.more_vert, color: Colors.white),
-        onPressed: () {
-          // Show more options
-        },
-      ),
-    ];
+    return null; // Remove the 3 dots menu
   }
 
   Widget _buildPanelContent() {
@@ -262,19 +257,15 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
                     () => context.go('/'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildQuickActionCard(
-                    'View Map',
+                    'Map',
                     Icons.map,
                     () => context.go('/map'),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildQuickActionCard(
                     'Leaderboard',
@@ -282,7 +273,7 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
                     () => context.go('/leaderboard'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildQuickActionCard(
                     'Profile',
@@ -306,34 +297,53 @@ class _ARNavigationShellState extends ConsumerState<ARNavigationShell>
   ) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+      child: Card(
+        // Adopting Material 3 structure with Card.
+        // Maintaining the transparent white aesthetic for AR-first design,
+        // while fixing the 'withOpacity' deprecation by using 'withAlpha'.
+        color: Colors.white.withAlpha((255 * 0.1).round()),
+        elevation:
+            0, // Keeping elevation low for a flat, overlaid look, common in AR UIs.
+        shape: RoundedRectangleBorder(
+          // Increased radius for a softer, more prominent card.
+          borderRadius: BorderRadius.circular(UIConstants.radiusRound * 1.5),
+          side: BorderSide(
+            color: Colors.white.withAlpha((255 * 0.2).round()),
+            width: 1,
+          ),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
+        margin: EdgeInsets.zero,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(UIConstants.radiusRound * 1.5),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: Colors.white, size: 24),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style:
+                      Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ) ??
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
-  }
-
-  List<Widget> _buildEdgeControls() {
-    // Removed duplicate camera button - use floating action hub instead
-    return [];
   }
 }

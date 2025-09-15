@@ -9,7 +9,6 @@ import 'package:cleanclik/core/models/leaderboard_entry.dart';
 import 'package:cleanclik/core/models/sync_status.dart';
 import 'package:cleanclik/core/models/achievement_card.dart';
 
-
 import 'package:cleanclik/core/services/data/leaderboard_database_service.dart';
 import 'package:cleanclik/core/services/data/database_service_provider.dart';
 import 'package:cleanclik/core/services/auth/auth_service.dart';
@@ -46,7 +45,9 @@ class LeaderboardService {
 
   // Configuration
   static const Duration cacheExpiry = Duration(minutes: 5);
-  static const Duration refreshInterval = Duration(minutes: 2); // Reduced frequency
+  static const Duration refreshInterval = Duration(
+    minutes: 2,
+  ); // Reduced frequency
   static const String cacheKeyPrefix = 'leaderboard_cache_';
   static const String userRankCacheKey = 'user_rank_cache';
 
@@ -59,6 +60,24 @@ class LeaderboardService {
     _loadCachedData();
     _setupRealtimeSubscriptions();
     _startPeriodicRefresh();
+
+    // Initialize user rank if we have a current user
+    _initializeUserRank();
+  }
+
+  /// Initialize user rank on service startup
+  Future<void> _initializeUserRank() async {
+    try {
+      final currentUserId = _authService.currentUser?.id;
+      if (currentUserId != null) {
+        final rank = await getUserRank();
+        if (rank != null) {
+          _notifyAuthServiceOfRankChange(currentUserId, rank);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error initializing user rank: $e');
+    }
   }
 
   /// Streams for reactive UI updates
@@ -122,6 +141,24 @@ class LeaderboardService {
           debugPrint(
             '🏆 [LEADERBOARD] Entry: ${entry.username} - ${entry.totalPoints} points (rank ${entry.rank})',
           );
+        }
+
+        // Test current user rank
+        final currentUserId = _authService.currentUser?.id;
+        if (currentUserId != null) {
+          final rankResult = await _dbService.getUserRank(currentUserId);
+          if (rankResult.isSuccess) {
+            debugPrint(
+              '🏆 [LEADERBOARD] Current user rank: ${rankResult.data}',
+            );
+
+            // Update auth service with current rank
+            _notifyAuthServiceOfRankChange(currentUserId, rankResult.data!);
+          } else {
+            debugPrint(
+              '🏆 [LEADERBOARD] Failed to get user rank: ${rankResult.error}',
+            );
+          }
         }
       } else {
         debugPrint(
@@ -366,14 +403,52 @@ class LeaderboardService {
     }
   }
 
+  /// Force refresh user rank and update auth service
+  Future<void> refreshUserRank() async {
+    try {
+      final currentUserId = _authService.currentUser?.id;
+      if (currentUserId != null) {
+        final rank = await getUserRank(forceRefresh: true);
+        if (rank != null) {
+          _notifyAuthServiceOfRankChange(currentUserId, rank);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error refreshing user rank: $e');
+    }
+  }
+
+  /// Trigger rank update for a specific user (called when points change)
+  Future<void> triggerRankUpdate(String userId) async {
+    try {
+      debugPrint('🏆 [LEADERBOARD] Triggering rank update for user: $userId');
+
+      // Force refresh leaderboard data
+      await refreshLeaderboard();
+
+      // If it's the current user, update their rank
+      if (_authService.currentUser?.id == userId) {
+        await refreshUserRank();
+      }
+
+      debugPrint('🏆 [LEADERBOARD] Rank update completed for user: $userId');
+    } catch (e) {
+      debugPrint('🏆 [LEADERBOARD] Error triggering rank update: $e');
+    }
+  }
+
   /// Sync leaderboard data (for offline/online sync)
   Future<void> syncLeaderboardData() async {
     try {
       // Skip sync if cache is still valid (within 30 seconds)
       if (isCacheValid && _lastCacheUpdate != null) {
-        final timeSinceLastUpdate = DateTime.now().difference(_lastCacheUpdate!);
+        final timeSinceLastUpdate = DateTime.now().difference(
+          _lastCacheUpdate!,
+        );
         if (timeSinceLastUpdate < const Duration(seconds: 30)) {
-          debugPrint('🏆 [LEADERBOARD] Skipping sync - cache is fresh (${timeSinceLastUpdate.inSeconds}s old)');
+          debugPrint(
+            '🏆 [LEADERBOARD] Skipping sync - cache is fresh (${timeSinceLastUpdate.inSeconds}s old)',
+          );
           _syncStatusController.add(SyncStatus.success());
           return;
         }
@@ -428,12 +503,28 @@ class LeaderboardService {
         _cachedLeaderboard = updatedLeaderboard;
         _leaderboardController.add(updatedLeaderboard);
 
-        // Update user rank cache
+        // Update user rank cache and notify auth service
         final newRank = entries.indexWhere((entry) => entry.id == userId) + 1;
         _updateUserRankCache(newRank);
+
+        // Notify auth service of rank change
+        _notifyAuthServiceOfRankChange(userId, newRank);
       }
     } catch (e) {
       debugPrint('Error handling optimistic update: $e');
+    }
+  }
+
+  /// Notify auth service of rank changes
+  void _notifyAuthServiceOfRankChange(String userId, int newRank) {
+    try {
+      final currentUser = _authService.currentUser;
+      if (currentUser != null && currentUser.id == userId) {
+        // Update the user's rank in auth service
+        _authService.updateUserRank(newRank);
+      }
+    } catch (e) {
+      debugPrint('Error notifying auth service of rank change: $e');
     }
   }
 
@@ -511,12 +602,13 @@ class LeaderboardService {
   /// Setup real-time subscriptions
   void _setupRealtimeSubscriptions() {
     try {
-      // Subscribe to leaderboard changes
+      // Subscribe to leaderboard changes with debouncing
       _realtimeSubscription = _dbService
           .subscribeToLeaderboard(
             limit: 20,
             currentUserId: _authService.currentUser?.id,
           )
+          .distinct() // Avoid duplicate events
           .listen(
             (entries) {
               if (entries.isNotEmpty) {
@@ -530,26 +622,61 @@ class LeaderboardService {
                   lastUpdated: DateTime.now(),
                 );
                 _updateCache(updatedPage);
+
+                // Update current user's rank if they're in the leaderboard
+                final currentUserId = _authService.currentUser?.id;
+                if (currentUserId != null) {
+                  final userEntry = entries.firstWhere(
+                    (entry) => entry.id == currentUserId,
+                    orElse: () => LeaderboardEntry(
+                      id: '',
+                      username: '',
+                      totalPoints: 0,
+                      level: 1,
+                      rank: 0,
+                      lastActiveAt: DateTime.now(),
+                      isCurrentUser: false,
+                    ),
+                  );
+
+                  if (userEntry.id.isNotEmpty) {
+                    _updateUserRankCache(userEntry.rank);
+                    _notifyAuthServiceOfRankChange(
+                      currentUserId,
+                      userEntry.rank,
+                    );
+                  }
+                }
               }
             },
             onError: (error) {
               debugPrint('Real-time leaderboard subscription error: $error');
+              // Retry subscription after a delay
+              Timer(const Duration(seconds: 5), () {
+                _setupRealtimeSubscriptions();
+              });
             },
           );
 
-      // Subscribe to user rank changes
+      // Subscribe to user rank changes with retry logic
       final currentUserId = _authService.currentUser?.id;
       if (currentUserId != null) {
         _userRankSubscription = _dbService
             .subscribeToUserRank(currentUserId)
+            .distinct() // Avoid duplicate events
             .listen(
               (rank) {
                 if (rank != null) {
                   _updateUserRankCache(rank);
+                  _notifyAuthServiceOfRankChange(currentUserId, rank);
                 }
               },
               onError: (error) {
                 debugPrint('Real-time user rank subscription error: $error');
+                // Retry subscription after a delay
+                Timer(const Duration(seconds: 5), () {
+                  _setupRealtimeSubscriptions();
+                });
               },
             );
       }
@@ -682,4 +809,17 @@ Stream<SyncStatus> syncStatusStream(SyncStatusStreamRef ref) async* {
 @riverpod
 Future<SharedPreferences> sharedPreferences(Ref ref) async {
   return await SharedPreferences.getInstance();
+}
+
+/// Provider for current user rank
+@riverpod
+Future<int?> currentUserRank(Ref ref) async {
+  final serviceAsync = ref.watch(leaderboardServiceProvider);
+  return await serviceAsync.when(
+    data: (service) async {
+      return await service.getUserRank();
+    },
+    loading: () => null,
+    error: (_, __) => null,
+  );
 }

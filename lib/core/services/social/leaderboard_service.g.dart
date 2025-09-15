@@ -279,5 +279,24 @@ final sharedPreferencesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SharedPreferencesRef = AutoDisposeFutureProviderRef<SharedPreferences>;
+String _$currentUserRankHash() => r'2fada1f3626548645bca1c8100f855e9127fca39';
+
+/// Provider for current user rank
+///
+/// Copied from [currentUserRank].
+@ProviderFor(currentUserRank)
+final currentUserRankProvider = AutoDisposeFutureProvider<int?>.internal(
+  currentUserRank,
+  name: r'currentUserRankProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$currentUserRankHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CurrentUserRankRef = AutoDisposeFutureProviderRef<int?>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

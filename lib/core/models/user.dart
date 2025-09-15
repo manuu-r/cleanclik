@@ -12,6 +12,7 @@ class User {
   final Map<String, int> categoryStats;
   final List<String> achievements;
   final bool isOnline;
+  final int? rank; // User's current rank in leaderboard
 
   const User({
     required this.id,
@@ -26,6 +27,7 @@ class User {
     this.categoryStats = const {},
     this.achievements = const [],
     this.isOnline = false,
+    this.rank,
   });
 
   /// Create a default user (for testing/demo purposes)
@@ -47,6 +49,7 @@ class User {
       },
       achievements: ['first_pickup', 'eco_novice', 'recycling_champion'],
       isOnline: true,
+      rank: 5, // Demo rank
     );
   }
 
@@ -65,6 +68,7 @@ class User {
       categoryStats: Map<String, int>.from(json['categoryStats'] as Map? ?? {}),
       achievements: List<String>.from(json['achievements'] as List? ?? []),
       isOnline: json['isOnline'] as bool? ?? false,
+      rank: json['rank'] as int?,
     );
   }
 
@@ -85,6 +89,7 @@ class User {
       achievements:
           const [], // Will be loaded separately from achievements table
       isOnline: data['is_online'] as bool? ?? false,
+      rank: data['rank'] as int?, // Rank from leaderboard view if available
     );
   }
 
@@ -103,6 +108,7 @@ class User {
       'categoryStats': categoryStats,
       'achievements': achievements,
       'isOnline': isOnline,
+      'rank': rank,
     };
   }
 
@@ -136,6 +142,7 @@ class User {
     Map<String, int>? categoryStats,
     List<String>? achievements,
     bool? isOnline,
+    int? rank,
   }) {
     return User(
       id: id ?? this.id,
@@ -150,6 +157,7 @@ class User {
       categoryStats: categoryStats ?? this.categoryStats,
       achievements: achievements ?? this.achievements,
       isOnline: isOnline ?? this.isOnline,
+      rank: rank ?? this.rank,
     );
   }
 
@@ -204,8 +212,8 @@ class User {
     return categoryStats.values.fold(0, (sum, count) => sum + count);
   }
 
-  /// Get user's rank based on points (placeholder - would be calculated from leaderboard)
-  int get rank => 42; // Placeholder
+  /// Get user's rank (returns stored rank or null if not available)
+  // Note: rank is now a field, not a computed property
 
   @override
   bool operator ==(Object other) {

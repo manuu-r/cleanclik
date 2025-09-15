@@ -391,6 +391,16 @@ class AuthService {
       rethrow;
     }
   }
+  
+  /// Update user rank (called by LeaderboardService)
+  void updateUserRank(int newRank) {
+    final currentUser = _currentState.user;
+    if (currentUser != null) {
+      final updatedUser = currentUser.copyWith(rank: newRank);
+      _updateState(_currentState.copyWith(user: updatedUser));
+      debugPrint('User rank updated via LeaderboardService: ${currentUser.username} is now rank #$newRank');
+    }
+  }
 
   /// Add points to current user
   Future<void> addPoints(int points) async {
@@ -407,6 +417,91 @@ class AuthService {
     );
 
     await updateProfile(updatedUser);
+    
+    // Trigger rank update after points change
+    await _updateUserRank(updatedUser);
+    
+    // Notify leaderboard service to trigger updates
+    await _notifyLeaderboardService(updatedUser.id);
+  }
+  
+  /// Notify leaderboard service of user changes
+  Future<void> _notifyLeaderboardService(String userId) async {
+    try {
+      // Import and use leaderboard service to trigger updates
+      // This will be handled by the leaderboard service's real-time subscriptions
+      debugPrint('User points updated, leaderboard will be updated via real-time subscriptions');
+    } catch (e) {
+      debugPrint('Error notifying leaderboard service: $e');
+    }
+  }
+  
+  /// Initialize leaderboard service for real-time updates
+  void _initializeLeaderboardService() {
+    try {
+      // The leaderboard service will be initialized by Riverpod when first accessed
+      // Real-time subscriptions will handle rank updates automatically
+      debugPrint('Leaderboard service initialization triggered');
+    } catch (e) {
+      debugPrint('Error initializing leaderboard service: $e');
+    }
+  }
+  
+  /// Force refresh user rank (for testing/debugging)
+  Future<void> forceRefreshRank() async {
+    final currentUser = _currentState.user;
+    if (currentUser != null) {
+      final userWithRank = await _fetchUserRank(currentUser);
+      _updateState(_currentState.copyWith(user: userWithRank));
+      debugPrint('Force refreshed rank for ${currentUser.username}: ${userWithRank.rank}');
+    }
+  }
+  
+  /// Update user rank after points change
+  Future<void> _updateUserRank(User user) async {
+    try {
+      // Get user's new rank from leaderboard
+      final rankQuery = await _supabase
+          .from('leaderboard')
+          .select('rank')
+          .eq('id', user.id)
+          .maybeSingle();
+      
+      if (rankQuery != null) {
+        final newRank = rankQuery['rank'] as int;
+        final userWithRank = user.copyWith(rank: newRank);
+        
+        // Update state with new rank
+        _updateState(_currentState.copyWith(user: userWithRank));
+        
+        debugPrint('User rank updated: ${user.username} is now rank #$newRank');
+      }
+    } catch (e) {
+      debugPrint('Error updating user rank: $e');
+    }
+  }
+  
+  /// Fetch user rank from leaderboard
+  Future<User> _fetchUserRank(User user) async {
+    try {
+      final rankQuery = await _supabase
+          .from('leaderboard')
+          .select('rank')
+          .eq('id', user.id)
+          .maybeSingle();
+      
+      if (rankQuery != null) {
+        final rank = rankQuery['rank'] as int;
+        debugPrint('Fetched rank for ${user.username}: #$rank');
+        return user.copyWith(rank: rank);
+      } else {
+        debugPrint('User ${user.username} not found in leaderboard (no points yet)');
+        return user.copyWith(rank: null);
+      }
+    } catch (e) {
+      debugPrint('Error fetching user rank: $e');
+      return user; // Return user without rank if fetch fails
+    }
   }
 
   /// Handle email verification completion (call this when app resumes or on deep link)
@@ -667,6 +762,9 @@ class AuthService {
       debugPrint(
         'User signed in successfully: ${user.username} (${user.email})',
       );
+      
+      // Ensure leaderboard service is initialized for real-time updates
+      _initializeLeaderboardService();
     } catch (e) {
       debugPrint('Error handling sign in: $e');
       
@@ -726,10 +824,13 @@ class AuthService {
       if (existingUser != null) {
         debugPrint('Found existing user profile: ${existingUser.username}');
 
-        // Update last active timestamp
-        final updatedUser = existingUser.copyWith(lastActiveAt: DateTime.now());
-        await _updateUserInDatabase(updatedUser);
-        return updatedUser;
+        // Update last active timestamp and fetch current rank
+        final userWithTimestamp = existingUser.copyWith(lastActiveAt: DateTime.now());
+        await _updateUserInDatabase(userWithTimestamp);
+        
+        // Fetch current rank from leaderboard
+        final userWithRank = await _fetchUserRank(userWithTimestamp);
+        return userWithRank;
       } else {
         debugPrint('No existing user profile found');
         
@@ -751,7 +852,10 @@ class AuthService {
               'User${DateTime.now().millisecondsSinceEpoch}';
           final user = await _createUserProfile(supabaseUser, username);
           debugPrint('Created new user profile: ${user.username}');
-          return user;
+          
+          // Fetch initial rank for new user
+          final userWithRank = await _fetchUserRank(user);
+          return userWithRank;
         } else {
           debugPrint('Old user without profile - likely deleted, clearing session');
           throw Exception('User profile not found - session invalid');

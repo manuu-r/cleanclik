@@ -768,9 +768,24 @@ class MockAuthService extends _i1.Mock implements _i8.AuthService {
           as _i21.Future<void>);
 
   @override
+  void updateUserRank(int? newRank) => super.noSuchMethod(
+    Invocation.method(#updateUserRank, [newRank]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   _i21.Future<void> addPoints(int? points) =>
       (super.noSuchMethod(
             Invocation.method(#addPoints, [points]),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  _i21.Future<void> forceRefreshRank() =>
+      (super.noSuchMethod(
+            Invocation.method(#forceRefreshRank, []),
             returnValue: _i21.Future<void>.value(),
             returnValueForMissingStub: _i21.Future<void>.value(),
           )
@@ -1539,6 +1554,24 @@ class MockLeaderboardService extends _i1.Mock
   _i21.Future<void> refreshLeaderboard() =>
       (super.noSuchMethod(
             Invocation.method(#refreshLeaderboard, []),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  _i21.Future<void> refreshUserRank() =>
+      (super.noSuchMethod(
+            Invocation.method(#refreshUserRank, []),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  _i21.Future<void> triggerRankUpdate(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#triggerRankUpdate, [userId]),
             returnValue: _i21.Future<void>.value(),
             returnValueForMissingStub: _i21.Future<void>.value(),
           )

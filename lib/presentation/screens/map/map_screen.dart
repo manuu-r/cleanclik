@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cleanclik/presentation/widgets/map/holographic_marker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -7,18 +8,19 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'dart:io' show Platform;
-import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/services/location/location_service.dart';
 import 'package:cleanclik/core/services/location/bin_location_service.dart';
 import 'package:cleanclik/core/models/bin_location.dart';
-import 'package:cleanclik/presentation/widgets/common/neon_icon_button.dart';
-import 'package:cleanclik/presentation/widgets/map/layer_toggle_column.dart';
+
 import 'package:cleanclik/presentation/widgets/map/bin_marker.dart';
 import 'package:cleanclik/presentation/widgets/map/mission_marker.dart';
 import 'package:cleanclik/presentation/widgets/map/friend_marker.dart';
 import 'package:cleanclik/presentation/widgets/inventory/detail_card.dart';
 import 'package:cleanclik/core/services/location/map_data_service.dart';
+
+import 'package:cleanclik/presentation/widgets/map/ping_animation.dart';
+import 'package:cleanclik/presentation/widgets/map/map_control_column.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -27,8 +29,10 @@ class MapScreen extends ConsumerStatefulWidget {
   ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen>
+    with TickerProviderStateMixin {
   final MapController _mapController = MapController();
+  late AnimationController _pingAnimationController;
 
   // Default location (Bangalore, India)
   static const LatLng _initialCenter = LatLng(12.971599, 77.594566);
@@ -44,7 +48,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   List<Marker> _markers = [];
   List<BinLocation> _localBins = [];
   LocationData? _currentLocation;
-  bool _isModalOpen = false;
+  final bool _isModalOpen = false;
   bool _followUserLocation = false;
 
   // Performance optimization
@@ -60,6 +64,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void initState() {
     super.initState();
+    _pingAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
     _loadLocalBins();
     _createMarkers();
 
@@ -262,37 +270,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     return GestureDetector(
       onTap: () => _showEnhancedBinDetails(bin, distance),
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          color: _getCategoryColor(bin.category),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: _getCategoryColor(bin.category).withOpacity(0.5),
-              blurRadius: 8,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(_getCategoryIcon(bin.category), color: Colors.white, size: 20),
-            if (distance != null && distance < 1000)
-              Text(
-                '${distance.round()}m',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-          ],
-        ),
-      ),
+      child: HolographicMarker(category: bin.category, distance: distance),
     );
   }
 
@@ -990,20 +968,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget _buildSimpleBinMarker(BinLocation bin) {
     return GestureDetector(
       onTap: () => _showEnhancedBinDetails(bin, null),
-      child: Container(
-        width: 35,
-        height: 35,
-        decoration: BoxDecoration(
-          color: _getCategoryColor(bin.category),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 1),
-        ),
-        child: Icon(
-          _getCategoryIcon(bin.category),
-          color: Colors.white,
-          size: 16,
-        ),
-      ),
+      child: HolographicMarker(category: bin.category, isSimple: true),
     );
   }
 
@@ -1044,6 +1009,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void dispose() {
     _markerUpdateTimer?.cancel();
+    _pingAnimationController.dispose();
     super.dispose();
   }
 
@@ -1144,9 +1110,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final arTheme = theme.arTheme;
-
     // Listen to location updates
     ref.listen<AsyncValue<LocationData?>>(locationStreamProvider, (
       previous,
@@ -1190,144 +1153,159 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.8),
-        elevation: 0,
-        title: ShaderMask(
-          shaderCallback: (bounds) => arTheme.neonGradient.createShader(bounds),
-          child: const Text(
-            'Cleanup Map',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-        ),
-        actions: [
-          NeonIconButton(
-            icon: Icons.navigation,
-            color: NeonColors.solarYellow,
-            buttonSize: ButtonSize.small,
-            onTap: _testNavigation,
-            tooltip: 'Test Navigation',
-          ),
-          const SizedBox(width: 8),
-          NeonIconButton(
-            icon: Icons.add_location,
-            color: NeonColors.toxicPurple,
-            buttonSize: ButtonSize.small,
-            onTap: _addTestBin,
-            tooltip: 'Add Test Bin',
-          ),
-          const SizedBox(width: 8),
-          NeonIconButton(
-            icon: Icons.near_me,
-            color: NeonColors.electricGreen,
-            buttonSize: ButtonSize.small,
-            onTap: _showNearestBin,
-            tooltip: 'Nearest Bin',
-          ),
-          const SizedBox(width: 8),
-          NeonIconButton(
-            icon: Icons.my_location,
-            color: NeonColors.oceanBlue,
-            buttonSize: ButtonSize.small,
-            onTap: _goToCurrentLocation,
-            tooltip: 'My Location',
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: Column(
+      body: Stack(
         children: [
-          // Map section
-          Expanded(
-            flex: 2,
-            child: Stack(
-              children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _initialCenter,
-                    initialZoom: _initialZoom,
-                    maxZoom: 18.0,
-                    minZoom: 3.0,
-                    onMapEvent: _onMapEvent,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.vibesweep',
-                      tileBuilder: (context, tileWidget, tile) {
-                        // Apply dark theme filter to tiles
-                        return ColorFiltered(
-                          colorFilter: const ColorFilter.matrix([
-                            0.2,
-                            0.2,
-                            0.2,
-                            0,
-                            0,
-                            0.2,
-                            0.2,
-                            0.2,
-                            0,
-                            0,
-                            0.2,
-                            0.2,
-                            0.2,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            1,
-                            0,
-                          ]),
-                          child: tileWidget,
-                        );
-                      },
-                    ),
-                    MarkerLayer(markers: _markers),
-                  ],
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _initialCenter,
+              initialZoom: _initialZoom,
+              maxZoom: 18.0,
+              minZoom: 3.0,
+              onMapEvent: _onMapEvent,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.vibesweep',
+                tileBuilder: (context, tileWidget, tile) {
+                  return ColorFiltered(
+                    colorFilter: const ColorFilter.matrix([
+                      0.2,
+                      0.2,
+                      0.2,
+                      0,
+                      0,
+                      0.2,
+                      0.2,
+                      0.2,
+                      0,
+                      0,
+                      0.2,
+                      0.2,
+                      0.2,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      1,
+                      0,
+                    ]),
+                    child: tileWidget,
+                  );
+                },
+              ),
+              if (_currentLocation != null)
+                AnimatedBuilder(
+                  animation: _pingAnimationController,
+                  builder: (context, child) {
+                    return PingAnimation(
+                      center: _currentLocation!.position,
+                      controller: _pingAnimationController,
+                    );
+                  },
                 ),
-
-                // Layer controls overlay
-                Positioned(
-                  top: 120,
-                  right: 16,
-                  child: IgnorePointer(
-                    ignoring: _isModalOpen,
-                    child: LayerToggleColumn(
-                      showBins: _showBins,
-                      showHotspots: _showHotspots,
-                      showMissions: _showMissions,
-                      showFriends: _showFriends,
-                      showUserLocation: _showUserLocation,
-                      binCount:
-                          MapDataService.getBins().length + _localBins.length,
-                      hotspotCount: MapDataService.getHotspots().length,
-                      missionCount: MapDataService.getMissions().length,
-                      friendCount: MapDataService.getFriends().length,
-                      onToggleLayer: _toggleLayer,
-                    ),
+              MarkerLayer(markers: _markers),
+            ],
+          ),
+          // Left column - Map actions
+          Positioned(
+            top: 60,
+            left: 16,
+            child: SafeArea(
+              child: MapControlColumn(
+                items: [
+                  MapControlItem(
+                    icon: Icons.navigation,
+                    color: const Color(0xFFFFD700), // Bright gold
+                    onTap: _testNavigation,
+                    tooltip: 'Test Navigation',
                   ),
-                ),
-
-                // Detail card overlay
-                if (_selectedDetailType != null)
-                  Positioned(
-                    top: 80,
-                    left: 16,
-                    right: 16,
-                    child: DetailCard(
-                      type: _selectedDetailType!,
-                      title: _selectedDetailTitle!,
-                      details: _selectedDetailData!,
-                      actions: _selectedDetailActions!,
-                      onClose: () => setState(() => _selectedDetailType = null),
-                    ),
+                  MapControlItem(
+                    icon: Icons.add_location,
+                    color: const Color(0xFFFF6B6B), // Bright red
+                    onTap: _addTestBin,
+                    tooltip: 'Add Test Bin',
                   ),
-              ],
+                  MapControlItem(
+                    icon: Icons.near_me,
+                    color: const Color(0xFF4ECDC4), // Bright teal
+                    onTap: _showNearestBin,
+                    tooltip: 'Nearest Bin',
+                  ),
+                  MapControlItem(
+                    icon: Icons.my_location,
+                    color: const Color(0xFF45B7D1), // Bright blue
+                    onTap: _goToCurrentLocation,
+                    tooltip: 'My Location',
+                  ),
+                ],
+              ),
             ),
           ),
+          // Right column - Layer toggles
+          Positioned(
+            top: 60,
+            right: 16,
+            child: SafeArea(
+              child: IgnorePointer(
+                ignoring: _isModalOpen,
+                child: MapControlColumn(
+                  items: [
+                    MapControlItem(
+                      icon: Icons.delete_outline,
+                      color: const Color(0xFF00FF7F), // Bright green
+                      onTap: () => _toggleLayer('bins'),
+                      tooltip: 'Toggle Bins',
+                      isActive: _showBins,
+                      count:
+                          MapDataService.getBins().length + _localBins.length,
+                    ),
+                    MapControlItem(
+                      icon: Icons.whatshot,
+                      color: const Color(0xFFFF4500), // Bright orange-red
+                      onTap: () => _toggleLayer('hotspots'),
+                      tooltip: 'Toggle Hotspots',
+                      isActive: _showHotspots,
+                      count: MapDataService.getHotspots().length,
+                    ),
+                    MapControlItem(
+                      icon: Icons.flag,
+                      color: const Color(0xFF1E90FF), // Bright blue
+                      onTap: () => _toggleLayer('missions'),
+                      tooltip: 'Toggle Missions',
+                      isActive: _showMissions,
+                      count: MapDataService.getMissions().length,
+                    ),
+                    MapControlItem(
+                      icon: Icons.people,
+                      color: const Color(0xFFFF8C00), // Bright orange
+                      onTap: () => _toggleLayer('friends'),
+                      tooltip: 'Toggle Friends',
+                      isActive: _showFriends,
+                      count: MapDataService.getFriends().length,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (_selectedDetailType != null)
+            Positioned(
+              top:
+                  MediaQuery.of(context).size.height *
+                  0.3, // Center vertically (40% from top)
+              left: 16,
+              right: 16,
+              child: DetailCard(
+                type: _selectedDetailType!,
+                title: _selectedDetailTitle!,
+                details: _selectedDetailData!,
+                actions: _selectedDetailActions!,
+                onClose: () => setState(() => _selectedDetailType = null),
+              ),
+            ),
         ],
       ),
     );
