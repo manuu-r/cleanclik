@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/models/detected_object.dart';
-import '../../../core/services/hand_tracking_service.dart';
-import '../../../core/services/object_management_service.dart'
+import 'package:cleanclik/core/models/camera_models.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
+import 'package:cleanclik/core/services/business/pickup_service.dart'
     show ObjectStatus;
 
-import '../../../core/theme/neon_colors.dart';
-import '../../widgets/enhanced_object_overlay.dart';
-import '../../widgets/glassmorphism_container.dart';
-import '../../widgets/hand_skeleton_painter.dart';
-import '../../widgets/coordinate_debug_widget.dart';
-import '../../widgets/coordinate_diagnostic_overlay.dart';
+import 'package:cleanclik/core/theme/neon_colors.dart';
+import 'package:cleanclik/presentation/widgets/camera/enhanced_object_overlay.dart';
+import 'package:cleanclik/presentation/widgets/camera/hand_skeleton_painter.dart';
+import 'package:cleanclik/presentation/widgets/camera/coordinate_debug_widget.dart';
+import 'package:cleanclik/presentation/widgets/camera/coordinate_diagnostic_overlay.dart';
 
-import 'ar_camera_services.dart';
-import 'ar_camera_processing.dart';
+
+import 'package:cleanclik/presentation/screens/camera/ar_camera_services.dart';
+import 'package:cleanclik/presentation/screens/camera/ar_camera_processing.dart';
 
 /// Manages UI building and overlay rendering for AR camera
 class ARCameraUI {
@@ -75,7 +75,7 @@ class ARCameraUI {
 
         // Object overlays
         if (_showObjectOverlays)
-          ..._buildObjectOverlays(constraints, cameraController),
+          ..._buildObjectOverlays(context, constraints, cameraController),
 
         // Hand overlays
         if (_showHandOverlays) ..._buildHandOverlays(constraints),
@@ -124,6 +124,7 @@ class ARCameraUI {
 
   /// Build object detection overlays
   List<Widget> _buildObjectOverlays(
+    BuildContext context,
     BoxConstraints constraints,
     CameraController? cameraController,
   ) {
@@ -136,15 +137,13 @@ class ARCameraUI {
     }
 
     return objects.map((obj) {
-      final transformedRect = _services.mlService!.transformBoundingBox(
-        obj.boundingBox,
-        constraints,
-        cameraController,
-      );
-      return EnhancedObjectOverlay(
+      // WasteDetectionService already returns objects with transformed bounding boxes
+      return EnhancedObjectOverlay.legacy(
         object: obj,
         status: ObjectStatus.detected,
-        transformedRect: transformedRect,
+        transformedRect: obj.boundingBox,
+        showTooltip: true,
+        screenSize: MediaQuery.of(context).size,
       );
     }).toList();
   }
@@ -199,16 +198,16 @@ class ARCameraUI {
 
   /// Build pickup detection indicators
   List<Widget> _buildPickupIndicators(BoxConstraints constraints) {
-    if (!_services.hasObjectManagementService) {
+    if (!_services.hasPickupService) {
       return [];
     }
 
-    final objectManagement = _services.objectManagementService!;
-    final carriedObjects = objectManagement.carriedObjects;
-    
+    final pickupService = _services.pickupService!;
+    final pickedUpCount = pickupService.pickedUpCount;
+
     // Show pickup notifications for recently picked up items
     return [
-      if (carriedObjects.isNotEmpty)
+      if (pickedUpCount > 0)
         Positioned(
           top: 100,
           left: 20,
@@ -227,7 +226,7 @@ class ARCameraUI {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Carrying ${carriedObjects.length} item${carriedObjects.length == 1 ? '' : 's'}: ${carriedObjects.map((obj) => obj.codeName).join(', ')}',
+                    'Carrying $pickedUpCount item${pickedUpCount == 1 ? '' : 's'}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -287,240 +286,112 @@ class ARCameraUI {
   /// Build control overlays (buttons, panels, etc.)
   List<Widget> _buildControlOverlays(BuildContext context) {
     return [
-      // Top control bar
-      _buildTopControlBar(context),
+      // Close button in top right
+      _buildCloseButton(context),
 
-      // Bottom control bar
-      _buildBottomControlBar(context),
-
-      // Side control panel
-      if (_showDebugInfo) _buildSideControlPanel(context),
+      // QR scanning button
+      _buildQRScanButton(context),
     ];
   }
 
-  /// Build top control bar with status indicators
-  Widget _buildTopControlBar(BuildContext context) {
+  /// Build close button with circular background in top right
+  Widget _buildCloseButton(BuildContext context) {
     return Positioned(
       top: MediaQuery.of(context).padding.top + 16,
-      left: 16,
       right: 16,
-      child: GlassmorphismContainer(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Service status indicators
-            _buildServiceStatusIndicator(),
-
-            // Processing status
-            _buildProcessingStatusIndicator(),
-
-            // Close button
-            IconButton(
-              onPressed: () => context.pop(),
-              icon: const Icon(Icons.close, color: Colors.white),
-            ),
-          ],
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withOpacity(0.6),
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+        ),
+        child: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.close, color: Colors.white, size: 24),
         ),
       ),
     );
   }
 
-  /// Build bottom control bar with toggle buttons
-  Widget _buildBottomControlBar(BuildContext context) {
-    return Positioned(
-      bottom: MediaQuery.of(context).padding.bottom + 16,
-      left: 16,
-      right: 16,
-      child: GlassmorphismContainer(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildToggleButton(
-              Icons.visibility,
-              Icons.visibility_off,
-              _showObjectOverlays,
-              () => _showObjectOverlays = !_showObjectOverlays,
-              'Objects',
-            ),
-            _buildToggleButton(
-              Icons.pan_tool,
-              Icons.pan_tool_outlined,
-              _showHandSkeleton,
-              () => _showHandSkeleton = !_showHandSkeleton,
-              'Hands',
-            ),
-            _buildActionButton(
-              Icons.qr_code_scanner,
-              () => _onQRScanPressed?.call(),
-              'QR Scan',
-            ),
-            _buildToggleButton(
-              Icons.bug_report,
-              Icons.bug_report_outlined,
-              _showDebugInfo,
-              () => _showDebugInfo = !_showDebugInfo,
-              'Debug',
-            ),
-            _buildToggleButton(
-              Icons.grid_on,
-              Icons.grid_off,
-              _showCoordinateValidation,
-              () => _showCoordinateValidation = !_showCoordinateValidation,
-              'Coords',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  /// Build QR scanning button with highlighting when objects are picked up
+  Widget _buildQRScanButton(BuildContext context) {
+    // Check if there are picked up items to highlight the button
+    final hasPickedUpItems =
+        _services.hasPickupService &&
+        _services.pickupService!.pickedUpCount > 0;
 
-  /// Build side control panel for advanced options
-  Widget _buildSideControlPanel(BuildContext context) {
     return Positioned(
-      right: 16,
-      top: MediaQuery.of(context).padding.top + 80,
-      child: GlassmorphismContainer(
+      bottom: MediaQuery.of(context).padding.bottom + 32,
+      left: 0,
+      right: 0,
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildControlPanelButton(
-              Icons.refresh,
-              'Restart Services',
-              () => _services.restartServices(),
+            // QR scanning button
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: hasPickedUpItems
+                    ? NeonColors.electricGreen.withOpacity(0.9)
+                    : Colors.black.withOpacity(0.6),
+                border: Border.all(
+                  color: hasPickedUpItems
+                      ? NeonColors.electricGreen
+                      : Colors.white.withOpacity(0.3),
+                  width: hasPickedUpItems ? 3 : 1,
+                ),
+                boxShadow: hasPickedUpItems
+                    ? [
+                        BoxShadow(
+                          color: NeonColors.electricGreen.withOpacity(0.5),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: IconButton(
+                onPressed: _onQRScanPressed,
+                icon: Icon(
+                  Icons.qr_code_scanner,
+                  color: hasPickedUpItems ? Colors.black : Colors.white,
+                  size: 32,
+                ),
+              ),
             ),
+
+            // Label text
             const SizedBox(height: 8),
-            _buildControlPanelButton(
-              Icons.cleaning_services,
-              'Reset Processing',
-              () => _processing.reset(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                hasPickedUpItems ? 'Scan Bin to Dispose' : 'Scan Bin',
+                style: TextStyle(
+                  color: hasPickedUpItems
+                      ? NeonColors.electricGreen
+                      : Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  /// Build service status indicator
-  Widget _buildServiceStatusIndicator() {
-    final serviceCount =
-        _services.getServiceStatus()['service_info']['total_services'] as int;
-    final color = _services.hasFullARCapabilities
-        ? NeonColors.electricGreen
-        : _services.hasCoreServices
-        ? NeonColors.solarYellow
-        : NeonColors.glowRed;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.settings, color: color, size: 16),
-        const SizedBox(width: 4),
-        Text(
-          '$serviceCount',
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build processing status indicator
-  Widget _buildProcessingStatusIndicator() {
-    final isProcessing = _processing.isProcessing;
-    final color = isProcessing ? NeonColors.oceanBlue : Colors.grey;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (isProcessing)
-          SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          )
-        else
-          Icon(Icons.pause, color: color, size: 16),
-        const SizedBox(width: 4),
-        Text(
-          '${_processing.detectedObjects.length + _processing.handLandmarks.length}',
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build toggle button for UI controls
-  Widget _buildToggleButton(
-    IconData activeIcon,
-    IconData inactiveIcon,
-    bool isActive,
-    VoidCallback onTap,
-    String label,
-  ) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: onTap,
-          icon: Icon(
-            isActive ? activeIcon : inactiveIcon,
-            color: isActive ? NeonColors.electricGreen : Colors.grey,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            color: isActive ? NeonColors.electricGreen : Colors.grey,
-            fontSize: 10,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build action button for UI controls
-  Widget _buildActionButton(IconData icon, VoidCallback? onTap, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: onTap,
-          icon: Icon(
-            icon,
-            color: onTap != null ? NeonColors.oceanBlue : Colors.grey,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            color: onTap != null ? NeonColors.oceanBlue : Colors.grey,
-            fontSize: 10,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build control panel button
-  Widget _buildControlPanelButton(
-    IconData icon,
-    String tooltip,
-    VoidCallback onPressed,
-  ) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      tooltip: tooltip,
     );
   }
 

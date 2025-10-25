@@ -12,8 +12,14 @@ inclusion: always
 2. **Waste Categorization**: 5 bin types (recycle, organic, landfill, ewaste, hazardous)
 3. **Inventory System**: Track picked-up items with visual confirmation
 4. **Proximity Detection**: GPS-based bin highlighting within 10m radius
-5. **Gamification**: Points, badges, leaderboards, and social sharing
+5. **Points System**: Earn points for proper waste disposal
 6. **Mission System**: Time/location-based challenges with rewards
+
+## Gamification Upgrade Features
+7. **Progression System**: XP, levels, badges, and streaks to motivate repeated play
+8. **Exploration Features**: Dynamic maps, quests, location-based rewards (Pokémon GO style)
+9. **Social Features**: Friends, challenges, sharing cards, community feed
+10. **Polish & Retention**: Sounds, animations, analytics, push notifications
 
 ## Design Principles
 - **Environmental Theme**: Green/earth-tone color palette with nature-inspired UI
@@ -35,7 +41,9 @@ inclusion: always
 ## Success Metrics
 - **Engagement**: Daily active users, session duration, retention rates
 - **Impact**: Items properly categorized, disposal accuracy, environmental education
-- **Social**: Leaderboard participation, achievement sharing, mission completion
+- **Gamification**: Points earned, mission completion, user progression
+- **Exploration**: Map usage, location discovery, hot zone engagement
+- **Retention**: Session summaries, repeat usage patterns
 
 ## Content Guidelines
 - Use encouraging, positive language around environmental impact

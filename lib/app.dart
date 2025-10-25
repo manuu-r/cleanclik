@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:cleanclik/core/routing/app_router.dart';
 
 import 'package:cleanclik/core/theme/app_theme.dart';
-import 'package:cleanclik/core/services/user_service.dart';
-import 'package:cleanclik/core/services/logging_service.dart';
-import 'package:cleanclik/core/services/deep_link_service.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/core/services/system/logging_service.dart';
+import 'package:cleanclik/core/services/auth/deep_link_service.dart';
 
 class CleanClikApp extends ConsumerStatefulWidget {
   const CleanClikApp({super.key});
@@ -16,12 +16,16 @@ class CleanClikApp extends ConsumerStatefulWidget {
   ConsumerState<CleanClikApp> createState() => _CleanClikAppState();
 }
 
-class _CleanClikAppState extends ConsumerState<CleanClikApp> {
+class _CleanClikAppState extends ConsumerState<CleanClikApp>
+    with WidgetsBindingObserver {
   GoRouter? _router;
 
   @override
   void initState() {
     super.initState();
+
+    // Add lifecycle observer to handle app resume
+    WidgetsBinding.instance.addObserver(this);
 
     // Initialize logging service with production-appropriate defaults
     if (kDebugMode) {
@@ -37,14 +41,55 @@ class _CleanClikAppState extends ConsumerState<CleanClikApp> {
     });
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      debugPrint(
+        'App resumed - checking for deep links and refreshing auth state',
+      );
+      // Check for pending deep links and refresh auth state
+      _handleAppResume();
+    }
+  }
+
+  Future<void> _handleAppResume() async {
+    try {
+      // First check for any pending deep links
+      final deepLinkService = await ref.read(deepLinkServiceProvider.future);
+      await deepLinkService.checkForPendingLinks();
+
+      // Then refresh auth state
+      await _refreshAuthState();
+    } catch (e) {
+      debugPrint('Error handling app resume: $e');
+    }
+  }
+
+  Future<void> _refreshAuthState() async {
+    try {
+      final authService = await ref.read(authServiceProvider.future);
+      await authService.refreshAuthState();
+    } catch (e) {
+      debugPrint('Error refreshing auth state: $e');
+    }
+  }
+
   Future<void> _initializeServices() async {
     try {
-      // Initialize the user service (will check for existing session)
-      final userService = ref.read(userServiceProvider);
-      await userService.initialize();
+      // Initialize the auth service (will check for existing session)
+      final authService = await ref.read(authServiceProvider.future);
+      await authService.initialize();
 
       // Initialize deep link service
-      final deepLinkService = ref.read(deepLinkServiceProvider);
+      final deepLinkService = await ref.read(deepLinkServiceProvider.future);
       await deepLinkService.initialize();
 
       // Set up deep link callbacks
@@ -58,6 +103,9 @@ class _CleanClikAppState extends ConsumerState<CleanClikApp> {
     // Set navigation callback
     deepLinkService.setNavigationCallback((route, {extra}) {
       if (_router != null && mounted) {
+        // Refresh auth state when processing deep links (email verification)
+        _refreshAuthState();
+
         if (extra != null) {
           _router!.push(route, extra: extra);
         } else {
@@ -69,17 +117,22 @@ class _CleanClikAppState extends ConsumerState<CleanClikApp> {
     // Set message callback
     deepLinkService.setMessageCallback((message, {isError = false}) {
       if (mounted) {
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: isError
-                ? Theme.of(context).colorScheme.errorContainer
-                : Theme.of(context).colorScheme.primaryContainer,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: isError ? 5 : 3),
-          ),
-        );
+        try {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: isError
+                  ? Theme.of(context).colorScheme.errorContainer
+                  : Theme.of(context).colorScheme.primaryContainer,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: isError ? 5 : 3),
+            ),
+          );
+        } catch (e) {
+          // ScaffoldMessenger not available yet, just log the message
+          debugPrint('Deep link message: $message');
+        }
       }
     });
   }

@@ -84,7 +84,7 @@ final supabaseHealthStatusProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SupabaseHealthStatusRef = AutoDisposeProviderRef<SupabaseHealthStatus?>;
-String _$supabaseNotifierHash() => r'04d498c07c6e71298b836a9b253e178335007411';
+String _$supabaseNotifierHash() => r'86638f96278c6fe46c969eec8305ff28d051d182';
 
 /// Supabase configuration notifier provider
 ///

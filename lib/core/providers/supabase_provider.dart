@@ -3,17 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../services/supabase_config_service.dart';
+import 'package:cleanclik/core/services/auth/supabase_config_service.dart';
 
 part 'supabase_provider.g.dart';
 
 /// Supabase configuration state
-enum SupabaseStatus {
-  uninitialized,
-  initializing,
-  ready,
-  error,
-}
+enum SupabaseStatus { uninitialized, initializing, ready, error }
 
 /// Supabase configuration state
 class SupabaseState {
@@ -28,9 +23,9 @@ class SupabaseState {
   });
 
   const SupabaseState.initial()
-      : status = SupabaseStatus.uninitialized,
-        errorMessage = null,
-        healthStatus = null;
+    : status = SupabaseStatus.uninitialized,
+      errorMessage = null,
+      healthStatus = null;
 
   SupabaseState copyWith({
     SupabaseStatus? status,
@@ -54,54 +49,63 @@ class SupabaseState {
 class SupabaseNotifier extends _$SupabaseNotifier {
   @override
   SupabaseState build() {
-    // Initialize Supabase when provider is created
-    _initializeSupabase();
-    
     // Cleanup when provider is disposed
     ref.onDispose(() {
       developer.log('SupabaseNotifier disposed', name: 'SupabaseProvider');
     });
-    
+
+    // Start with initial state and trigger initialization asynchronously
+    Future.microtask(() => _initializeSupabase());
+
     return const SupabaseState.initial();
   }
 
   /// Initialize Supabase configuration
   Future<void> _initializeSupabase() async {
-    if (state.status == SupabaseStatus.initializing) {
+    // Check current state to avoid duplicate initialization
+    final currentState = state;
+    if (currentState.status == SupabaseStatus.initializing) {
       return; // Already initializing
     }
 
     try {
-      state = state.copyWith(
+      state = currentState.copyWith(
         status: SupabaseStatus.initializing,
         errorMessage: null,
       );
 
       await SupabaseConfigService.initialize();
-      
+
       // Perform health check after initialization
       final healthStatus = await SupabaseConfigService.healthCheck();
-      
+
       state = state.copyWith(
         status: SupabaseStatus.ready,
         healthStatus: healthStatus,
       );
-      
-      developer.log('Supabase initialized successfully', name: 'SupabaseProvider');
+
+      developer.log(
+        'Supabase initialized successfully',
+        name: 'SupabaseProvider',
+      );
     } catch (e) {
       final errorMessage = e.toString();
       state = state.copyWith(
         status: SupabaseStatus.error,
         errorMessage: errorMessage,
       );
-      
-      developer.log('Failed to initialize Supabase: $errorMessage', name: 'SupabaseProvider');
+
+      developer.log(
+        'Failed to initialize Supabase: $errorMessage',
+        name: 'SupabaseProvider',
+      );
     }
   }
 
   /// Retry initialization after error
   Future<void> retryInitialization() async {
-    if (state.status == SupabaseStatus.initializing) {
+    final currentState = state;
+    if (currentState.status == SupabaseStatus.initializing) {
       return; // Already initializing
     }
 
@@ -112,15 +116,21 @@ class SupabaseNotifier extends _$SupabaseNotifier {
   /// Perform health check
   Future<void> performHealthCheck() async {
     if (!SupabaseConfigService.isInitialized) {
-      developer.log('Cannot perform health check: Supabase not initialized', name: 'SupabaseProvider');
+      developer.log(
+        'Cannot perform health check: Supabase not initialized',
+        name: 'SupabaseProvider',
+      );
       return;
     }
 
     try {
       final healthStatus = await SupabaseConfigService.healthCheck();
       state = state.copyWith(healthStatus: healthStatus);
-      
-      developer.log('Health check completed: ${healthStatus.isHealthy}', name: 'SupabaseProvider');
+
+      developer.log(
+        'Health check completed: ${healthStatus.isHealthy}',
+        name: 'SupabaseProvider',
+      );
     } catch (e) {
       developer.log('Health check failed: $e', name: 'SupabaseProvider');
     }
@@ -128,8 +138,9 @@ class SupabaseNotifier extends _$SupabaseNotifier {
 
   /// Clear error state
   void clearError() {
-    if (state.hasError) {
-      state = state.copyWith(
+    final currentState = state;
+    if (currentState.hasError) {
+      state = currentState.copyWith(
         status: SupabaseStatus.uninitialized,
         errorMessage: null,
       );
@@ -154,11 +165,11 @@ bool isSupabaseReady(Ref ref) {
 @riverpod
 SupabaseClient? supabaseClient(Ref ref) {
   final state = ref.watch(supabaseStateProvider);
-  
+
   if (state.isReady && SupabaseConfigService.isInitialized) {
     return SupabaseConfigService.client;
   }
-  
+
   return null;
 }
 

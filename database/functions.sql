@@ -62,3 +62,102 @@ CREATE TRIGGER trigger_update_category_stats
   AFTER INSERT ON inventory
   FOR EACH ROW
   EXECUTE FUNCTION update_category_stats();
+
+-- Add Points to User Function (called from DataService)
+-- Note: Parameter order matches the error message: points_to_add, user_id
+CREATE OR REPLACE FUNCTION add_user_points(points_to_add INTEGER, user_id UUID)
+RETURNS VOID AS $
+BEGIN
+  UPDATE users 
+  SET total_points = total_points + points_to_add,
+      last_active_at = NOW()
+  WHERE auth_id = user_id;
+  
+  -- Log the operation for debugging
+  RAISE NOTICE 'Added % points to user %', points_to_add, user_id;
+END;
+$ LANGUAGE plpgsql;
+
+-- Alternative function with correct parameter names for backward compatibility
+CREATE OR REPLACE FUNCTION add_points_to_user(user_id UUID, points_to_add INTEGER)
+RETURNS VOID AS $
+BEGIN
+  UPDATE users 
+  SET total_points = total_points + points_to_add,
+      last_active_at = NOW()
+  WHERE auth_id = user_id;
+  
+  -- Log the operation for debugging
+  RAISE NOTICE 'Added % points to user %', points_to_add, user_id;
+END;
+$ LANGUAGE plpgsql;
+
+-- Get Bins Near Location Function (requires PostGIS extension)
+-- Note: This function assumes bin_locations table has latitude and longitude columns
+CREATE OR REPLACE FUNCTION get_bins_near_location(lat DOUBLE PRECISION, lng DOUBLE PRECISION, radius_meters DOUBLE PRECISION)
+RETURNS TABLE(
+  id UUID,
+  name TEXT,
+  category TEXT,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  address TEXT,
+  distance_meters DOUBLE PRECISION
+) AS $
+BEGIN
+  RETURN QUERY
+  SELECT 
+    bl.id,
+    bl.name,
+    bl.category,
+    bl.latitude,
+    bl.longitude,
+    bl.address,
+    -- Calculate distance using Haversine formula (approximate)
+    (6371000 * acos(
+      cos(radians(lat)) * cos(radians(bl.latitude)) * 
+      cos(radians(bl.longitude) - radians(lng)) + 
+      sin(radians(lat)) * sin(radians(bl.latitude))
+    )) as distance_meters
+  FROM bin_locations bl
+  WHERE (6371000 * acos(
+    cos(radians(lat)) * cos(radians(bl.latitude)) * 
+    cos(radians(bl.longitude) - radians(lng)) + 
+    sin(radians(lat)) * sin(radians(bl.latitude))
+  )) <= radius_meters
+  ORDER BY distance_meters;
+END;
+$ LANGUAGE plpgsql;
+
+-- Find Nearest Bin Function
+CREATE OR REPLACE FUNCTION find_nearest_bin(lat DOUBLE PRECISION, lng DOUBLE PRECISION, category_filter TEXT DEFAULT NULL)
+RETURNS TABLE(
+  id UUID,
+  name TEXT,
+  category TEXT,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  address TEXT,
+  distance_meters DOUBLE PRECISION
+) AS $
+BEGIN
+  RETURN QUERY
+  SELECT 
+    bl.id,
+    bl.name,
+    bl.category,
+    bl.latitude,
+    bl.longitude,
+    bl.address,
+    -- Calculate distance using Haversine formula
+    (6371000 * acos(
+      cos(radians(lat)) * cos(radians(bl.latitude)) * 
+      cos(radians(bl.longitude) - radians(lng)) + 
+      sin(radians(lat)) * sin(radians(bl.latitude))
+    )) as distance_meters
+  FROM bin_locations bl
+  WHERE (category_filter IS NULL OR bl.category = category_filter)
+  ORDER BY distance_meters
+  LIMIT 1;
+END;
+$ LANGUAGE plpgsql;

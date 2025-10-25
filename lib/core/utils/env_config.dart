@@ -62,24 +62,24 @@ class EnvConfig {
     try {
       final envContent = await rootBundle.loadString('.env');
       final lines = envContent.split('\n');
-      
+
       for (final line in lines) {
         final trimmedLine = line.trim();
-        
+
         // Skip empty lines and comments
         if (trimmedLine.isEmpty || trimmedLine.startsWith('#')) {
           continue;
         }
-        
+
         // Parse key=value pairs
         final equalIndex = trimmedLine.indexOf('=');
         if (equalIndex > 0) {
           final key = trimmedLine.substring(0, equalIndex).trim();
           final value = trimmedLine.substring(equalIndex + 1).trim();
-          
+
           // Remove quotes if present
           final cleanValue = _removeQuotes(value);
-          
+
           // Only add if not already present (system env vars take precedence)
           if (!_cache.containsKey(key)) {
             _cache[key] = cleanValue;

@@ -1,46 +1,111 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/services/user_service.dart';
-import '../../../core/services/supabase_config_service.dart';
-import 'login_screen.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/core/services/auth/supabase_config_service.dart';
+import 'package:cleanclik/presentation/screens/auth/login_screen.dart';
 
 /// Wrapper widget that handles authentication state and route protection
-class AuthWrapper extends ConsumerWidget {
+class AuthWrapper extends ConsumerStatefulWidget {
   final Widget child;
 
-  const AuthWrapper({
-    super.key,
-    required this.child,
-  });
+  const AuthWrapper({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends ConsumerState<AuthWrapper> {
+  Timer? _timeoutTimer;
+  bool _hasTimedOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set a timeout for initialization (shorter for release builds)
+    _timeoutTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _hasTimedOut = true;
+        });
+        debugPrint('Auth initialization timed out after 5 seconds');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // If timed out, show login screen
+    if (_hasTimedOut) {
+      debugPrint('Auth initialization timed out after 5 seconds');
+      return const LoginScreen();
+    }
+
+    // Check if Supabase is in demo mode - show error instead
+    if (SupabaseConfigService.isDemoMode) {
+      debugPrint('Supabase not configured properly');
+      _timeoutTimer?.cancel();
+      return AuthErrorScreen(
+        error:
+            'Supabase configuration missing. Please configure SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY.',
+        onRetry: () {
+          // Restart the app or reinitialize
+          setState(() {
+            _hasTimedOut = false;
+          });
+        },
+      );
+    }
+
     // Watch authentication state
     final authStateAsync = ref.watch(authStateProvider);
-    
+
     return authStateAsync.when(
-      data: (isAuthenticated) {
-        // If running in demo mode or user is authenticated, show the child
-        if (SupabaseConfigService.isDemoMode || isAuthenticated) {
-          return child;
+      data: (authState) {
+        // Cancel timeout timer since we got a result
+        _timeoutTimer?.cancel();
+
+        switch (authState.status) {
+          case AuthStatus.loading:
+            return const AuthLoadingScreen();
+
+          case AuthStatus.authenticated:
+            return widget.child;
+
+          case AuthStatus.unauthenticated:
+            // Show login screen
+            return const LoginScreen();
+
+          case AuthStatus.error:
+            // Show error screen with retry option
+            debugPrint('Auth error: ${authState.error}');
+            return AuthErrorScreen(
+              error: authState.error ?? 'Unknown authentication error',
+              onRetry: () {
+                // Trigger auth service restart
+                ref.invalidate(authStateProvider);
+              },
+            );
         }
-        
-        // Otherwise, show login screen
-        return const LoginScreen();
       },
       loading: () => const AuthLoadingScreen(),
       error: (error, stackTrace) {
+        // Cancel timeout timer since we got a result
+        _timeoutTimer?.cancel();
+
         debugPrint('Auth state error: $error');
-        
-        // If there's an auth error but we're in demo mode, show the child
-        if (SupabaseConfigService.isDemoMode) {
-          return child;
-        }
-        
-        // Otherwise show error screen with option to retry
+
+        // Show error screen instead of demo mode
         return AuthErrorScreen(
-          error: error.toString(),
+          error: 'Authentication system error: $error',
           onRetry: () {
+            // Trigger auth service restart
             ref.invalidate(authStateProvider);
           },
         );
@@ -56,17 +121,13 @@ class AuthLoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.eco,
-              size: 80,
-              color: theme.colorScheme.primary,
-            ),
+            Icon(Icons.eco, size: 80, color: theme.colorScheme.primary),
             const SizedBox(height: 24),
             Text(
               'CleanClik',
@@ -105,7 +166,7 @@ class AuthErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -147,6 +208,26 @@ class AuthErrorScreen extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () {
+                  // Navigate back to login screen
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                    (route) => false,
+                  );
+                },
+                icon: const Icon(Icons.login),
+                label: const Text('Back to Login'),
+                style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,

@@ -12,10 +12,7 @@ void main() {
     });
 
     test('should throw when not loaded', () {
-      expect(
-        () => EnvConfig.get('TEST_KEY'),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => EnvConfig.get('TEST_KEY'), throwsA(isA<StateError>()));
     });
 
     test('should return empty string for missing key', () async {

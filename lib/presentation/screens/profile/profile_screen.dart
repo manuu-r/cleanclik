@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cleanclik/core/theme/app_colors.dart';
 import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
-import 'package:cleanclik/core/services/user_service.dart';
-import 'package:cleanclik/core/services/performance_service.dart';
+import 'package:cleanclik/core/models/user_models.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/core/providers/user_provider.dart';
+import 'package:cleanclik/core/services/system/performance_service.dart';
+import 'package:cleanclik/core/theme/app_theme.dart';
 
-import 'package:cleanclik/presentation/widgets/glassmorphism_container.dart';
-import 'package:cleanclik/presentation/widgets/neon_icon_button.dart';
-import 'package:cleanclik/presentation/widgets/progress_ring.dart';
-import 'package:cleanclik/presentation/widgets/breathing_widget.dart';
-import 'package:cleanclik/presentation/widgets/particle_system.dart';
+import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/presentation/widgets/profile/achievements_display.dart';
+
+import 'package:cleanclik/presentation/widgets/animations/progress_ring.dart';
+import 'package:cleanclik/presentation/widgets/animations/breathing_widget.dart';
+import 'package:cleanclik/presentation/widgets/animations/particle_system.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -39,22 +44,137 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     super.dispose();
   }
 
-  void _triggerCelebration() {
-    setState(() => _showCelebration = true);
-    _particleController.forward().then((_) {
-      setState(() => _showCelebration = false);
-      _particleController.reset();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    debugPrint('🔵 [PROFILE_SCREEN] build() called');
     final ref = this.ref;
-    final userAsync = ref.watch(currentUserProvider);
-    final userStats = ref.watch(userStatsProvider);
+
+    debugPrint('🔵 [PROFILE_SCREEN] Watching authStateProvider...');
+    final authStateAsync = ref.watch(authStateProvider);
+
+    debugPrint('🔵 [PROFILE_SCREEN] Watching performanceServiceProvider...');
     final performanceService = ref.watch(performanceServiceProvider);
+
     final theme = Theme.of(context);
-    final arTheme = theme.arTheme;
+    final arTheme = theme.extension<ARThemeExtension>()!;
+
+    debugPrint('🔵 [PROFILE_SCREEN] Processing authStateAsync.when...');
+    // Watch auth state to get current user
+    return authStateAsync.when(
+      data: (authState) {
+        debugPrint(
+          '🔵 [PROFILE_SCREEN] authStateAsync.data - isAuthenticated: ${authState.isAuthenticated}, user: ${authState.user?.username}',
+        );
+
+        if (!authState.isAuthenticated || authState.user == null) {
+          debugPrint(
+            '⚠️ [PROFILE_SCREEN] User not authenticated, redirecting to login',
+          );
+          // Redirect to login if not authenticated
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              context.go('/login');
+            }
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        debugPrint(
+          '🔵 [PROFILE_SCREEN] Building profile content for user: ${authState.user!.username}',
+        );
+        // User is authenticated, build profile content
+        return _buildProfileContent(
+          context,
+          authState.user!,
+          authStateAsync,
+          performanceService,
+          theme,
+          arTheme,
+          ref,
+        );
+      },
+      loading: () {
+        debugPrint('🔵 [PROFILE_SCREEN] authStateAsync.loading');
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      },
+      error: (error, stack) {
+        debugPrint('❌ [PROFILE_SCREEN] authStateAsync.error: $error');
+        return Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading profile: $error'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Go to Login'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileContent(
+    BuildContext context,
+    User currentUser,
+    AsyncValue<AuthState> authStateAsync,
+    PerformanceService performanceService,
+    ThemeData theme,
+    ARThemeExtension arTheme,
+    WidgetRef ref,
+  ) {
+    debugPrint(
+      '🔵 [PROFILE_SCREEN] _buildProfileContent() called for user: ${currentUser.username}',
+    );
+
+    // Get dashboard statistics from provider
+    debugPrint('🔵 [PROFILE_SCREEN] Watching dashboardStatsProvider...');
+    final dashboardStatsAsync = ref.watch(dashboardStatsProvider);
+    debugPrint(
+      '🔵 [PROFILE_SCREEN] dashboardStatsAsync state: ${dashboardStatsAsync.runtimeType}',
+    );
+
+    // Use dashboard stats or fallback to basic user data
+    final userStats = dashboardStatsAsync.when(
+      data: (dashboardStats) => <String, dynamic>{
+        'totalPoints': dashboardStats.totalPoints,
+        'totalItemsCollected': dashboardStats.totalItemsDisposed,
+        'accountAge': DateTime.now().difference(currentUser.createdAt).inDays,
+        'rank': dashboardStats.rank ?? 0,
+        'achievements': <String>[], // Keep simplified for now
+        'categoryStats': dashboardStats.categoryBreakdown,
+        'isStale': dashboardStats.isStale,
+      },
+      loading: () => <String, dynamic>{
+        'totalPoints': currentUser.totalPoints,
+        'totalItemsCollected': currentUser.totalItemsCollected,
+        'accountAge': DateTime.now().difference(currentUser.createdAt).inDays,
+        'rank': 0,
+        'achievements': <String>[],
+        'categoryStats': currentUser.categoryStats,
+        'isStale': false,
+      },
+      error: (error, stack) {
+        debugPrint('❌ ProfileScreen: Dashboard stats error: $error');
+        return <String, dynamic>{
+          'totalPoints': currentUser.totalPoints,
+          'totalItemsCollected': currentUser.totalItemsCollected,
+          'accountAge': DateTime.now().difference(currentUser.createdAt).inDays,
+          'rank': 0,
+          'achievements': <String>[],
+          'categoryStats': currentUser.categoryStats,
+          'isStale': true, // Mark as stale due to error
+        };
+      },
+    );
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -68,18 +188,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
-        actions: [
-          NeonIconButton(
-            icon: Icons.settings,
-            color: NeonColors.oceanBlue,
-            size: 40,
-            onTap: () {
-              // TODO: Navigate to settings
-            },
-            tooltip: 'Settings',
-          ),
-          const SizedBox(width: 16),
-        ],
       ),
       body: Stack(
         children: [
@@ -108,16 +216,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
           // Main content
           SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-              16,
-              16, // Reduced top padding
-              16,
+            padding: EdgeInsets.fromLTRB(
+              UIConstants
+                  .spacing6, // Increased outer padding to match home screen
+              20, // Slightly increased top padding
+              UIConstants
+                  .spacing6, // Increased outer padding to match home screen
               140,
             ), // Bottom padding for floating hub
             child: Column(
               children: [
                 // Profile Header with glassmorphism - Horizontal Layout
                 GlassmorphismContainer(
+                  borderRadius: BorderRadius.circular(
+                    UIConstants.radiusLarge,
+                  ), // Material 3 standard border radius
                   padding: const EdgeInsets.all(24),
                   child: Row(
                     children: [
@@ -147,120 +260,62 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       // User Info with shader mask
                       Expanded(
                         flex: 2,
-                        child: userAsync.when(
-                          data: (user) => Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ShaderMask(
-                                shaderCallback: (bounds) =>
-                                    arTheme.neonGradient.createShader(bounds),
-                                child: Text(
-                                  user?.username ?? 'Guest User',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ShaderMask(
+                              shaderCallback: (bounds) =>
+                                  arTheme.neonGradient.createShader(bounds),
+                              child: Text(
+                                currentUser.username,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                user != null
-                                    ? 'Level ${user.level} Eco Warrior'
-                                    : 'Eco Warrior Level 1',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: NeonColors.electricGreen,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          loading: () => CircularProgressIndicator(
-                            color: NeonColors.electricGreen,
-                          ),
-                          error: (error, stack) => Text(
-                            'Error loading user',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
                             ),
-                          ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Level ${currentUser.level} Eco Warrior',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: NeonColors.electricGreen,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
                       const SizedBox(width: 16),
 
                       // Level Progress Ring
-                      userAsync.when(
-                        data: (user) => user != null
-                            ? ProgressRing(
-                                progress: user.levelProgress,
-                                size: 80,
-                                color: NeonColors.electricGreen,
-                                showGlow:
-                                    performanceService.shouldShowAnimations,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'Level',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.white.withOpacity(0.7),
-                                      ),
-                                    ),
-                                    Text(
-                                      '${user.level}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: NeonColors.electricGreen.withAlpha(
-                                    (0.1 * 255).toInt(),
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.hourglass_empty,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
+                      ProgressRing(
+                        progress: currentUser.levelProgress,
+                        size: 80,
+                        color: NeonColors.electricGreen,
+                        showGlow: performanceService.shouldShowAnimations,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Level',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.white.withOpacity(0.7),
                               ),
-                        loading: () => Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: NeonColors.electricGreen.withAlpha(
-                              (0.1 * 255).toInt(),
                             ),
-                            shape: BoxShape.circle,
-                          ),
-                          child: CircularProgressIndicator(
-                            color: NeonColors.electricGreen,
-                          ),
-                        ),
-                        error: (error, stack) => Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.red.withAlpha((0.1 * 255).toInt()),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.error,
-                            color: Colors.red,
-                            size: 32,
-                          ),
+                            Text(
+                              '${currentUser.level}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -270,54 +325,225 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 const SizedBox(height: 24),
 
                 // Level Progress and Stats Row
-                userAsync.when(
-                  data: (user) => user != null
-                      ? GlassmorphismContainer(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              // Level Progress
-                              Column(
-                                children: [
-                                  Text(
-                                    '${user.pointsToNextLevel} pts to next level',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.8),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                GlassmorphismContainer(
+                  borderRadius: BorderRadius.circular(UIConstants.radiusLarge),
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      // Level Progress
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${currentUser.pointsToNextLevel} pts to next level',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 12,
                               ),
-                            ],
-                          ),
-                        )
-                      : BreathingWidget(
-                          enabled: performanceService.shouldShowAnimations,
-                          child: _ARActionButton(
-                            onPressed: () {
-                              ref
-                                  .read(userServiceProvider)
-                                  .initializeWithDemoUser();
-                              _triggerCelebration();
-                            },
-                            icon: Icons.login,
-                            label: 'Start Playing',
-                            color: NeonColors.electricGreen,
-                            isPrimary: true,
-                          ),
+                            ),
+                            const SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              value: currentUser.levelProgress,
+                              backgroundColor: Colors.white.withOpacity(0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                NeonColors.electricGreen,
+                              ),
+                            ),
+                          ],
                         ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (error, stack) => const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 32),
 
                 // Stats Overview with shader mask
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (bounds) =>
+                          arTheme.neonGradient.createShader(bounds),
+                      child: Text(
+                        'Eco Legacy',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    // Stale data indicator and refresh button
+                    if (userStats['isStale'] == true)
+                      Row(
+                        children: [
+                          Icon(Icons.wifi_off, color: Colors.orange, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Offline',
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              // Refresh dashboard stats
+                              ref.invalidate(dashboardStatsProvider);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: NeonColors.electricGreen.withOpacity(
+                                  0.2,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Icon(
+                                Icons.refresh,
+                                color: NeonColors.electricGreen,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Show loading indicator when dashboard stats are loading
+                dashboardStatsAsync.when(
+                  data: (_) => const SizedBox.shrink(),
+                  loading: () => Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: NeonColors.electricGreen,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Loading dashboard...',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  error: (error, stack) => Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: Colors.orange,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Failed to load stats',
+                          style: TextStyle(color: Colors.orange, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Eco legacy cards matching eco score style
+                SizedBox(
+                  height: 120, // Increased height to fix 20px bottom overflow
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width:
+                              95, // Match eco score width to prevent overflow
+                          child: _ARStatCard(
+                            title: 'Points',
+                            value: userStats['totalPoints'] ?? 0,
+                            maxValue: 10000,
+                            icon: Icons.star,
+                            color: NeonColors.earthOrange,
+                            performanceService: performanceService,
+                          ),
+                        ),
+                        SizedBox(
+                          width: UIConstants.spacing3,
+                        ), // Match eco score spacing
+                        SizedBox(
+                          width:
+                              95, // Match eco score width to prevent overflow
+                          child: _ARStatCard(
+                            title: 'Items',
+                            value: userStats['totalItemsCollected'] ?? 0,
+                            maxValue: 100,
+                            icon: Icons.delete_outline,
+                            color: NeonColors.electricGreen,
+                            performanceService: performanceService,
+                          ),
+                        ),
+                        SizedBox(
+                          width: UIConstants.spacing3,
+                        ), // Match eco score spacing
+                        SizedBox(
+                          width:
+                              95, // Match eco score width to prevent overflow
+                          child: _ARStatCard(
+                            title: 'Days',
+                            value: userStats['accountAge'] ?? 0,
+                            maxValue: 365,
+                            icon: Icons.local_fire_department,
+                            color: NeonColors.toxicPurple,
+                            performanceService: performanceService,
+                          ),
+                        ),
+                        SizedBox(
+                          width: UIConstants.spacing3,
+                        ), // Match eco score spacing
+                        SizedBox(
+                          width:
+                              95, // Match eco score width to prevent overflow
+                          child: _ARStatCard(
+                            title: 'Rank',
+                            value: userStats['rank'] ?? 0,
+                            maxValue: 100,
+                            icon: Icons.emoji_events,
+                            color: NeonColors.oceanBlue,
+                            performanceService: performanceService,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Simplified Achievements Display
+                const AchievementsDisplay(),
+
+                const SizedBox(height: 24),
+
+                // Category Breakdown with shader mask
                 ShaderMask(
                   shaderCallback: (bounds) =>
                       arTheme.neonGradient.createShader(bounds),
                   child: Text(
-                    'Your Impact',
+                    'Loot Breakdown',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -327,215 +553,109 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
                 const SizedBox(height: 20),
 
-                Row(
+                // Loot breakdown without outer container
+                Column(
                   children: [
-                    Expanded(
-                      child: _ARStatCard(
-                        title: 'Total Points',
-                        value: userStats['totalPoints'] ?? 0,
-                        maxValue: 10000,
-                        icon: Icons.star,
-                        color: NeonColors.earthOrange,
-                        performanceService: performanceService,
-                      ),
+                    _CategoryBreakdown(
+                      category: 'EcoGems',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['recycle']
+                              as int? ??
+                          0,
+                      color: AppColors.ecoGems,
+                      icon: Icons.recycling,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _ARStatCard(
-                        title: 'Items Collected',
-                        value: userStats['totalItemsCollected'] ?? 0,
-                        maxValue: 100,
-                        icon: Icons.delete_outline,
-                        color: NeonColors.electricGreen,
-                        performanceService: performanceService,
-                      ),
+                    const SizedBox(height: 16),
+                    _CategoryBreakdown(
+                      category: 'FuelShards',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['organic']
+                              as int? ??
+                          0,
+                      color: AppColors.fuelShards,
+                      icon: Icons.eco,
+                    ),
+                    const SizedBox(height: 16),
+                    _CategoryBreakdown(
+                      category: 'VoidDust',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['landfill']
+                              as int? ??
+                          0,
+                      color: AppColors.voidDust,
+                      icon: Icons.delete,
+                    ),
+                    const SizedBox(height: 16),
+                    _CategoryBreakdown(
+                      category: 'SparkCores',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['ewaste']
+                              as int? ??
+                          0,
+                      color: AppColors.sparkCores,
+                      icon: Icons.electrical_services,
+                    ),
+                    const SizedBox(height: 16),
+                    _CategoryBreakdown(
+                      category: 'ToxicCrystals',
+                      count:
+                          (userStats['categoryStats']
+                                      as Map<String, dynamic>? ??
+                                  {})['hazardous']
+                              as int? ??
+                          0,
+                      color: AppColors.toxicCrystals,
+                      icon: Icons.warning,
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 32),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ARStatCard(
-                        title: 'Account Age',
-                        value: userStats['accountAge'] ?? 0,
-                        maxValue: 365,
-                        icon: Icons.local_fire_department,
-                        color: NeonColors.toxicPurple,
-                        performanceService: performanceService,
+                // Simple Sign Out Button
+                Center(
+                  child: SizedBox(
+                    width: 200,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _handleLogout(context, ref),
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      label: const Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: NeonColors.toxicPurple,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            UIConstants.radiusLarge,
+                          ),
+                        ),
+                        side: BorderSide(
+                          color: NeonColors.toxicPurple.withOpacity(0.3),
+                          width: 1,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _ARStatCard(
-                        title: 'Current Rank',
-                        value: userStats['rank'] ?? 0,
-                        maxValue: 100,
-                        icon: Icons.emoji_events,
-                        color: NeonColors.oceanBlue,
-                        performanceService: performanceService,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Achievements Section with shader mask
-                ShaderMask(
-                  shaderCallback: (bounds) =>
-                      arTheme.neonGradient.createShader(bounds),
-                  child: Text(
-                    'Achievements',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                GlassmorphismContainer(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _ARAchievementItem(
-                        title: 'First Steps',
-                        description: 'Collect your first item',
-                        icon: Icons.star_outline,
-                        isUnlocked:
-                            (userStats['achievements'] as List<String>? ?? [])
-                                .contains('first_pickup'),
-                        progress:
-                            (userStats['totalItemsCollected'] as int? ?? 0) > 0
-                            ? 1.0
-                            : 0.0,
-                        color: NeonColors.earthOrange,
-                        performanceService: performanceService,
-                      ),
-                      const SizedBox(height: 16),
-                      _ARAchievementItem(
-                        title: 'Eco Warrior',
-                        description: 'Collect 50 items',
-                        icon: Icons.eco,
-                        isUnlocked:
-                            (userStats['achievements'] as List<String>? ?? [])
-                                .contains('eco_warrior'),
-                        progress:
-                            ((userStats['totalItemsCollected'] as int? ?? 0) /
-                                    50.0)
-                                .clamp(0.0, 1.0),
-                        color: NeonColors.electricGreen,
-                        performanceService: performanceService,
-                      ),
-                      const SizedBox(height: 16),
-                      _ARAchievementItem(
-                        title: 'Recycling Champion',
-                        description: 'Collect 10 recyclable items',
-                        icon: Icons.recycling,
-                        isUnlocked:
-                            (userStats['achievements'] as List<String>? ?? [])
-                                .contains('recycling_champion'),
-                        progress:
-                            (((userStats['categoryStats']
-                                                as Map<String, int>? ??
-                                            {})['recycle'] ??
-                                        0) /
-                                    10.0)
-                                .clamp(0.0, 1.0),
-                        color: NeonColors.oceanBlue,
-                        performanceService: performanceService,
-                      ),
-                      const SizedBox(height: 16),
-                      _ARAchievementItem(
-                        title: 'E-Waste Expert',
-                        description: 'Collect 10 electronic items',
-                        icon: Icons.electrical_services,
-                        isUnlocked:
-                            (userStats['achievements'] as List<String>? ?? [])
-                                .contains('ewaste_collector'),
-                        progress:
-                            (((userStats['categoryStats']
-                                                as Map<String, int>? ??
-                                            {})['ewaste'] ??
-                                        0) /
-                                    10.0)
-                                .clamp(0.0, 1.0),
-                        color: NeonColors.toxicPurple,
-                        performanceService: performanceService,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Category Breakdown
-                Text(
-                  'Category Breakdown',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-
-                const SizedBox(height: 12),
-
-                GlassmorphismContainer(
-                  child: Column(
-                    children: [
-                      _CategoryBreakdown(
-                        category: 'EcoGems',
-                        count:
-                            (userStats['categoryStats'] as Map<String, int>? ??
-                                {})['recycle'] ??
-                            0,
-                        color: AppColors.ecoGems,
-                        icon: Icons.recycling,
-                      ),
-                      const Divider(),
-                      _CategoryBreakdown(
-                        category: 'FuelShards',
-                        count:
-                            (userStats['categoryStats'] as Map<String, int>? ??
-                                {})['organic'] ??
-                            0,
-                        color: AppColors.fuelShards,
-                        icon: Icons.eco,
-                      ),
-                      const Divider(),
-                      _CategoryBreakdown(
-                        category: 'VoidDust',
-                        count:
-                            (userStats['categoryStats'] as Map<String, int>? ??
-                                {})['landfill'] ??
-                            0,
-                        color: AppColors.voidDust,
-                        icon: Icons.delete,
-                      ),
-                      const Divider(),
-                      _CategoryBreakdown(
-                        category: 'SparkCores',
-                        count:
-                            (userStats['categoryStats'] as Map<String, int>? ??
-                                {})['ewaste'] ??
-                            0,
-                        color: AppColors.sparkCores,
-                        icon: Icons.electrical_services,
-                      ),
-                      const Divider(),
-                      _CategoryBreakdown(
-                        category: 'ToxicCrystals',
-                        count:
-                            (userStats['categoryStats'] as Map<String, int>? ??
-                                {})['hazardous'] ??
-                            0,
-                        color: AppColors.toxicCrystals,
-                        icon: Icons.warning,
-                      ),
-                    ],
                   ),
                 ),
 
@@ -546,6 +666,138 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         ],
       ),
     );
+  }
+
+  /// Handle logout with confirmation dialog
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [NeonColors.toxicPurple, NeonColors.electricGreen],
+          ).createShader(bounds),
+          child: const Text(
+            'Sign Out',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to sign out? Your progress will be saved.',
+          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: NeonColors.electricGreen),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              backgroundColor: NeonColors.toxicPurple.withAlpha(
+                (0.2 * 255).toInt(),
+              ),
+            ),
+            child: const Text(
+              'Sign Out',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      // Store navigator reference before async operations
+      final navigator = Navigator.of(context);
+      final router = GoRouter.of(context);
+
+      try {
+        // Show loading indicator
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) => Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[900],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: NeonColors.toxicPurple),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Signing out...',
+                      style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Get auth service reference before async operation
+        final authService = await ref.read(authServiceProvider.future);
+
+        // Perform logout
+        await authService.signOut();
+
+        // Force close all dialogs by popping until we can't pop anymore
+        try {
+          while (navigator.canPop()) {
+            navigator.pop();
+          }
+        } catch (e) {
+          debugPrint('Error closing dialogs: $e');
+        }
+
+        // Only invalidate providers if widget is still mounted
+        if (mounted) {
+          ref.invalidate(authStateProvider);
+        }
+
+        // Navigate to login screen using stored router reference
+        router.go('/login');
+      } catch (e) {
+        debugPrint('Logout error: $e');
+
+        // Force close all dialogs
+        try {
+          while (navigator.canPop()) {
+            navigator.pop();
+          }
+        } catch (dialogError) {
+          debugPrint('Error closing dialogs: $dialogError');
+        }
+
+        // Force navigation to login even if logout failed
+        // This ensures the user isn't stuck in a loading state
+        router.go('/login');
+
+        // Show error as a snackbar instead of blocking dialog
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Logout completed with warnings. You have been signed out.',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: NeonColors.toxicPurple,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }
   }
 }
 
@@ -572,32 +824,50 @@ class _ARStatCard extends StatelessWidget {
     final progress = maxValue > 0 ? (value / maxValue).clamp(0.0, 1.0) : 0.0;
 
     return GlassmorphismContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          ProgressRing(
-            progress: progress,
-            size: 60,
-            color: color,
-            showGlow: performanceService.shouldShowAnimations,
-            child: Icon(icon, size: 24, color: Colors.white),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '$value',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+      borderRadius: BorderRadius.circular(
+        UIConstants.radiusLarge,
+      ), // Material 3 standard border radius
+      padding: EdgeInsets.all(
+        UIConstants.spacing2,
+      ), // Reduced padding to match HomeStatCard
+      child: Padding(
+        padding: EdgeInsets.all(UIConstants.spacing1), // Minimal inner padding
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ProgressRing(
+              progress: progress,
+              size: 40, // Reduced size to match HomeStatCard
+              color: color,
+              showGlow: performanceService.shouldShowAnimations,
+              child: Icon(
+                icon,
+                size: 18,
+                color: Colors.white,
+              ), // Reduced icon size
             ),
-          ),
-          Text(
-            title,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.white.withOpacity(0.8),
+            SizedBox(height: UIConstants.spacing2), // Reduced spacing
+            Text(
+              '$value',
+              style: theme.textTheme.titleMedium?.copyWith(
+                // Smaller text style
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 2), // Minimal spacing
+            Text(
+              title,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 10, // Smaller font size
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2, // Allow wrapping
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -629,21 +899,25 @@ class _ARAchievementItem extends StatelessWidget {
     Widget achievementWidget = Row(
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 52,
+          height: 52,
           decoration: BoxDecoration(
             color: isUnlocked
                 ? color.withAlpha((0.3 * 255).toInt())
                 : Colors.grey.withAlpha((0.2 * 255).toInt()),
-            borderRadius: BorderRadius.circular(12),
+            shape: BoxShape.circle, // Circular border for achievement icons
             border: Border.all(
               color: isUnlocked
                   ? color
                   : Colors.grey.withAlpha((0.5 * 255).toInt()),
-              width: 1,
+              width: 2, // Thicker border for better visibility
             ),
           ),
-          child: Icon(icon, color: isUnlocked ? color : Colors.grey, size: 24),
+          child: Icon(
+            icon,
+            color: isUnlocked ? color : Colors.grey,
+            size: 26,
+          ), // Slightly larger icon
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -707,34 +981,83 @@ class _CategoryBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(
+        20,
+      ), // Increased padding for Material 3 expressive
+      decoration: BoxDecoration(
+        color: color.withAlpha((0.05 * 255).toInt()),
+        borderRadius: BorderRadius.circular(
+          UIConstants.radiusXLarge,
+        ), // Material 3 expressive border radius
+        border: Border.all(
+          color: color.withAlpha((0.3 * 255).toInt()),
+          width: 2, // Thicker border for Material 3 expressive
+        ),
+      ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: color.withAlpha((0.1 * 255).toInt()),
-              borderRadius: BorderRadius.circular(8),
+              color: color.withAlpha((0.2 * 255).toInt()),
+              shape: BoxShape.circle, // Circular icon container
+              border: Border.all(
+                color: color.withAlpha((0.5 * 255).toInt()),
+                width: 2, // Thicker border for circular icon
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withAlpha((0.3 * 255).toInt()),
+                  blurRadius: 8,
+                  spreadRadius: 0,
+                ),
+              ],
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 26), // Slightly larger icon
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              category,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  category,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Collected items',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withOpacity(0.7),
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            '$count items',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$count',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'items',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: color.withAlpha((0.8 * 255).toInt()),
+                ),
+              ),
+            ],
           ),
         ],
       ),

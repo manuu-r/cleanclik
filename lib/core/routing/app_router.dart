@@ -1,18 +1,39 @@
+// Consolidated router + route constants
+// Previously route constants lived in a separate `routes.dart` file.
+// They've been moved here to keep routing definitions colocated with the router.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cleanclik/core/routing/routes.dart';
-import 'package:cleanclik/core/models/camera_mode.dart';
+import 'package:cleanclik/core/models/camera_models.dart';
 import 'package:cleanclik/presentation/navigation/ar_navigation_shell.dart';
 import 'package:cleanclik/presentation/navigation/home/home_screen.dart';
 import 'package:cleanclik/presentation/screens/camera/ar_camera_screen.dart';
 import 'package:cleanclik/presentation/screens/map/map_screen.dart';
-import 'package:cleanclik/presentation/screens/leaderboard/leaderboard_screen.dart';
 import 'package:cleanclik/presentation/screens/profile/profile_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/login_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/signup_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/email_verification_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/auth_wrapper.dart';
+
+/// Application route constants (consolidated)
+class Routes {
+  static const String home = '/';
+  static const String camera = '/camera';
+  static const String map = '/map';
+  static const String profile = '/profile';
+
+  // Authentication routes
+  static const String login = '/login';
+  static const String signup = '/signup';
+  static const String emailVerification = '/email-verification';
+
+  // Future routes for additional features
+  static const String settings = '/settings';
+  static const String achievements = '/achievements';
+  static const String missions = '/missions';
+  static const String tutorial = '/tutorial';
+}
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -26,7 +47,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final validRoutes = [
         Routes.home,
         Routes.map,
-        Routes.leaderboard,
         Routes.profile,
         Routes.camera,
         Routes.login,
@@ -87,17 +107,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: Routes.map,
                 name: 'map',
                 builder: (context, state) => const MapScreen(),
-              ),
-            ],
-          ),
-
-          // Leaderboard Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.leaderboard,
-                name: 'leaderboard',
-                builder: (context, state) => const LeaderboardScreen(),
               ),
             ],
           ),

@@ -1,0 +1,41 @@
+# Coverage configuration for CleanClik Flutter app
+# Excludes Riverpod generated files and other auto-generated code
+
+coverage:
+  exclude:
+    # Riverpod generated files
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    
+    # Flutter generated files
+    - "**/generated_plugin_registrant.dart"
+    - "**/firebase_options.dart"
+    
+    # Test files themselves
+    - "test/**"
+    - "**/test/**"
+    - "**/*_test.dart"
+    
+    # Build and generated directories
+    - "build/**"
+    - ".dart_tool/**"
+    
+    # Platform-specific generated code
+    - "ios/**"
+    - "android/**"
+    - "linux/**"
+    - "macos/**"
+    - "windows/**"
+    - "web/**"
+
+  # Include only lib directory for coverage
+  include:
+    - "lib/**"
+
+  # Coverage thresholds
+  thresholds:
+    overall: 85
+    services: 85
+    supabase_integration: 90
+    critical_paths: 80
+    models: 95

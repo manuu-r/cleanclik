@@ -30,7 +30,6 @@ dart run build_runner build --delete-conflicting-outputs
 - **AR Overlay**: <200ms latency on mid-range devices
 - **Frame Rate**: ≥30fps (high-end), ≥15fps (mid-range)
 - **Proximity Detection**: <1 second response time
-- **Leaderboard Updates**: 30-second cadence
 
 ## Platform-Specific Considerations
 - **iOS**: Requires camera and location permissions in Info.plist

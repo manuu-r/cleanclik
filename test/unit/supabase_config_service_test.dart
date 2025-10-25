@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cleanclik/core/services/supabase_config_service.dart';
+import 'package:cleanclik/core/services/auth/supabase_config_service.dart';
 import 'package:cleanclik/core/utils/env_config.dart';
 
 void main() {

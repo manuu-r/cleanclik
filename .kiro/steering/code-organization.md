@@ -7,6 +7,15 @@
 - **NO** test files, example files, or demo code
 - Services should be focused, single-responsibility classes
 - Each service should have proper error handling and resource disposal
+- Services are organized by domain in subdirectories:
+  - `auth/` - Authentication & user management services
+  - `camera/` - Camera, AR, ML detection services
+  - `data/` - Database, storage, sync services
+  - `location/` - GPS, mapping, proximity services
+  - `social/` - Sharing, leaderboards, achievements services
+  - `platform/` - Platform-specific implementations
+  - `system/` - Core system services (logging, performance)
+  - `business/` - Business logic services
 
 ### Test Files
 - Unit tests belong in `test/` directory with `_test.dart` suffix
@@ -29,6 +38,18 @@
 - Riverpod providers only
 - State management configuration
 - Provider composition and dependencies
+
+### Widgets Directory (`lib/presentation/widgets/`)
+- Reusable UI components organized by feature domain
+- Widgets are organized in subdirectories:
+  - `camera/` - AR camera related widgets
+  - `map/` - Map and location widgets
+  - `inventory/` - Inventory and object widgets
+  - `social/` - Social and sharing widgets
+  - `overlays/` - All overlay widgets
+  - `animations/` - Animation widgets
+  - `debug/` - Debug and diagnostic widgets
+  - `common/` - Shared/reusable widgets
 
 ## Naming Conventions
 

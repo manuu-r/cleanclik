@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import '../../../core/services/hand_tracking_service.dart';
-import '../../../core/models/detected_object.dart';
-import '../../widgets/hand_skeleton_painter.dart';
-import 'ar_camera_services.dart';
+import 'package:cleanclik/core/services/platform/hand_tracking_service.dart';
+import 'package:cleanclik/core/models/camera_models.dart';
+import 'package:cleanclik/core/services/camera/ml_config.dart'
+    show ProcessingMode;
+import 'package:cleanclik/presentation/widgets/camera/hand_skeleton_painter.dart';
+import 'package:cleanclik/presentation/screens/camera/ar_camera_services.dart';
 
 /// Manages image processing, ML detection, and hand tracking for AR camera
 class ARCameraProcessing {
@@ -89,13 +91,11 @@ class ARCameraProcessing {
         _previewSize = screenSize;
       }
 
-      // Start performance monitoring
-      final stopwatch = Stopwatch()..start();
-
       // Process ML detection and hand tracking concurrently for better performance
+      // Performance monitoring is now handled by the ML service's consolidated monitor
       final futures = <Future>[];
 
-      if (_services.hasMLService) {
+      if (_services.hasWasteDetectionService) {
         futures.add(_processMLDetection(image, cameraController));
       }
 
@@ -105,23 +105,6 @@ class ARCameraProcessing {
 
       // Wait for both processing tasks to complete
       await Future.wait(futures);
-
-      stopwatch.stop();
-
-      // Log performance metrics
-      if (kDebugMode && stopwatch.elapsedMilliseconds > 50) {
-        print(
-          '🎯 [PROCESSING] Frame processed in ${stopwatch.elapsedMilliseconds}ms '
-          '(${_detectedObjects.length} objects, ${_handLandmarks.length} hands)',
-        );
-      }
-
-      // Track performance with service if available
-      if (_services.performanceService != null) {
-        // Performance service doesn't have recordFrameProcessingTime method
-        // Just log the performance for now
-        print('🎯 [PROCESSING] Frame time: ${stopwatch.elapsedMilliseconds}ms');
-      }
     } catch (e) {
       print('❌ [PROCESSING] Image processing error: $e');
     } finally {
@@ -130,31 +113,33 @@ class ARCameraProcessing {
     }
   }
 
-  /// Process ML object detection
+  /// Process ML object detection using waste detection service
   Future<void> _processMLDetection(
     CameraImage image,
     CameraController? cameraController,
   ) async {
-    if (_isProcessingML ||
-        !_services.hasMLService ||
-        cameraController == null) {
+    if (_isProcessingML || cameraController == null || _services.wasteDetectionService == null) {
       return;
     }
 
     _isProcessingML = true;
 
     try {
-      // Use unified ML service directly and get results
-      final newObjects = await _services.mlService!.processImage(
+      // Use waste detection service for ML detection
+      // This implements: Object Detection → Image Labeling → Waste Categorization
+      final detectedObjects = await _services.wasteDetectionService!.detectWaste(
         image,
         cameraController,
+        _previewSize,
       );
 
       // Update detected objects with enhanced filtering and persistence
-      _updateDetectedObjectsWithPersistence(newObjects);
+      _updateDetectedObjectsWithPersistence(detectedObjects);
 
-      if (newObjects.isNotEmpty) {
-        print('🎯 [PROCESSING] ML detected ${newObjects.length} objects');
+      if (detectedObjects.isNotEmpty) {
+        print(
+          '🎯 [PROCESSING] Waste detection detected ${detectedObjects.length} objects',
+        );
       }
     } catch (e) {
       print('❌ [PROCESSING] ML detection failed: $e');
@@ -291,13 +276,39 @@ class ARCameraProcessing {
     _onHandsDetected?.call(_handLandmarks);
   }
 
-  /// Process unified pickup detection if services are available
+  /// Process unified pickup detection with intelligent execution logic
+  /// Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
   Future<void> processPickupDetection() async {
-    if (!_services.hasObjectManagementService) {
+    if (!_services.hasPickupService) {
       return;
     }
 
     try {
+      // Create service execution context for intelligent decisions
+      final context = ServiceExecutionContext(
+        detectedObjects: _detectedObjects,
+        handLandmarks: _handLandmarks,
+        currentMode: ProcessingMode
+            .full, // TODO: Get from pipeline service when available
+        isMemoryPressure:
+            false, // TODO: Get from pipeline service when available
+        timestamp: DateTime.now(),
+        isBatteryLow: false, // TODO: Get from pipeline service when available
+      );
+
+      // Intelligent execution decision
+      if (!context.shouldExecutePickupService()) {
+        // Requirement 3.5: WHEN pickup service is skipped THEN no pickup-related logs SHALL be generated
+        final reason = context.getExecutionReason();
+        if (kDebugMode &&
+            reason != 'no_objects_detected' &&
+            reason != 'no_hands_detected') {
+          // Only log non-obvious skip reasons to avoid spam
+          print('⏭️ [PROCESSING] Skipping pickup service: $reason');
+        }
+        return;
+      }
+
       // Set coordinate context for proper hand coordinate transformation
       final screenSize = _previewSize;
       final imageSize = Size(_imageWidth, _imageHeight);
@@ -306,23 +317,21 @@ class ARCameraProcessing {
           screenSize.height > 0 &&
           imageSize.width > 0 &&
           imageSize.height > 0) {
-        _services.objectManagementService!.setCoordinateContext(
+        _services.pickupService!.setCoordinateContext(
           screenSize,
           imageSize,
         );
       }
 
-      // Unified pickup service can work with empty hands/objects
-      // It will handle the empty cases internally
-      _services.objectManagementService!.processFrame(
+      // Execute pickup service with both objects and hands present
+      _services.pickupService!.processFrame(
         _detectedObjects,
         _handLandmarks,
       );
 
-      if (kDebugMode &&
-          (_handLandmarks.isNotEmpty || _detectedObjects.isNotEmpty)) {
+      if (kDebugMode) {
         print(
-          '🎯 [PROCESSING] Unified pickup analysis: ${_detectedObjects.length} objects, ${_handLandmarks.length} hands',
+          '🎯 [PROCESSING] Pickup analysis executed: ${_detectedObjects.length} objects, ${_handLandmarks.length} hands',
         );
       }
     } catch (e) {
@@ -346,9 +355,9 @@ class ARCameraProcessing {
     _notifyStateChanged();
   }
 
-  /// Get processing performance metrics
+  /// Get processing performance metrics - consolidated with ML service metrics
   Map<String, dynamic> getPerformanceMetrics() {
-    return {
+    final baseMetrics = {
       'is_processing': _isProcessing,
       'is_processing_hands': _isProcessingHands,
       'is_processing_ml': _isProcessingML,
@@ -363,6 +372,16 @@ class ARCameraProcessing {
       'preview_size':
           '${_previewSize.width.toInt()}x${_previewSize.height.toInt()}',
     };
+
+    // Add ML service status if available
+    if (_services.hasWasteDetectionService) {
+      baseMetrics['ml_service'] = {
+        'initialized': _services.wasteDetectionService!.isInitialized,
+        'processing': _services.wasteDetectionService!.isProcessing,
+      };
+    }
+
+    return baseMetrics;
   }
 
   /// Notify state change callback
