@@ -146,24 +146,3 @@ class CameraNotifier extends _$CameraNotifier {
 CameraState cameraState(Ref ref) {
   return ref.watch(cameraNotifierProvider);
 }
-
-/// Provider for checking if camera is ready
-@riverpod
-bool isCameraReady(Ref ref) {
-  final state = ref.watch(cameraStateProvider);
-  return state.isReady;
-}
-
-/// Provider for checking if camera can switch modes
-@riverpod
-bool canSwitchCameraMode(Ref ref) {
-  final state = ref.watch(cameraStateProvider);
-  return state.canSwitch;
-}
-
-/// Provider for current camera mode
-@riverpod
-CameraMode currentCameraMode(Ref ref) {
-  final state = ref.watch(cameraStateProvider);
-  return state.mode;
-}
