@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cleanclik/core/models/camera_models.dart';
+import 'package:cleanclik/core/models/location_models.dart';
 import 'package:cleanclik/core/providers/user_provider.dart';
+import 'package:cleanclik/core/providers/inventory_provider.dart';
 import 'package:cleanclik/presentation/screens/camera/ar_camera_screen.dart';
 import 'package:cleanclik/presentation/widgets/camera/camera_hud.dart';
 import 'package:cleanclik/presentation/widgets/overlays/pickup_confirmation_sheet.dart';
 import 'package:cleanclik/presentation/widgets/overlays/xp_reward_sheet.dart';
+import 'package:cleanclik/presentation/widgets/overlays/disposal_options_sheet.dart';
+import 'package:cleanclik/presentation/widgets/panels/map_slide_panel.dart';
+import 'package:cleanclik/presentation/widgets/panels/profile_slide_panel.dart';
+import 'package:cleanclik/presentation/widgets/panels/inventory_slide_panel.dart';
 
 /// Unified camera-first screen with XP HUD and bottom sheets
 ///
@@ -20,10 +26,19 @@ class UnifiedCameraScreen extends ConsumerStatefulWidget {
 }
 
 class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
-  // UI state
+  // Panel state
+  bool _showMapPanel = false;
+  bool _showProfilePanel = false;
+  bool _showInventoryPanel = false;
+
+  // Bottom sheet state
   bool _showPickupSheet = false;
   bool _showXPRewardSheet = false;
+  bool _showDisposalSheet = false;
+
+  // Data for sheets
   DetectedObject? _pendingPickup;
+  BinLocation? _selectedBin;
   int _lastXPGain = 0;
   String _lastAction = '';
   bool _didLevelUp = false;
@@ -34,6 +49,23 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
   int? _previousPoints;
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize tracking values
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userAsync = ref.read(syncedCurrentUserProvider);
+      userAsync.whenData((user) {
+        if (user != null) {
+          setState(() {
+            _previousLevel = user.level;
+            _previousPoints = user.totalPoints;
+          });
+        }
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Watch user to detect XP/level changes
     final userAsync = ref.watch(syncedCurrentUserProvider);
@@ -41,7 +73,7 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
     // Listen for user changes to trigger XP animations
     ref.listen<AsyncValue>(syncedCurrentUserProvider, (previous, next) {
       next.whenData((user) {
-        if (user != null && _previousPoints != null) {
+        if (user != null && _previousPoints != null && mounted) {
           // Check if points changed
           if (user.totalPoints > _previousPoints!) {
             final xpGained = user.totalPoints - _previousPoints!;
@@ -53,6 +85,9 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
               _didLevelUp = leveledUp;
               _newLevel = leveledUp ? user.level : null;
               _showXPRewardSheet = true;
+              // Close pickup sheet if open
+              _showPickupSheet = false;
+              _pendingPickup = null;
             });
           }
         }
@@ -76,7 +111,7 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
             ),
           ),
 
-          // 2. Top HUD (XP bar, level, streak) - always visible
+          // 2. Top HUD (XP bar, level) - always visible
           const Positioned(
             top: 0,
             left: 0,
@@ -91,15 +126,37 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
             child: _buildFloatingActions(),
           ),
 
-          // 4. Pickup confirmation sheet (conditional)
+          // 4. Slide panels (conditional, full screen overlays)
+          if (_showMapPanel)
+            Positioned.fill(
+              child: MapSlidePanel(
+                onClose: () => setState(() => _showMapPanel = false),
+              ),
+            ),
+
+          if (_showProfilePanel)
+            Positioned.fill(
+              child: ProfileSlidePanel(
+                onClose: () => setState(() => _showProfilePanel = false),
+              ),
+            ),
+
+          if (_showInventoryPanel)
+            Positioned.fill(
+              child: InventorySlidePanel(
+                onClose: () => setState(() => _showInventoryPanel = false),
+              ),
+            ),
+
+          // 5. Bottom sheets (conditional, rendered on top of panels)
           if (_showPickupSheet && _pendingPickup != null)
             PickupConfirmationSheet(
               detectedObject: _pendingPickup!,
               onPickup: () {
+                // Pickup will trigger user points change, which triggers XP sheet
                 setState(() {
                   _showPickupSheet = false;
                 });
-                // XP reward will be triggered by user change listener
               },
               onSkip: () {
                 setState(() {
@@ -109,7 +166,42 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
               },
             ),
 
-          // 5. XP reward sheet (conditional)
+          if (_showDisposalSheet && _selectedBin != null)
+            DisposalOptionsSheet(
+              bin: _selectedBin!,
+              onDisposeAll: () async {
+                // Dispose all items
+                final items = await ref.read(inventoryItemsProvider.future);
+                if (items.isNotEmpty) {
+                  // TODO: Implement disposal logic
+                  // For now just clear inventory
+                  for (final item in items) {
+                    await ref.read(inventoryServiceProvider).removeItem(item.id);
+                  }
+
+                  setState(() {
+                    _showDisposalSheet = false;
+                    _selectedBin = null;
+                    _lastXPGain = items.length * 50;
+                    _lastAction = 'Items Disposed!';
+                    _showXPRewardSheet = true;
+                  });
+                }
+              },
+              onSelectItems: () {
+                // TODO: Show item selection UI
+                setState(() {
+                  _showDisposalSheet = false;
+                });
+              },
+              onCancel: () {
+                setState(() {
+                  _showDisposalSheet = false;
+                  _selectedBin = null;
+                });
+              },
+            ),
+
           if (_showXPRewardSheet)
             XPRewardSheet(
               xpGained: _lastXPGain,
@@ -124,8 +216,6 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
                 });
               },
             ),
-
-          // TODO: Add slide panels for Map, Profile, Inventory
         ],
       ),
     );
@@ -140,36 +230,64 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
         FloatingActionButton(
           heroTag: 'map',
           onPressed: () {
-            // TODO: Show map slide panel
-            // For now, just navigate to map
-            // context.go('/map');
+            setState(() {
+              _showMapPanel = true;
+              _showProfilePanel = false;
+              _showInventoryPanel = false;
+            });
           },
           backgroundColor: Colors.blue.withOpacity(0.9),
           child: const Icon(Icons.map),
-        ),
-        const SizedBox(height: 12),
-        // Profile button
-        FloatingActionButton(
-          heroTag: 'profile',
-          onPressed: () {
-            // TODO: Show profile slide panel
-            // For now, just navigate to profile
-            // context.go('/profile');
-          },
-          backgroundColor: Colors.purple.withOpacity(0.9),
-          child: const Icon(Icons.person),
         ),
         const SizedBox(height: 12),
         // Inventory button
         FloatingActionButton(
           heroTag: 'inventory',
           onPressed: () {
-            // TODO: Show inventory slide panel
+            setState(() {
+              _showInventoryPanel = true;
+              _showMapPanel = false;
+              _showProfilePanel = false;
+            });
           },
           backgroundColor: Colors.orange.withOpacity(0.9),
           child: const Icon(Icons.inventory_2),
         ),
+        const SizedBox(height: 12),
+        // Profile button
+        FloatingActionButton(
+          heroTag: 'profile',
+          onPressed: () {
+            setState(() {
+              _showProfilePanel = true;
+              _showMapPanel = false;
+              _showInventoryPanel = false;
+            });
+          },
+          backgroundColor: Colors.purple.withOpacity(0.9),
+          child: const Icon(Icons.person),
+        ),
       ],
     );
+  }
+
+  /// Public method to show pickup sheet (can be called from camera events)
+  void showPickupConfirmation(DetectedObject object) {
+    if (mounted) {
+      setState(() {
+        _pendingPickup = object;
+        _showPickupSheet = true;
+      });
+    }
+  }
+
+  /// Public method to show disposal sheet (can be called from QR scan)
+  void showDisposalOptions(BinLocation bin) {
+    if (mounted) {
+      setState(() {
+        _selectedBin = bin;
+        _showDisposalSheet = true;
+      });
+    }
   }
 }
