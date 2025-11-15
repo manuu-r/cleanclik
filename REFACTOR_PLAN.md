@@ -77,99 +77,84 @@ CameraView (Persistent, Always Visible)
 
 ## 🎮 XP & Level System Design
 
-### Data Model Changes
+### Using Existing Points as XP
 
-#### New: `XPSystem` Model
+**KEY CONSTRAINT**: No database changes. Use existing `totalPoints` and `categoryStats`.
 
-```dart
-class XPSystem {
-  final int currentXP;
-  final int level;
-  final int xpForNextLevel;
-  final double progressToNextLevel; // 0.0 to 1.0
-  final int totalXPEarned;
-  final int currentStreak; // Days active
-  final DateTime lastActiveDate;
-
-  // XP sources
-  final Map<XPSource, int> xpBreakdown;
-}
-
-enum XPSource {
-  trashDetected,    // +10 XP
-  trashPickedUp,    // +25 XP
-  binScanned,       // +15 XP
-  properDisposal,   // +50 XP
-  dailyStreak,      // +20 XP/day
-  missionComplete,  // +100 XP
-  categoryMaster,   // +75 XP (10 items in one category)
-}
-```
-
-#### Updated: `User` Model
+#### Existing User Model (No Changes)
 
 ```dart
 class User {
-  // Existing fields...
-  final int totalPoints;  // DEPRECATED - keep for migration
-  final int level;        // DEPRECATED - keep for migration
+  final int totalPoints;  // USE THIS AS XP (display as "XP")
+  final int level;        // KEEP existing level calculation
+  final Map<String, int> categoryStats;  // Per-category points
+  final List<String> achievements;  // Existing badges
 
-  // New XP system
-  final XPSystem xpSystem;
-  final List<Badge> unlockedBadges;
-  final List<Streak> activeStreaks;
-  final int longestStreak;
-
-  // New fields
-  final DateTime? lastXPGain;
-  final Map<String, dynamic> gamificationMetadata;
+  // All existing fields remain unchanged
 }
 ```
 
-#### New: `Badge` Model
+#### XP Display Strategy
+
+**Points = XP** (1:1 mapping, just rename in UI)
+
+- User has 250 points → Display as "250 XP"
+- No conversion needed, just terminology change
+- Existing level calculation already works
+
+#### Badge System (Use Existing Achievements)
 
 ```dart
-class Badge {
-  final String id;
-  final String title;
-  final String description;
-  final BadgeRarity rarity;
-  final String iconPath;
-  final DateTime unlockedAt;
-  final BadgeCategory category;
-}
+// Existing User model already has:
+final List<String> achievements;  // ['first_scan', 'eco_warrior', ...]
 
-enum BadgeRarity { bronze, silver, gold, platinum, diamond }
-enum BadgeCategory { pickup, disposal, streak, mission, special }
+// Just enhance UI display of existing achievements
+// No new Badge model needed - use social_models.dart Achievement class
 ```
 
-### XP Calculation Formula
+### XP Calculation Formula (Already Exists!)
 
 ```dart
-// Level progression: Exponential curve
-int xpForLevel(int level) {
-  return (100 * pow(1.5, level - 1)).round();
+// EXISTING in user_models.dart - DO NOT CHANGE
+static int calculateLevel(int points) {
+  if (points < 100) return 1;
+  if (points < 500) return 2;
+  if (points < 1000) return 3;
+  if (points < 2500) return 4;
+  if (points < 5000) return 5;
+  return 6; // Max level for now
 }
 
-// Level 1→2: 100 XP
-// Level 2→3: 150 XP
-// Level 3→4: 225 XP
-// Level 4→5: 338 XP
-// Level 5→6: 507 XP
-// Level 10: ~3,800 XP
-// Level 20: ~330,000 XP
+// EXISTING - DO NOT CHANGE
+int get pointsToNextLevel {
+  if (level >= 6) return 0;
+  final nextLevelThreshold = _getLevelThreshold(level + 1);
+  return nextLevelThreshold - totalPoints;
+}
+
+// EXISTING - DO NOT CHANGE
+double get levelProgress {
+  if (level >= 6) return 1.0;
+  final currentLevelThreshold = _getLevelThreshold(level);
+  final nextLevelThreshold = _getLevelThreshold(level + 1);
+  final pointsInCurrentLevel = totalPoints - currentLevelThreshold;
+  final pointsNeededForLevel = nextLevelThreshold - currentLevelThreshold;
+  return pointsInCurrentLevel / pointsNeededForLevel;
+}
 ```
 
-### XP Rewards Table
+### Points/XP Rewards Table (Use Existing System)
 
-| Action | Base XP | Multipliers | Max XP |
-|--------|---------|-------------|--------|
-| Detect trash | 10 XP | Streak: 1.5x | 15 XP |
-| Pick up trash | 25 XP | Streak: 1.5x, First of day: 2x | 75 XP |
-| Scan bin QR | 15 XP | - | 15 XP |
-| Dispose correctly | 50 XP | Category match: 1.2x, Streak: 1.5x | 90 XP |
-| Daily login | 20 XP | Streak: Day × 5 XP | 100 XP |
-| Complete mission | 100 XP | - | 100 XP |
+**Use existing point values - just display as "XP" in UI**
+
+| Action | Points (Display as XP) | Current Implementation |
+|--------|------------------------|------------------------|
+| Pick up trash | 25 points | Already in InventoryService |
+| Dispose correctly | 50 points | Already in DisposalService |
+| Scan bin QR | 15 points | Already in QRBinService |
+| Category bonus | Varies | Already in CategoryStats |
+
+**NO CHANGES to point calculation - only UI terminology**
 
 ---
 
@@ -381,220 +366,110 @@ class BaseBottomSheet extends StatelessWidget {
 
 ## 🔧 Service Layer Changes
 
-### Phase 4: XP Service
+### Phase 4: NO NEW SERVICES NEEDED
 
-#### 4.1 XP Service
-**File**: `lib/core/services/business/xp_service.dart`
+#### Use Existing Services (NO CHANGES)
+
+**Existing services already handle points/XP:**
+
+1. **InventoryService** - Already awards points for pickup
+2. **UserService** - Already manages totalPoints and level
+3. **DatabaseHelper** - Already saves points to Supabase
+
+#### Only UI-Layer Changes
+
+**File**: `lib/presentation/widgets/camera/xp_reward_overlay.dart`
 
 ```dart
-@Riverpod(keepAlive: true)
-class XPService extends _$XPService {
+// NEW: Just a visual wrapper around existing point system
+class XPRewardOverlay extends ConsumerWidget {
+  final int pointsGained;  // From existing service
+
   @override
-  XPService build() {
-    return this;
-  }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
 
-  /// Award XP for an action
-  Future<XPReward> awardXP(XPSource source, {Map<String, dynamic>? metadata}) async {
-    final user = await ref.read(currentUserProvider.future);
-
-    // Calculate base XP
-    int baseXP = _getBaseXP(source);
-
-    // Apply multipliers
-    double multiplier = _calculateMultiplier(user, source, metadata);
-
-    int finalXP = (baseXP * multiplier).round();
-
-    // Update user XP
-    final newXP = user.xpSystem.currentXP + finalXP;
-    final levelUp = _checkLevelUp(newXP, user.xpSystem.level);
-
-    // Save to database
-    await _saveXPGain(user.id, finalXP, source);
-
-    // Broadcast event
-    _eventController.add(XPGainEvent(
-      xpGained: finalXP,
-      source: source,
-      levelUp: levelUp,
-    ));
-
-    return XPReward(
-      xpGained: finalXP,
-      newTotalXP: newXP,
-      leveledUp: levelUp != null,
-      newLevel: levelUp?.newLevel,
+    return AnimatedContainer(
+      // Show "+{points} XP" animation
+      // Use user.levelProgress for progress bar
+      // Check if user.level changed for level-up
     );
   }
-
-  /// Check for daily streak
-  Future<void> checkDailyStreak() async {
-    // Award streak XP if eligible
-  }
-
-  /// Calculate XP for next level
-  int xpForLevel(int level) {
-    return (100 * pow(1.5, level - 1)).round();
-  }
 }
 ```
 
-#### 4.2 Badge Service
-**File**: `lib/core/services/business/badge_service.dart`
+**NO service layer changes. Just UI consuming existing data.**
 
+### Phase 5: NO SERVICE INTEGRATION CHANGES
+
+#### Existing Services Already Work
+
+**NO CHANGES NEEDED** - Services already award points:
+
+**InventoryService** (no changes):
 ```dart
-class BadgeService {
-  /// Check if user unlocked any new badges
-  Future<List<Badge>> checkBadgeUnlocks(User user) async {
-    // Check conditions for each badge
-    // Return newly unlocked badges
-  }
-
-  /// Award badge to user
-  Future<void> awardBadge(String userId, Badge badge) async {
-    // Save to database
-    // Trigger badge unlock animation
-  }
-}
-```
-
-### Phase 5: Integration Changes
-
-#### 5.1 Update Inventory Service
-**File**: `lib/core/services/business/inventory_service.dart`
-
-**Changes**:
-```dart
+// Already does this:
 Future<void> addItemFromDetectedObject(DetectedObject object) async {
-  // Existing inventory logic...
-
-  // NEW: Award XP for pickup
-  final xpService = ref.read(xpServiceProvider);
-  await xpService.awardXP(
-    XPSource.trashPickedUp,
-    metadata: {'category': object.category.name},
-  );
+  // Awards points via UserService
+  // Updates totalPoints in database
 }
 ```
 
-#### 5.2 Update Disposal Service
-**File**: `lib/core/services/camera/disposal_handling_service.dart`
-
-**Changes**:
+**UserService** (no changes):
 ```dart
-Future<void> disposeItems(List<InventoryItem> items, BinLocation bin) async {
-  // Existing disposal logic...
-
-  // NEW: Award XP for proper disposal
-  final xpService = ref.read(xpServiceProvider);
-  for (final item in items) {
-    final correctCategory = item.category == bin.category;
-    await xpService.awardXP(
-      XPSource.properDisposal,
-      metadata: {
-        'correctCategory': correctCategory,
-        'itemCount': items.length,
-      },
-    );
-  }
+// Already does this:
+Future<void> addPoints(int points) async {
+  // Updates user.totalPoints
+  // Recalculates level
+  // Saves to Supabase
 }
 ```
+
+**Only change**: UI displays "XP" instead of "Points"
 
 ---
 
 ## 🗄️ Data Model Changes
 
-### Database Schema Updates
+### NO DATABASE CHANGES REQUIRED
 
-#### New Table: `xp_transactions`
+**Use existing database schema as-is:**
+
+#### Existing Tables (NO MODIFICATIONS)
+
 ```sql
-CREATE TABLE xp_transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) NOT NULL,
-  xp_amount INT NOT NULL,
-  xp_source VARCHAR(50) NOT NULL,
-  multiplier DECIMAL(3,2) DEFAULT 1.0,
-  metadata JSONB,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+-- users table (existing - NO CHANGES)
+-- Already has: total_points, level
 
-CREATE INDEX idx_xp_transactions_user_id ON xp_transactions(user_id);
-CREATE INDEX idx_xp_transactions_created_at ON xp_transactions(created_at);
-```
+-- category_stats table (existing - NO CHANGES)
+-- Already has: total_points per category
 
-#### New Table: `user_badges`
-```sql
-CREATE TABLE user_badges (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) NOT NULL,
-  badge_id VARCHAR(50) NOT NULL,
-  unlocked_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(user_id, badge_id)
-);
-```
-
-#### Update Table: `users`
-```sql
-ALTER TABLE users
-ADD COLUMN current_xp INT DEFAULT 0,
-ADD COLUMN total_xp_earned INT DEFAULT 0,
-ADD COLUMN current_streak INT DEFAULT 0,
-ADD COLUMN longest_streak INT DEFAULT 0,
-ADD COLUMN last_active_date DATE,
-ADD COLUMN xp_level INT DEFAULT 1;
-
--- Keep total_points and level for migration
+-- achievements table (existing - NO CHANGES)
+-- Already tracks unlocked badges
 ```
 
 ### Migration Strategy
 
-#### Step 1: Data Migration Script
-**File**: `database/migrations/001_add_xp_system.sql`
+**NO MIGRATION NEEDED** - This is purely a UI/UX refactor:
 
-```sql
--- Migrate existing points to XP (1 point = 10 XP)
-UPDATE users
-SET current_xp = total_points * 10,
-    total_xp_earned = total_points * 10,
-    xp_level = level;
+1. **Points → XP terminology**: Display `totalPoints` as "XP" in UI
+2. **Existing level system**: Keep using `User.level` and `calculateLevel()`
+3. **Existing achievements**: Use current `achievements` list
+4. **Category stats**: Use existing `CategoryStats.totalPoints`
 
--- Initialize streak data
-UPDATE users
-SET current_streak = 1,
-    last_active_date = CURRENT_DATE;
-```
+#### What Changes (UI Only)
 
-#### Step 2: App Migration Code
-**File**: `lib/core/services/data/data_migration_service.dart`
+**File**: `lib/presentation/widgets/camera/camera_hud.dart`
 
 ```dart
-class DataMigrationService {
-  Future<void> migrateToXPSystem() async {
-    final prefs = await SharedPreferences.getInstance();
-    final migrated = prefs.getBool('xp_migration_v1') ?? false;
+// BEFORE: Showing points
+Text('${user.totalPoints} Points')
 
-    if (migrated) return;
-
-    // Migrate local user data
-    final user = await _loadLocalUser();
-    if (user != null) {
-      final migratedUser = user.copyWith(
-        xpSystem: XPSystem(
-          currentXP: user.totalPoints * 10,
-          level: user.level,
-          totalXPEarned: user.totalPoints * 10,
-          currentStreak: 1,
-          lastActiveDate: DateTime.now(),
-        ),
-      );
-      await _saveLocalUser(migratedUser);
-    }
-
-    await prefs.setBool('xp_migration_v1', true);
-  }
-}
+// AFTER: Same data, different label
+Text('${user.totalPoints} XP')
 ```
+
+**No backend, service, or database changes required.**
 
 ---
 
@@ -804,29 +679,32 @@ testWidgets('complete pickup flow awards XP and updates UI', (tester) async {
 ## 📅 Implementation Phases
 
 ### Phase 1: Foundation (Week 1)
-**Goal**: Set up XP system backend and data models
+**Goal**: Understand existing system, no backend changes
 
-- [ ] Create `XPSystem`, `Badge`, `Streak` models
-- [ ] Create `xp_service.dart` with core XP logic
-- [ ] Create database migration scripts
-- [ ] Update `User` model with XP fields
-- [ ] Write unit tests for XP calculations
-- [ ] Implement data migration service
+- [ ] ~~Create new models~~ USE EXISTING User model
+- [ ] ~~Create XP service~~ USE EXISTING UserService/InventoryService
+- [ ] ~~Database migrations~~ NO DATABASE CHANGES
+- [ ] ~~Update User model~~ KEEP AS-IS
+- [ ] Document how existing points map to XP display
+- [ ] ~~Migration service~~ NOT NEEDED
 
-**Deliverable**: XP system functional in backend, testable via unit tests
+**Deliverable**: Documentation of existing system, ready for UI layer
 
 ### Phase 2: Camera HUD (Week 1-2)
 **Goal**: Build persistent camera UI with XP indicators
 
 - [ ] Create `CameraHUD` widget
 - [ ] Build `XPProgressBar` with animations
+  - Use `user.levelProgress` (already exists)
+  - Display `user.totalPoints` as "XP"
 - [ ] Build `LevelBadge` component
-- [ ] Build `StreakCounter` component
+  - Use `user.level` (already exists)
+- [ ] Build `StreakCounter` component (future feature)
 - [ ] Create `XPGainAnimation` widget
 - [ ] Add haptic feedback utilities
-- [ ] Wire up to XP service providers
+- [ ] Wire up to existing `currentUserProvider`
 
-**Deliverable**: Top HUD displays live XP/level/streak data
+**Deliverable**: Top HUD displays live XP/level data from existing User model
 
 ### Phase 3: Bottom Sheets (Week 2)
 **Goal**: Replace full-screen transitions with bottom sheets
@@ -870,31 +748,31 @@ testWidgets('complete pickup flow awards XP and updates UI', (tester) async {
 ### Phase 6: Integration & Polish (Week 3-4)
 **Goal**: Wire everything together, animations, UX polish
 
-- [ ] Integrate XP service with inventory service
-- [ ] Integrate XP service with disposal service
-- [ ] Add XP rewards to all user actions
-- [ ] Implement daily streak checking
-- [ ] Add badge unlock checks
+- [ ] ~~Integrate XP service~~ ALREADY INTEGRATED (uses existing points)
+- [ ] ~~Add XP rewards~~ ALREADY EXISTS (point system)
 - [ ] Polish all animations (timing, curves)
 - [ ] Add sound effects (optional)
+- [ ] Add haptic feedback
 - [ ] Comprehensive testing (integration tests)
 - [ ] Performance optimization (60 FPS target)
+- [ ] Test that UI correctly displays points as XP
+- [ ] Verify level progression displays correctly
 
 **Deliverable**: Fully functional camera-first UX
 
-### Phase 7: Migration & Deployment (Week 4)
-**Goal**: Safe rollout with data migration
+### Phase 7: Deployment (Week 4)
+**Goal**: Safe rollout, NO DATA MIGRATION NEEDED
 
-- [ ] Run database migrations
-- [ ] Test data migration with production data clone
-- [ ] Add feature flag for gradual rollout
+- [ ] ~~Database migrations~~ NOT NEEDED
+- [ ] ~~Test data migration~~ NOT NEEDED
+- [ ] Add feature flag for gradual rollout (optional)
 - [ ] Update onboarding to explain new UX
-- [ ] Create migration guide for existing users
-- [ ] Monitor XP system balance (too easy/hard?)
+- [ ] Update UI labels: "Points" → "XP"
+- [ ] Monitor user engagement metrics
 - [ ] Gather user feedback
 - [ ] Iterate based on feedback
 
-**Deliverable**: Production-ready camera-first app
+**Deliverable**: Production-ready camera-first app (same backend, new UX)
 
 ---
 
