@@ -6,10 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cleanclik/core/models/camera_models.dart';
-import 'package:cleanclik/presentation/navigation/ar_navigation_shell.dart';
-import 'package:cleanclik/presentation/navigation/home/home_screen.dart';
 import 'package:cleanclik/presentation/screens/camera/ar_camera_screen.dart';
-import 'package:cleanclik/presentation/screens/camera/unified_camera_screen.dart';
+import 'package:cleanclik/presentation/screens/camera/camera_home_screen.dart';
 import 'package:cleanclik/presentation/screens/map/map_screen.dart';
 import 'package:cleanclik/presentation/screens/profile/profile_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/login_screen.dart';
@@ -87,7 +85,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.home,
         name: 'home',
         builder: (context, state) => const AuthWrapper(
-          child: UnifiedCameraScreen(),
+          child: CameraHomeScreen(),
         ),
       ),
 

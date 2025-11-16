@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cleanclik/core/models/camera_models.dart';
 import 'package:cleanclik/core/models/location_models.dart';
+import 'package:cleanclik/core/models/user_models.dart';
 import 'package:cleanclik/core/providers/user_provider.dart';
 import 'package:cleanclik/core/providers/inventory_provider.dart';
 import 'package:cleanclik/presentation/screens/camera/ar_camera_screen.dart';
@@ -14,18 +15,18 @@ import 'package:cleanclik/presentation/widgets/panels/map_slide_panel.dart';
 import 'package:cleanclik/presentation/widgets/panels/profile_slide_panel.dart';
 import 'package:cleanclik/presentation/widgets/panels/inventory_slide_panel.dart';
 
-/// Unified camera-first screen with XP HUD and bottom sheets
+/// Camera home screen with XP HUD and bottom sheets
 ///
 /// Main entry point for the camera-first UX
-class UnifiedCameraScreen extends ConsumerStatefulWidget {
-  const UnifiedCameraScreen({super.key});
+class CameraHomeScreen extends ConsumerStatefulWidget {
+  const CameraHomeScreen({super.key});
 
   @override
-  ConsumerState<UnifiedCameraScreen> createState() =>
-      _UnifiedCameraScreenState();
+  ConsumerState<CameraHomeScreen> createState() =>
+      _CameraHomeScreenState();
 }
 
-class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
+class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
   // Panel state
   bool _showMapPanel = false;
   bool _showProfilePanel = false;
@@ -174,7 +175,7 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
                 bin: _selectedBin!,
                 onDisposeAll: () async {
                   // Dispose all items
-                  final items = await ref.read(inventoryItemsProvider.future);
+                  final items = ref.read(inventoryItemsProvider);
                   if (items.isNotEmpty) {
                     // Clear inventory and award XP
                     for (final item in items) {

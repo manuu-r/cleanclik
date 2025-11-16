@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cleanclik/core/models/camera_models.dart';
+import 'package:cleanclik/core/models/waste_models.dart';
 import 'package:cleanclik/core/providers/inventory_provider.dart';
 import 'package:cleanclik/core/utils/haptics_util.dart';
 import 'package:cleanclik/presentation/widgets/overlays/base_bottom_sheet.dart';
@@ -25,6 +26,10 @@ class PickupConfirmationSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
+    // Convert String category to WasteCategory enum
+    final category = WasteCategory.fromString(detectedObject.category) ??
+        WasteCategory.recycle;
+
     return BaseBottomSheet(
       heightFraction: 0.4,
       isDismissible: true,
@@ -36,13 +41,13 @@ class PickupConfirmationSheet extends ConsumerWidget {
           const SizedBox(height: 16),
           // Category icon and name
           Icon(
-            _getCategoryIcon(detectedObject.category.name),
+            _getCategoryIcon(category.id),
             size: 64,
-            color: Color(detectedObject.category.colorValue),
+            color: category.color,
           ),
           const SizedBox(height: 12),
           Text(
-            detectedObject.category.displayName,
+            category.codeName,
             style: theme.textTheme.titleLarge?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.bold,
