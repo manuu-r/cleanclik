@@ -8,7 +8,7 @@ import 'package:cleanclik/presentation/widgets/common/category_item.dart';
 /// Slide-in panel for the inventory view
 ///
 /// Slides from the bottom and covers 75% of screen height
-class InventorySlidePanel extends ConsumerWidget {
+class InventorySlidePanel extends ConsumerStatefulWidget {
   final VoidCallback onClose;
 
   const InventorySlidePanel({
@@ -17,11 +17,48 @@ class InventorySlidePanel extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InventorySlidePanel> createState() => _InventorySlidePanelState();
+}
+
+class _InventorySlidePanelState extends ConsumerState<InventorySlidePanel>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 1.0), // Start from bottom
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleClose() async {
+    await _controller.reverse();
+    widget.onClose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final inventoryAsync = ref.watch(inventoryItemsProvider);
 
     return GestureDetector(
-      onTap: onClose,
+      onTap: _handleClose,
       child: Container(
         color: Colors.black.withOpacity(0.5),
         child: Column(
@@ -34,14 +71,16 @@ class InventorySlidePanel extends ConsumerWidget {
             // Bottom panel (inventory content)
             Expanded(
               flex: 75,
-              child: GestureDetector(
-                onTap: () {}, // Prevent tap propagation
-                onVerticalDragEnd: (details) {
-                  // Swipe down to close
-                  if (details.primaryVelocity! > 0) {
-                    onClose();
-                  }
-                },
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: GestureDetector(
+                  onTap: () {}, // Prevent tap propagation
+                  onVerticalDragEnd: (details) {
+                    // Swipe down to close
+                    if (details.primaryVelocity! > 0) {
+                      _handleClose();
+                    }
+                  },
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.black,
@@ -84,7 +123,7 @@ class InventorySlidePanel extends ConsumerWidget {
                             const Spacer(),
                             IconButton(
                               icon: const Icon(Icons.close, color: Colors.white),
-                              onPressed: onClose,
+                              onPressed: _handleClose,
                             ),
                           ],
                         ),
@@ -187,6 +226,7 @@ class InventorySlidePanel extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
             ),

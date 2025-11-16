@@ -6,7 +6,7 @@ import 'package:cleanclik/presentation/screens/map/map_screen.dart';
 /// Slide-in panel for the map view
 ///
 /// Slides from the right edge and covers 85% of screen width
-class MapSlidePanel extends ConsumerWidget {
+class MapSlidePanel extends ConsumerStatefulWidget {
   final VoidCallback onClose;
 
   const MapSlidePanel({
@@ -15,11 +15,48 @@ class MapSlidePanel extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MapSlidePanel> createState() => _MapSlidePanelState();
+}
+
+class _MapSlidePanelState extends ConsumerState<MapSlidePanel>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0), // Start from right
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleClose() async {
+    await _controller.reverse();
+    widget.onClose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return GestureDetector(
-      onTap: onClose,
+      onTap: _handleClose,
       child: Container(
         color: Colors.black.withOpacity(0.5),
         child: Row(
@@ -32,14 +69,16 @@ class MapSlidePanel extends ConsumerWidget {
             // Right panel (map content)
             Expanded(
               flex: 85,
-              child: GestureDetector(
-                onTap: () {}, // Prevent tap propagation
-                onHorizontalDragEnd: (details) {
-                  // Swipe right to close
-                  if (details.primaryVelocity! > 0) {
-                    onClose();
-                  }
-                },
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: GestureDetector(
+                  onTap: () {}, // Prevent tap propagation
+                  onHorizontalDragEnd: (details) {
+                    // Swipe right to close
+                    if (details.primaryVelocity! > 0) {
+                      _handleClose();
+                    }
+                  },
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.black,
@@ -70,7 +109,7 @@ class MapSlidePanel extends ConsumerWidget {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.arrow_forward, color: Colors.white),
-                                onPressed: onClose,
+                                onPressed: _handleClose,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -90,6 +129,7 @@ class MapSlidePanel extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
             ),

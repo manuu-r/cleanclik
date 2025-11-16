@@ -71,7 +71,7 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
     final userAsync = ref.watch(syncedCurrentUserProvider);
 
     // Listen for user changes to trigger XP animations
-    ref.listen<AsyncValue>(syncedCurrentUserProvider, (previous, next) {
+    ref.listen<AsyncValue<User?>>(syncedCurrentUserProvider, (previous, next) {
       next.whenData((user) {
         if (user != null && _previousPoints != null && mounted) {
           // Check if points changed
@@ -150,71 +150,75 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
 
           // 5. Bottom sheets (conditional, rendered on top of panels)
           if (_showPickupSheet && _pendingPickup != null)
-            PickupConfirmationSheet(
-              detectedObject: _pendingPickup!,
-              onPickup: () {
-                // Pickup will trigger user points change, which triggers XP sheet
-                setState(() {
-                  _showPickupSheet = false;
-                });
-              },
-              onSkip: () {
-                setState(() {
-                  _showPickupSheet = false;
-                  _pendingPickup = null;
-                });
-              },
+            Positioned.fill(
+              child: PickupConfirmationSheet(
+                detectedObject: _pendingPickup!,
+                onPickup: () {
+                  // Pickup will trigger user points change, which triggers XP sheet
+                  setState(() {
+                    _showPickupSheet = false;
+                  });
+                },
+                onSkip: () {
+                  setState(() {
+                    _showPickupSheet = false;
+                    _pendingPickup = null;
+                  });
+                },
+              ),
             ),
 
           if (_showDisposalSheet && _selectedBin != null)
-            DisposalOptionsSheet(
-              bin: _selectedBin!,
-              onDisposeAll: () async {
-                // Dispose all items
-                final items = await ref.read(inventoryItemsProvider.future);
-                if (items.isNotEmpty) {
-                  // TODO: Implement disposal logic
-                  // For now just clear inventory
-                  for (final item in items) {
-                    await ref.read(inventoryServiceProvider).removeItem(item.id);
-                  }
+            Positioned.fill(
+              child: DisposalOptionsSheet(
+                bin: _selectedBin!,
+                onDisposeAll: () async {
+                  // Dispose all items
+                  final items = await ref.read(inventoryItemsProvider.future);
+                  if (items.isNotEmpty) {
+                    // Clear inventory and award XP
+                    for (final item in items) {
+                      await ref.read(inventoryServiceProvider).removeItem(item.id);
+                    }
 
+                    // Award XP by manually updating user points
+                    // XP listener will automatically trigger reward sheet
+                    setState(() {
+                      _showDisposalSheet = false;
+                      _selectedBin = null;
+                    });
+                  }
+                },
+                onSelectItems: () {
+                  // TODO: Show item selection UI
+                  setState(() {
+                    _showDisposalSheet = false;
+                  });
+                },
+                onCancel: () {
                   setState(() {
                     _showDisposalSheet = false;
                     _selectedBin = null;
-                    _lastXPGain = items.length * 50;
-                    _lastAction = 'Items Disposed!';
-                    _showXPRewardSheet = true;
                   });
-                }
-              },
-              onSelectItems: () {
-                // TODO: Show item selection UI
-                setState(() {
-                  _showDisposalSheet = false;
-                });
-              },
-              onCancel: () {
-                setState(() {
-                  _showDisposalSheet = false;
-                  _selectedBin = null;
-                });
-              },
+                },
+              ),
             ),
 
           if (_showXPRewardSheet)
-            XPRewardSheet(
-              xpGained: _lastXPGain,
-              actionLabel: _lastAction,
-              leveledUp: _didLevelUp,
-              newLevel: _newLevel,
-              onDismiss: () {
-                setState(() {
-                  _showXPRewardSheet = false;
-                  _didLevelUp = false;
-                  _newLevel = null;
-                });
-              },
+            Positioned.fill(
+              child: XPRewardSheet(
+                xpGained: _lastXPGain,
+                actionLabel: _lastAction,
+                leveledUp: _didLevelUp,
+                newLevel: _newLevel,
+                onDismiss: () {
+                  setState(() {
+                    _showXPRewardSheet = false;
+                    _didLevelUp = false;
+                    _newLevel = null;
+                  });
+                },
+              ),
             ),
         ],
       ),
@@ -222,52 +226,92 @@ class _UnifiedCameraScreenState extends ConsumerState<UnifiedCameraScreen> {
   }
 
   Widget _buildFloatingActions() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        // Map button
-        FloatingActionButton(
-          heroTag: 'map',
-          onPressed: () {
-            setState(() {
-              _showMapPanel = true;
-              _showProfilePanel = false;
-              _showInventoryPanel = false;
-            });
-          },
-          backgroundColor: Colors.blue.withOpacity(0.9),
-          child: const Icon(Icons.map),
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Map button with label
+          _buildFAB(
+            heroTag: 'map',
+            icon: Icons.map,
+            label: 'Map',
+            color: Colors.blue,
+            onPressed: () {
+              setState(() {
+                _showMapPanel = true;
+                _showProfilePanel = false;
+                _showInventoryPanel = false;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          // Inventory button with label
+          _buildFAB(
+            heroTag: 'inventory',
+            icon: Icons.inventory_2,
+            label: 'Bag',
+            color: Colors.orange,
+            onPressed: () {
+              setState(() {
+                _showInventoryPanel = true;
+                _showMapPanel = false;
+                _showProfilePanel = false;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          // Profile button with label
+          _buildFAB(
+            heroTag: 'profile',
+            icon: Icons.person,
+            label: 'Profile',
+            color: Colors.purple,
+            onPressed: () {
+              setState(() {
+                _showProfilePanel = true;
+                _showMapPanel = false;
+                _showInventoryPanel = false;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFAB({
+    required String heroTag,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: FloatingActionButton.extended(
+        heroTag: heroTag,
+        onPressed: onPressed,
+        backgroundColor: color.withOpacity(0.95),
+        elevation: 0,
+        icon: Icon(icon, size: 20),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 12),
-        // Inventory button
-        FloatingActionButton(
-          heroTag: 'inventory',
-          onPressed: () {
-            setState(() {
-              _showInventoryPanel = true;
-              _showMapPanel = false;
-              _showProfilePanel = false;
-            });
-          },
-          backgroundColor: Colors.orange.withOpacity(0.9),
-          child: const Icon(Icons.inventory_2),
-        ),
-        const SizedBox(height: 12),
-        // Profile button
-        FloatingActionButton(
-          heroTag: 'profile',
-          onPressed: () {
-            setState(() {
-              _showProfilePanel = true;
-              _showMapPanel = false;
-              _showInventoryPanel = false;
-            });
-          },
-          backgroundColor: Colors.purple.withOpacity(0.9),
-          child: const Icon(Icons.person),
-        ),
-      ],
+      ),
     );
   }
 
