@@ -6,9 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cleanclik/core/models/camera_models.dart';
-import 'package:cleanclik/presentation/navigation/ar_navigation_shell.dart';
-import 'package:cleanclik/presentation/navigation/home/home_screen.dart';
 import 'package:cleanclik/presentation/screens/camera/ar_camera_screen.dart';
+import 'package:cleanclik/presentation/screens/camera/camera_home_screen.dart';
 import 'package:cleanclik/presentation/screens/map/map_screen.dart';
 import 'package:cleanclik/presentation/screens/profile/profile_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/login_screen.dart';
@@ -81,47 +80,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Protected routes wrapped with AuthWrapper
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return AuthWrapper(
-            child: ARNavigationShell(navigationShell: navigationShell),
-          );
-        },
-        branches: [
-          // Home Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.home,
-                name: 'home',
-                builder: (context, state) => const HomeScreen(),
-              ),
-            ],
-          ),
+      // NEW: Single camera-first screen as home
+      GoRoute(
+        path: Routes.home,
+        name: 'home',
+        builder: (context, state) => const AuthWrapper(
+          child: CameraHomeScreen(),
+        ),
+      ),
 
-          // Map Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.map,
-                name: 'map',
-                builder: (context, state) => const MapScreen(),
-              ),
-            ],
-          ),
-
-          // Profile Branch
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.profile,
-                name: 'profile',
-                builder: (context, state) => const ProfileScreen(),
-              ),
-            ],
-          ),
-        ],
+      // Legacy routes (kept for backwards compatibility, will become slide panels)
+      GoRoute(
+        path: Routes.map,
+        name: 'map',
+        builder: (context, state) => const AuthWrapper(
+          child: MapScreen(),
+        ),
+      ),
+      GoRoute(
+        path: Routes.profile,
+        name: 'profile',
+        builder: (context, state) => const AuthWrapper(
+          child: ProfileScreen(),
+        ),
       ),
 
       // Camera Route (full screen, protected)
