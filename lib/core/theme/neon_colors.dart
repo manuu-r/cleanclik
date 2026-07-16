@@ -46,52 +46,6 @@ class NeonColors {
   static const Color outlineVariantLight = Color(0xFFCAC4D0);
   static const Color outlineVariantDark = Color(0xFF49454F);
 
-  /// Get neon color for category
-  static Color getNeonCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-      case 'ecogems':
-        return neonEcoGems;
-      case 'organic':
-      case 'fuelshards':
-        return neonFuelShards;
-      case 'landfill':
-      case 'voiddust':
-        return neonVoidDust;
-      case 'ewaste':
-      case 'sparkcores':
-        return neonSparkCores;
-      case 'hazardous':
-      case 'toxiccrystals':
-        return neonToxicCrystals;
-      default:
-        return glowWhite;
-    }
-  }
-
-  /// Get glow color for category
-  static Color getGlowColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-      case 'ecogems':
-        return glowGreen;
-      case 'organic':
-      case 'fuelshards':
-        return glowBlue;
-      case 'landfill':
-      case 'voiddust':
-        return glowWhite;
-      case 'ewaste':
-      case 'sparkcores':
-        return glowOrange;
-      case 'hazardous':
-      case 'toxiccrystals':
-        return glowRed;
-      default:
-        return glowWhite;
-    }
-  }
-
   /// Create Material 3 surface treatment (no shadows)
   static List<BoxShadow> createNeonGlow(Color color, {double intensity = 1.0}) {
     // Return empty list - no shadows in Material 3 expressive design

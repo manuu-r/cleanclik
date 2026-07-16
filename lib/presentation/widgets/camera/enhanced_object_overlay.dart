@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cleanclik/core/models/camera_models.dart';
 import 'package:cleanclik/core/models/waste_models.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
 import 'package:cleanclik/core/services/business/pickup_service.dart';
 import '../overlays/indicator_widget.dart';
 import '../overlays/tooltip_widget.dart';
@@ -251,18 +252,8 @@ class EnhancedObjectOverlay extends StatelessWidget {
   }
 
   /// Get category-specific icon
-  IconData _getCategoryIcon(WasteCategory category) {
-    switch (category) {
-      case WasteCategory.recycle:
-        return Icons.recycling;
-      case WasteCategory.organic:
-        return Icons.eco;
-      case WasteCategory.ewaste:
-        return Icons.electrical_services;
-      case WasteCategory.hazardous:
-        return Icons.warning;
-    }
-  }
+  IconData _getCategoryIcon(WasteCategory category) =>
+      CategoryVisuals.iconOf(category);
 
   ObjectStatusData _getStatusData() {
     switch (status) {

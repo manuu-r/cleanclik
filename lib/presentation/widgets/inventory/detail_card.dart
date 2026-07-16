@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
 import 'package:cleanclik/core/providers/inventory_provider.dart';
@@ -222,41 +223,11 @@ class DetailCard extends ConsumerWidget {
 
   /// Get icon for inventory item category
   /// Requirements: 2.1, 3.1
-  IconData _getInventoryIcon(String category) {
-    switch (category) {
-      case 'recycle':
-        return Icons.recycling;
-      case 'organic':
-        return Icons.eco;
-      case 'landfill':
-        return Icons.delete_outline;
-      case 'ewaste':
-        return Icons.electrical_services;
-      case 'hazardous':
-        return Icons.warning;
-      default:
-        return Icons.inventory;
-    }
-  }
+  IconData _getInventoryIcon(String category) => CategoryVisuals.icon(category);
 
   /// Get color for inventory item category
   /// Requirements: 2.1, 3.1
-  Color _getInventoryColor(String category) {
-    switch (category) {
-      case 'recycle':
-        return NeonColors.electricGreen;
-      case 'organic':
-        return NeonColors.oceanBlue;
-      case 'landfill':
-        return Colors.grey;
-      case 'ewaste':
-        return NeonColors.earthOrange;
-      case 'hazardous':
-        return NeonColors.toxicPurple;
-      default:
-        return Colors.blue;
-    }
-  }
+  Color _getInventoryColor(String category) => CategoryVisuals.color(category);
 }
 
 class ActionButton extends StatelessWidget {

@@ -26,11 +26,21 @@ dependencies:
   google_mlkit_image_labeling: ^0.14.1
   google_mlkit_commons: ^0.11.0
 
+  # On-device VLM (waste classification)
+  cactus: ^1.3.0
+  image: ^4.3.0
+  path_provider: ^2.1.4
+
   # Hand tracking (used in services)
   hand_landmarker: ^2.1.0
 
   # QR Code Scanning (used in services)
   qr_code_scanner_plus: ^2.0.10+1
+
+  # QR Code Generation & Printing
+  qr_flutter: ^4.1.0
+  printing: ^5.13.4
+  pdf: ^3.11.1
 
   # Motion & Sensors
   sensors_plus: ^6.0.1
@@ -47,7 +57,7 @@ dependencies:
 
   # Location & Maps
   geolocator: ^12.0.0
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
   url_launcher: ^6.3.1
   latlong2: ^0.9.1
   flutter_map: ^7.0.2

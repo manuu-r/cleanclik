@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/waste_models.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
 
 /// Simple color mapping for waste categories
 class _CategoryColors {
@@ -362,18 +363,8 @@ class _TooltipWidgetState extends State<TooltipWidget>
   }
 
   /// Get category icon
-  IconData _getCategoryIcon(WasteCategory category) {
-    switch (category) {
-      case WasteCategory.recycle:
-        return Icons.recycling;
-      case WasteCategory.organic:
-        return Icons.eco;
-      case WasteCategory.ewaste:
-        return Icons.electrical_services;
-      case WasteCategory.hazardous:
-        return Icons.warning;
-    }
-  }
+  IconData _getCategoryIcon(WasteCategory category) =>
+      CategoryVisuals.iconOf(category);
 
   /// Build compact confidence badge
   Widget _buildCompactConfidenceBadge() {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
 import 'package:cleanclik/core/providers/inventory_provider.dart';
-import 'package:cleanclik/core/theme/neon_colors.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
 import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
 
 /// Widget for displaying inventory items with simplified data
@@ -114,8 +114,8 @@ class InventoryDisplay extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              _getCategoryIcon(item.category),
-              color: _getCategoryColor(item.category),
+              CategoryVisuals.icon(item.category),
+              color: CategoryVisuals.color(item.category),
               size: 24,
             ),
             const SizedBox(height: 8),
@@ -134,13 +134,13 @@ class InventoryDisplay extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _getCategoryColor(item.category).withOpacity(0.2),
+                color: CategoryVisuals.color(item.category).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                _getCategoryDisplayName(item.category),
+                CategoryVisuals.displayName(item.category),
                 style: TextStyle(
-                  color: _getCategoryColor(item.category),
+                  color: CategoryVisuals.color(item.category),
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),
@@ -164,16 +164,16 @@ class InventoryDisplay extends ConsumerWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _getCategoryColor(item.category).withOpacity(0.2),
+                color: CategoryVisuals.color(item.category).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _getCategoryColor(item.category),
+                  color: CategoryVisuals.color(item.category),
                   width: 1,
                 ),
               ),
               child: Icon(
-                _getCategoryIcon(item.category),
-                color: _getCategoryColor(item.category),
+                CategoryVisuals.icon(item.category),
+                color: CategoryVisuals.color(item.category),
                 size: 24,
               ),
             ),
@@ -201,30 +201,46 @@ class InventoryDisplay extends ConsumerWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: _getCategoryColor(
+                          color: CategoryVisuals.color(
                             item.category,
                           ).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          _getCategoryDisplayName(item.category),
+                          CategoryVisuals.displayName(item.category),
                           style: TextStyle(
-                            color: _getCategoryColor(item.category),
+                            color: CategoryVisuals.color(item.category),
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '${(item.confidence * 100).toInt()}% confidence',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 12,
+                      if (item.aiReasoning != null)
+                        _buildAiVerifiedBadge()
+                      else
+                        Text(
+                          '${(item.confidence * 100).toInt()}% confidence',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
                     ],
                   ),
+                  if (item.aiReasoning != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      item.aiReasoning!,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     _formatTimestamp(item.timestamp),
@@ -250,55 +266,33 @@ class InventoryDisplay extends ConsumerWidget {
     );
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'recycle':
-        return Icons.recycling;
-      case 'organic':
-        return Icons.eco;
-      case 'landfill':
-        return Icons.delete_outline;
-      case 'ewaste':
-        return Icons.electrical_services;
-      case 'hazardous':
-        return Icons.warning;
-      default:
-        return Icons.inventory;
-    }
-  }
-
-  Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'recycle':
-        return NeonColors.electricGreen;
-      case 'organic':
-        return NeonColors.oceanBlue;
-      case 'landfill':
-        return Colors.grey;
-      case 'ewaste':
-        return NeonColors.earthOrange;
-      case 'hazardous':
-        return NeonColors.toxicPurple;
-      default:
-        return Colors.blue;
-    }
-  }
-
-  String _getCategoryDisplayName(String category) {
-    switch (category) {
-      case 'recycle':
-        return 'Recycle';
-      case 'organic':
-        return 'Organic';
-      case 'landfill':
-        return 'Landfill';
-      case 'ewaste':
-        return 'E-Waste';
-      case 'hazardous':
-        return 'Hazardous';
-      default:
-        return 'Unknown';
-    }
+  Widget _buildAiVerifiedBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.auto_awesome,
+            size: 12,
+            color: Colors.white.withOpacity(0.8),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'AI verified',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatTimestamp(DateTime timestamp) {

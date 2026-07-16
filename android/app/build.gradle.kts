@@ -50,3 +50,11 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // hand_landmarker 2.1.0 pins tasks-vision 0.10.14, whose native lib is
+    // only 4KB-aligned. 0.10.29+ ships 16KB page-size aligned binaries
+    // (required by Play once targetSdk >= 35). Gradle picks this higher
+    // version over the plugin's pin.
+    implementation("com.google.mediapipe:tasks-vision:0.10.29")
+}

@@ -66,7 +66,7 @@ CREATE TRIGGER trigger_update_category_stats
 -- Add Points to User Function (called from DataService)
 -- Note: Parameter order matches the error message: points_to_add, user_id
 CREATE OR REPLACE FUNCTION add_user_points(points_to_add INTEGER, user_id UUID)
-RETURNS VOID AS $
+RETURNS VOID AS $$
 BEGIN
   UPDATE users 
   SET total_points = total_points + points_to_add,
@@ -76,11 +76,11 @@ BEGIN
   -- Log the operation for debugging
   RAISE NOTICE 'Added % points to user %', points_to_add, user_id;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Alternative function with correct parameter names for backward compatibility
 CREATE OR REPLACE FUNCTION add_points_to_user(user_id UUID, points_to_add INTEGER)
-RETURNS VOID AS $
+RETURNS VOID AS $$
 BEGIN
   UPDATE users 
   SET total_points = total_points + points_to_add,
@@ -90,7 +90,7 @@ BEGIN
   -- Log the operation for debugging
   RAISE NOTICE 'Added % points to user %', points_to_add, user_id;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Get Bins Near Location Function (requires PostGIS extension)
 -- Note: This function assumes bin_locations table has latitude and longitude columns
@@ -103,7 +103,7 @@ RETURNS TABLE(
   longitude DOUBLE PRECISION,
   address TEXT,
   distance_meters DOUBLE PRECISION
-) AS $
+) AS $$
 BEGIN
   RETURN QUERY
   SELECT 
@@ -127,7 +127,7 @@ BEGIN
   )) <= radius_meters
   ORDER BY distance_meters;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Find Nearest Bin Function
 CREATE OR REPLACE FUNCTION find_nearest_bin(lat DOUBLE PRECISION, lng DOUBLE PRECISION, category_filter TEXT DEFAULT NULL)
@@ -139,7 +139,7 @@ RETURNS TABLE(
   longitude DOUBLE PRECISION,
   address TEXT,
   distance_meters DOUBLE PRECISION
-) AS $
+) AS $$
 BEGIN
   RETURN QUERY
   SELECT 
@@ -160,4 +160,4 @@ BEGIN
   ORDER BY distance_meters
   LIMIT 1;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;

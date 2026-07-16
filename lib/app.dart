@@ -146,7 +146,9 @@ class _CleanClikAppState extends ConsumerState<CleanClikApp>
       title: 'CleanClik',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      // The app is a dark, camera-first experience end to end; system light
+      // mode would flip only the Material screens (auth, sheets) to white.
+      themeMode: ThemeMode.dark,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       // Global scaffold messenger for deep link messages

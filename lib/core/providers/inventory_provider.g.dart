@@ -6,26 +6,6 @@ part of 'inventory_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$inventoryServiceHash() => r'162f94227a3398c59babd39eb36347fbac0a62d7';
-
-/// Provider for InventoryService
-/// Requirements: 2.1, 3.1
-///
-/// Copied from [inventoryService].
-@ProviderFor(inventoryService)
-final inventoryServiceProvider = AutoDisposeProvider<InventoryService>.internal(
-  inventoryService,
-  name: r'inventoryServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$inventoryServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef InventoryServiceRef = AutoDisposeProviderRef<InventoryService>;
 String _$inventoryItemsHash() => r'b1d60d414fac5b0526f3a41f28bbf3d7ffdc4973';
 
 /// Provider for current inventory items

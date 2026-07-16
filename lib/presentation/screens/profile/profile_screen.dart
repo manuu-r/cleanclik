@@ -180,13 +180,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
-        title: ShaderMask(
-          shaderCallback: (bounds) => arTheme.neonGradient.createShader(bounds),
-          child: const Text(
-            'Profile',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-          ),
+        title: const Text(
+          'Profile',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
       body: Stack(

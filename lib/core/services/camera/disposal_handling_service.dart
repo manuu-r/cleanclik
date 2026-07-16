@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:cleanclik/core/models/camera_models.dart' hide DetectionSource;
+import 'package:cleanclik/core/models/waste_models.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
 import 'package:cleanclik/core/services/camera/qr_bin_service.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
 
 /// Disposal handling service
 ///
@@ -11,34 +13,6 @@ import 'package:cleanclik/core/services/camera/qr_bin_service.dart';
 /// helper logic into shared constants and small helpers.
 class DisposalHandlingService {
   static const String _logTag = 'DISPOSAL_HANDLING';
-
-  // --- Centralized configuration maps/constants (single source of truth) ---
-  static const Map<String, int> _categoryPoints = {
-    'recycle': 10,
-    'organic': 8,
-    'landfill': 5,
-    'ewaste': 15,
-    'hazardous': 20,
-  };
-
-  static const Map<String, String> _categoryDisplayNames = {
-    'recycle': 'Recycle',
-    'organic': 'Organic',
-    'landfill': 'Landfill',
-    'ewaste': 'E-Waste',
-    'hazardous': 'Hazardous',
-  };
-
-  // UI color approximations are provided here to keep mapping centralized.
-  // If you prefer to keep UI colors in the theme layer, convert these to
-  // lightweight keys (enums/strings) and map them in the UI instead.
-  static const Map<String, Color> _categoryColors = {
-    'recycle': Color(0xFF00FF99),
-    'organic': Color(0xFF00B2FF),
-    'landfill': Color(0xFF9E9E9E),
-    'ewaste': Color(0xFFFF8C42),
-    'hazardous': Color(0xFF9B59B6),
-  };
 
   static const Map<String, String> _detectionSourceLabels = {
     'combined': 'ML+IMG',
@@ -293,7 +267,7 @@ class DisposalHandlingService {
   int _calculatePointsForItems(List<InventoryItem> items) {
     var total = 0;
     for (final item in items) {
-      total += _categoryPoints[item.category] ?? 5;
+      total += CategoryPoints.of(item.category);
     }
 
     // Streak bonus
@@ -472,10 +446,9 @@ class DisposalHandlingService {
     return Icons.error;
   }
 
-  Color getCategoryColor(String category) =>
-      _categoryColors[category] ?? Colors.grey;
+  Color getCategoryColor(String category) => CategoryVisuals.color(category);
   String getCategoryDisplayName(String category) =>
-      _categoryDisplayNames[category] ?? category.toUpperCase();
+      CategoryVisuals.displayName(category);
 
   int calculatePointsForItemsUI(List<InventoryItem> items) =>
       _calculatePointsForItems(items);

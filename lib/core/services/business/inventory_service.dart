@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cleanclik/core/models/camera_models.dart';
 import 'package:cleanclik/core/services/business/database_helper.dart';
+import 'package:cleanclik/core/services/camera/detection_snapshot_cache.dart';
+import 'package:cleanclik/core/services/camera/vlm_waste_classifier.dart';
 import 'package:cleanclik/core/services/camera/waste_categorizer.dart';
 import 'package:cleanclik/core/services/data/local_storage_service.dart';
 
@@ -64,12 +66,17 @@ class InventoryItem {
   final double confidence;
   final DateTime timestamp;
 
+  /// One-line explanation from the on-device VLM, set when the item's
+  /// category was refined after pickup. Null for keyword-only categorization.
+  final String? aiReasoning;
+
   const InventoryItem({
     required this.id,
     required this.displayName,
     required this.category,
     required this.confidence,
     required this.timestamp,
+    this.aiReasoning,
   });
 
   String get trackingId => id;
@@ -80,6 +87,7 @@ class InventoryItem {
   String getOriginalDetectionLabel() => displayName;
   double getCategoryConfidence() => confidence;
   String getCategorizationReasoning() =>
+      aiReasoning ??
       'Detected as $category with ${(confidence * 100).toStringAsFixed(1)}% confidence';
   DetectionSource getDetectionSource() => DetectionSource.mlKit;
   List<ImageLabel> getImageLabels() => [];
@@ -134,6 +142,7 @@ class InventoryItem {
       category: json['category'] as String,
       confidence: (json['confidence'] as num).toDouble(),
       timestamp: DateTime.parse(json['timestamp'] as String),
+      aiReasoning: json['aiReasoning'] as String?,
     );
   }
 
@@ -144,6 +153,7 @@ class InventoryItem {
       'category': category,
       'confidence': confidence,
       'timestamp': timestamp.toIso8601String(),
+      if (aiReasoning != null) 'aiReasoning': aiReasoning,
     };
   }
 
@@ -354,9 +364,66 @@ class InventoryService extends _$InventoryService {
       debugPrint(
         '✅ [$_logTag] Item added from PickupEvent: ${item.displayName}',
       );
+
+      final trackingId = event.trackingId as String? ?? item.id;
+      unawaited(_refineCategoryWithVlm(item.id, trackingId));
     } catch (e) {
       debugPrint('❌ [$_logTag] Failed to add item from PickupEvent: $e');
       rethrow;
+    }
+  }
+
+  /// Refine a freshly picked-up item's category using the on-device VLM.
+  ///
+  /// Best-effort: if the model isn't ready, no snapshot exists, or inference
+  /// fails, the item keeps its keyword-based category.
+  Future<void> _refineCategoryWithVlm(String itemId, String trackingId) async {
+    try {
+      final classifier = VlmWasteClassifier.instance;
+      if (!classifier.isReady) return;
+
+      final jpeg = DetectionSnapshotCache.instance.get(trackingId);
+      if (jpeg == null) {
+        debugPrint('⚠️ [$_logTag] No snapshot for VLM refinement: $trackingId');
+        return;
+      }
+
+      final result = await classifier.classifyJpeg(jpeg);
+      if (result == null) return;
+
+      final index = _inventory.indexWhere((item) => item.id == itemId);
+      if (index == -1) return; // Item was released/disposed meanwhile.
+
+      final current = _inventory[index];
+      final newName =
+          result.itemName.isNotEmpty ? result.itemName : current.displayName;
+
+      debugPrint(
+        '🧠 [$_logTag] VLM refined "${current.displayName}" '
+        '(${current.category}) → "$newName" (${result.categoryId}): '
+        '${result.reasoning}',
+      );
+
+      _inventory[index] = InventoryItem(
+        id: current.id,
+        displayName: newName,
+        category: result.categoryId,
+        confidence: current.confidence,
+        timestamp: current.timestamp,
+        aiReasoning: result.reasoning.isNotEmpty ? result.reasoning : null,
+      );
+      await _saveToLocalStorage();
+      ref.notifyListeners();
+      _eventsController.add(ItemUpdatedEvent(itemId));
+
+      if (_databaseHelper.isAuthenticated) {
+        await _databaseHelper.update('inventory', itemId, {
+          'category': result.categoryId,
+          'display_name': newName,
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ [$_logTag] VLM refinement failed: $e');
     }
   }
 

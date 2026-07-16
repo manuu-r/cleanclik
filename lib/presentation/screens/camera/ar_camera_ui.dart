@@ -29,6 +29,10 @@ class ARCameraUI {
   bool _showDebugInfo = false;
   bool _showCoordinateValidation = false;
 
+  // Whether to render the built-in close/QR buttons. Disabled when the
+  // camera is embedded in CameraHomeScreen, which provides its own dock.
+  bool _showControlButtons = true;
+
   // UI configuration
   static const double _overlayOpacity = 0.8;
   static const Duration _animationDuration = Duration(milliseconds: 300);
@@ -54,6 +58,7 @@ class ARCameraUI {
   void setShowDebugInfo(bool show) => _showDebugInfo = show;
   void setShowCoordinateValidation(bool show) =>
       _showCoordinateValidation = show;
+  void setShowControlButtons(bool show) => _showControlButtons = show;
 
   // Callback setters
   void setOnQRScanPressed(VoidCallback? callback) =>
@@ -107,8 +112,8 @@ class ARCameraUI {
             cameraController,
           ),
 
-        // Control overlays
-        ..._buildControlOverlays(context),
+        // Control overlays (hidden when embedded under the home dock)
+        if (_showControlButtons) ..._buildControlOverlays(context),
       ],
     );
   }

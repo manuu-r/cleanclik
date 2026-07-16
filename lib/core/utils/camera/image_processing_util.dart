@@ -16,6 +16,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart'
     as mlkit;
+import 'package:image/image.dart' as img;
 import 'package:cleanclik/core/services/camera/ml_config.dart';
 
 /// Static utility class for image processing operations
@@ -782,6 +783,112 @@ class ImageProcessingUtil {
     }
 
     return Uint8List(width * height * bytesPerPixel);
+  }
+
+  // ============================================================================
+  // JPEG Encoding
+  // ============================================================================
+
+  /// Encode an InputImage (NV21 or BGRA8888 bytes) to upright JPEG bytes.
+  ///
+  /// Used to snapshot cropped detections for the on-device VLM classifier.
+  /// Returns null if the image has no bytes/metadata or the format is
+  /// unsupported.
+  static Uint8List? inputImageToJpeg(
+    mlkit.InputImage inputImage, {
+    int quality = 85,
+  }) {
+    try {
+      final metadata = inputImage.metadata;
+      final bytes = inputImage.bytes;
+      if (metadata == null || bytes == null) return null;
+
+      final width = metadata.size.width.round();
+      final height = metadata.size.height.round();
+      if (width <= 0 || height <= 0) return null;
+
+      img.Image? decoded;
+      switch (metadata.format) {
+        case mlkit.InputImageFormat.nv21:
+          decoded = _nv21ToImage(bytes, width, height, metadata.bytesPerRow);
+          break;
+        case mlkit.InputImageFormat.bgra8888:
+          decoded = _bgra8888ToImage(bytes, width, height, metadata.bytesPerRow);
+          break;
+        default:
+          if (kDebugMode) {
+            print(
+              '⚠️ [ImageProcessingUtil] Unsupported format for JPEG encoding: ${metadata.format}',
+            );
+          }
+          return null;
+      }
+
+      if (decoded == null) return null;
+
+      // Rotate to upright so the VLM sees the object as the user does.
+      final angle = switch (metadata.rotation) {
+        mlkit.InputImageRotation.rotation90deg => 90,
+        mlkit.InputImageRotation.rotation180deg => 180,
+        mlkit.InputImageRotation.rotation270deg => 270,
+        _ => 0,
+      };
+      final upright = angle == 0 ? decoded : img.copyRotate(decoded, angle: angle);
+
+      return Uint8List.fromList(img.encodeJpg(upright, quality: quality));
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ [ImageProcessingUtil] JPEG encoding failed: $e');
+      }
+      return null;
+    }
+  }
+
+  static img.Image? _nv21ToImage(
+    Uint8List bytes,
+    int width,
+    int height,
+    int yStride,
+  ) {
+    final ySize = yStride * height;
+    if (bytes.length < ySize + (yStride * height) ~/ 2) return null;
+
+    final out = img.Image(width: width, height: height);
+    for (int y = 0; y < height; y++) {
+      final yRow = y * yStride;
+      final uvRow = ySize + (y >> 1) * yStride;
+      for (int x = 0; x < width; x++) {
+        final yValue = bytes[yRow + x];
+        final uvIndex = uvRow + (x & ~1);
+        final v = bytes[uvIndex] - 128;
+        final u = bytes[uvIndex + 1] - 128;
+
+        final r = (yValue + 1.370705 * v).round().clamp(0, 255);
+        final g = (yValue - 0.698001 * v - 0.337633 * u).round().clamp(0, 255);
+        final b = (yValue + 1.732446 * u).round().clamp(0, 255);
+        out.setPixelRgb(x, y, r, g, b);
+      }
+    }
+    return out;
+  }
+
+  static img.Image? _bgra8888ToImage(
+    Uint8List bytes,
+    int width,
+    int height,
+    int rowStride,
+  ) {
+    if (bytes.length < rowStride * height) return null;
+
+    final out = img.Image(width: width, height: height);
+    for (int y = 0; y < height; y++) {
+      final row = y * rowStride;
+      for (int x = 0; x < width; x++) {
+        final i = row + x * 4;
+        out.setPixelRgb(x, y, bytes[i + 2], bytes[i + 1], bytes[i]);
+      }
+    }
+    return out;
   }
 
   // ============================================================================

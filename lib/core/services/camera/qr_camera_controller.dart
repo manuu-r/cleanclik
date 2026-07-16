@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cleanclik/core/models/waste_models.dart';
 import 'package:cleanclik/core/services/camera/qr_bin_service.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
 import 'package:cleanclik/core/services/location/bin_matching_service.dart';
@@ -334,25 +335,7 @@ class QRCameraController {
   int _calculatePoints(List<InventoryItem> items) {
     int total = 0;
     for (final item in items) {
-      switch (item.category.toLowerCase()) {
-        case 'hazardous':
-          total += 20;
-          break;
-        case 'ewaste':
-          total += 15;
-          break;
-        case 'recycle':
-          total += 10;
-          break;
-        case 'organic':
-          total += 8;
-          break;
-        case 'landfill':
-          total += 5;
-          break;
-        default:
-          total += 5;
-      }
+      total += CategoryPoints.of(item.category);
     }
     return total;
   }

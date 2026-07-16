@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cleanclik/core/models/camera_models.dart';
 import 'package:cleanclik/core/models/waste_models.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
 import 'package:cleanclik/core/providers/inventory_provider.dart';
 import 'package:cleanclik/core/utils/haptics_util.dart';
 import 'package:cleanclik/presentation/widgets/overlays/base_bottom_sheet.dart';
@@ -66,10 +67,10 @@ class PickupConfirmationSheet extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
+              color: category.color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Colors.green.withOpacity(0.3),
+                color: category.color.withOpacity(0.3),
               ),
             ),
             child: Row(
@@ -124,7 +125,7 @@ class PickupConfirmationSheet extends ConsumerWidget {
                     if (onPickup != null) onPickup!();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: category.color,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -147,18 +148,5 @@ class PickupConfirmationSheet extends ConsumerWidget {
     );
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-        return Icons.recycling;
-      case 'organic':
-        return Icons.compost;
-      case 'ewaste':
-        return Icons.devices;
-      case 'hazardous':
-        return Icons.warning;
-      default:
-        return Icons.delete;
-    }
-  }
+  IconData _getCategoryIcon(String category) => CategoryVisuals.icon(category);
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cleanclik/core/services/location/bin_matching_service.dart';
 import 'package:cleanclik/core/services/business/inventory_service.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/theme/app_theme.dart';
 import 'package:cleanclik/core/services/camera/disposal_handling_service.dart';
@@ -394,20 +395,8 @@ class _DisposalConfirmationDialogState
     );
   }
 
-  IconData _getBinIcon() {
-    switch (widget.matchResult.binInfo.category.id) {
-      case 'recycle':
-        return Icons.recycling;
-      case 'organic':
-        return Icons.eco;
-      case 'ewaste':
-        return Icons.electrical_services;
-      case 'hazardous':
-        return Icons.warning;
-      default:
-        return Icons.delete;
-    }
-  }
+  IconData _getBinIcon() =>
+      CategoryVisuals.icon(widget.matchResult.binInfo.category.id);
 
   OverlayStateStyle _getStateStyle() {
     switch (widget.matchResult.matchType) {

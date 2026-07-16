@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:cleanclik/core/models/waste_models.dart';
 import 'package:cleanclik/core/services/business/database_helper.dart';
 import 'package:cleanclik/core/services/data/local_storage_service.dart';
 
@@ -324,22 +325,8 @@ class RecentActivity {
     );
   }
 
-  static int _calculatePointsForCategory(String category) {
-    switch (category.toLowerCase()) {
-      case 'hazardous':
-        return 20;
-      case 'ewaste':
-        return 15;
-      case 'recycle':
-        return 10;
-      case 'organic':
-        return 8;
-      case 'landfill':
-        return 5;
-      default:
-        return 5;
-    }
-  }
+  static int _calculatePointsForCategory(String category) =>
+      CategoryPoints.of(category);
 
   Map<String, dynamic> toJson() {
     return {

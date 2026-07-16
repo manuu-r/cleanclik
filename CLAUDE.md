@@ -76,7 +76,6 @@ cleanclik/
 │   │   ├── theme/                # Material 3 theme
 │   │   └── utils/                # Utilities and helpers
 │   └── presentation/             # UI layer
-│       ├── navigation/           # Navigation shell, home
 │       ├── screens/              # Full-screen views
 │       │   ├── auth/             # Login, signup, verification
 │       │   ├── camera/           # AR camera screen
@@ -110,7 +109,7 @@ Services are **domain-organized** in `lib/core/services/`:
 |--------|----------|---------|
 | **auth/** | `auth_service.dart`<br>`supabase_config_service.dart`<br>`deep_link_service.dart` | Authentication, Supabase config, deep links |
 | **business/** | `inventory_service.dart`<br>`user_service.dart`<br>`pickup_service.dart`<br>`database_helper.dart` | Inventory management, user profiles, pickups, CRUD |
-| **camera/** | `waste_detection_service.dart`<br>`waste_categorizer.dart`<br>`qr_bin_service.dart`<br>`disposal_handling_service.dart`<br>`camera_resource_manager.dart`<br>`ml_background_processor.dart` | Object detection, categorization, QR scanning, camera lifecycle, ML processing |
+| **camera/** | `waste_detection_service.dart`<br>`waste_categorizer.dart`<br>`vlm_waste_classifier.dart`<br>`detection_snapshot_cache.dart`<br>`qr_bin_service.dart`<br>`disposal_handling_service.dart`<br>`camera_resource_manager.dart` | Object detection, categorization, on-device VLM refinement, QR generation/scanning, camera lifecycle |
 | **location/** | `location_service.dart`<br>`bin_location_service.dart`<br>`bin_matching_service.dart`<br>`map_data_service.dart` | GPS, bin proximity, object-to-bin matching, map data |
 | **platform/** | `hand_tracking_service.dart`<br>`enhanced_gesture_recognition_service.dart` | Hand gestures, gesture recognition |
 | **system/** | `logging_service.dart`<br>`performance_service.dart`<br>`ui_context_service.dart` | Logging, performance monitoring, UI context |
@@ -407,13 +406,14 @@ class MyModel {
 - **map/**: Interactive map with bin locations
 - **profile/**: User stats, achievements, inventory
 
-**Navigation** (`navigation/`):
-- `ar_navigation_shell.dart` - Bottom navigation (3 tabs)
-- `home/home_screen.dart` - Dashboard with stats
+**Navigation**: camera-first — `CameraHomeScreen` (route `/`) hosts the
+persistent camera, the XP HUD, a bottom glass dock (Map / Bag / Profile), and
+slide-in panels that embed the map/profile screens. The app forces dark mode
+(`ThemeMode.dark` in `app.dart`).
 
 **Widgets** (`widgets/`):
 - **animations/**: Breathing animations, particles, progress rings
-- **common/**: Glassmorphism, FAB hub, category cards, sync indicator
+- **common/**: Glassmorphism, category cards, sync indicator
 - **camera/**: AR overlays, QR scanner UI, ML detection integration
 - **map/**: Bin markers, mission markers, holographic markers
 - **overlays/**: Celebration animations, confirmation dialogs
@@ -576,12 +576,13 @@ flutter build appbundle --release
 flutter build ios --release
 ```
 
-### Development Scripts (`scripts/`)
+### Bin QR Code Generation
 
-- **run_performance_tests.sh** - Performance benchmarks
-- **test_coverage.sh** - Coverage analysis with HTML report
-- **coverage_analysis.dart** - Detailed coverage breakdown
-- **generate_bin_qr_codes.py** - QR code generation (requires Python 3)
+Bin QR codes are generated **inside the app** (the `scripts/` folder was
+removed): the map screen's QR button opens `QrGeneratorScreen`
+(`lib/presentation/screens/qr/`), which builds the JSON payload via
+`QRBinService.createQRPayload()`, renders a Snapcode-style card
+(`qr_flutter`), and prints it via the `printing` package.
 
 ### Standard Workflow
 
@@ -698,10 +699,14 @@ SUPABASE_PUBLISHABLE_KEY=your-anon-key
 - Minimum confidence: 30%
 
 **Performance Optimization**:
-- Background processing via `ml_background_processor.dart`
 - Frame skipping during high load
 - Memory pressure detection
 - Cached mode for low-power devices
+
+**On-Device VLM (Cactus)**:
+- `vlm_waste_classifier.dart` runs LFM2-VL 450M locally (no cloud fallback)
+- Refines item category/name asynchronously after pickup confirmation
+- Snapshots come from `detection_snapshot_cache.dart` (JPEG crops by tracking ID)
 
 ---
 

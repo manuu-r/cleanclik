@@ -1,10 +1,47 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:cleanclik/core/models/location_models.dart';
 import 'package:cleanclik/core/models/waste_models.dart';
 
-/// Service for parsing and validating QR code data from waste bins
+/// Service for parsing, validating, and generating QR code data for waste bins
 class QRBinService {
   static const String _logTag = 'QR_BIN_SERVICE';
+
+  /// Payload schema version written into generated QR codes.
+  static const String payloadVersion = '1.0';
+
+  /// Build the JSON payload for a bin QR code.
+  ///
+  /// Produces the exact schema [parseQRCode] expects, so codes generated
+  /// in-app are guaranteed scannable by the app.
+  static String createQRPayload({
+    required String binId,
+    required WasteCategory category,
+    required double latitude,
+    required double longitude,
+    String? locationName,
+  }) {
+    final payload = <String, dynamic>{
+      'bin_id': binId,
+      'category': category.id,
+      'latitude': latitude,
+      'longitude': longitude,
+      'geohash': GeohashUtils.encode(latitude, longitude, precision: 8),
+      'generated_at': DateTime.now().toUtc().toIso8601String(),
+      'version': payloadVersion,
+      if (locationName != null && locationName.trim().isNotEmpty)
+        'location_name': locationName.trim(),
+    };
+    return jsonEncode(payload);
+  }
+
+  /// Generate a unique, human-readable bin ID for a category.
+  static String generateBinId(WasteCategory category) {
+    final stamp = DateTime.now().millisecondsSinceEpoch
+        .toRadixString(36)
+        .toUpperCase();
+    return 'BIN_${stamp}_${category.id.toUpperCase()}';
+  }
 
   /// Parse QR code JSON payload and extract bin information
   static BinInfo? parseQRCode(String qrData) {

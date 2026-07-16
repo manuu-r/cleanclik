@@ -14,6 +14,7 @@ import 'package:cleanclik/presentation/screens/auth/login_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/signup_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/email_verification_screen.dart';
 import 'package:cleanclik/presentation/screens/auth/auth_wrapper.dart';
+import 'package:cleanclik/presentation/screens/qr/qr_generator_screen.dart';
 
 /// Application route constants (consolidated)
 class Routes {
@@ -21,6 +22,7 @@ class Routes {
   static const String camera = '/camera';
   static const String map = '/map';
   static const String profile = '/profile';
+  static const String qrGenerator = '/qr-generator';
 
   // Authentication routes
   static const String login = '/login';
@@ -103,6 +105,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AuthWrapper(
           child: ProfileScreen(),
         ),
+      ),
+
+      // QR Generator Route (protected)
+      GoRoute(
+        path: Routes.qrGenerator,
+        name: 'qrGenerator',
+        builder: (context, state) =>
+            const AuthWrapper(child: QrGeneratorScreen()),
       ),
 
       // Camera Route (full screen, protected)

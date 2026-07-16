@@ -19,13 +19,21 @@ import 'package:cleanclik/presentation/screens/camera/ar_camera_ui.dart';
 class ARCameraScreen extends ConsumerStatefulWidget {
   final CameraMode initialMode;
 
-  const ARCameraScreen({super.key, this.initialMode = CameraMode.mlDetection});
+  /// When false, the built-in close/QR buttons are hidden — used when the
+  /// camera is embedded in CameraHomeScreen, which provides its own dock.
+  final bool showBuiltInControls;
+
+  const ARCameraScreen({
+    super.key,
+    this.initialMode = CameraMode.mlDetection,
+    this.showBuiltInControls = true,
+  });
 
   @override
-  ConsumerState<ARCameraScreen> createState() => _ARCameraScreenState();
+  ConsumerState<ARCameraScreen> createState() => ARCameraScreenState();
 }
 
-class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
+class ARCameraScreenState extends ConsumerState<ARCameraScreen>
     with WidgetsBindingObserver {
   // Core components
   late final ARCameraServices _services;
@@ -192,7 +200,7 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
     // Pickup event listener is attached after services initialize to ensure
     // the pickup service instance exists and eventsStream is available.
     // Set up UI callbacks
-    _ui.setOnQRScanPressed(() => _startQRScanning());
+    _ui.setOnQRScanPressed(() => startQRScanning());
   }
 
   /// Setup callbacks for QR controller after it's initialized
@@ -290,7 +298,7 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
         });
 
         // Start QR scanning immediately
-        _startQRScanning();
+        startQRScanning();
       }
 
       print('✅ [AR_CAMERA] AR camera screen initialized successfully');
@@ -852,7 +860,7 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
   }
 
   /// Start QR scanning
-  void _startQRScanning() async {
+  void startQRScanning() async {
     print('📱 [AR_CAMERA] Starting QR scanning...');
 
     // Switch to QR mode if not already (only if we have AR camera running)
@@ -897,6 +905,7 @@ class _ARCameraScreenState extends ConsumerState<ARCameraScreen>
 
   /// Synchronize UI state between main screen and UI module
   void _syncUIState() {
+    _ui.setShowControlButtons(widget.showBuiltInControls);
     _ui.setShowObjectOverlays(_showObjectOverlays);
     _ui.setShowHandOverlays(_showHandOverlays);
     _ui.setShowHandSkeleton(_showHandSkeleton);

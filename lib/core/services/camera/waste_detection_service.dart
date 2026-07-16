@@ -9,11 +9,11 @@ import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart'
     as mlkit;
 
+import 'package:cleanclik/core/services/camera/detection_snapshot_cache.dart';
 import 'package:cleanclik/core/services/camera/ml_config.dart';
 import 'package:cleanclik/core/utils/camera/image_processing_util.dart';
 import 'package:cleanclik/core/utils/camera/coordinate_transform_util.dart';
 import 'package:cleanclik/core/services/camera/waste_categorizer.dart';
-import 'package:cleanclik/core/services/camera/ml_background_processor.dart';
 import 'package:cleanclik/core/models/camera_models.dart';
 import 'package:cleanclik/core/models/waste_models.dart';
 
@@ -44,7 +44,6 @@ class WasteDetectionService {
   mlkit.ImageLabeler? _imageLabeler;
 
   final WasteCategorizer _categorizer = WasteCategorizer.instance;
-  final MLBackgroundProcessor _backgroundProcessor = MLBackgroundProcessor();
 
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -84,12 +83,6 @@ class WasteDetectionService {
 
       if (kDebugMode) {
         print('✅ [WasteDetectionService] Image labeler initialized');
-      }
-
-      await _backgroundProcessor.initialize();
-
-      if (kDebugMode) {
-        print('✅ [WasteDetectionService] Background processor initialized');
       }
 
       _isInitialized = true;
@@ -189,38 +182,6 @@ class WasteDetectionService {
     }
   }
 
-  Future<List<DetectedObject>> detectWasteInBackground(
-    CameraImage cameraImage,
-    CameraController controller,
-    Size screenSize,
-  ) async {
-    if (!_isInitialized) {
-      throw StateError('WasteDetectionService not initialized');
-    }
-
-    try {
-      final imageData = _serializeCameraImage(cameraImage);
-      final controllerData = _serializeController(controller);
-
-      final result = await _backgroundProcessor
-          .processInIsolate<Map<String, dynamic>>('detectWaste', {
-            'cameraImage': imageData,
-            'controller': controllerData,
-            'screenSize': {
-              'width': screenSize.width,
-              'height': screenSize.height,
-            },
-          });
-
-      return _deserializeDetectedObjects(result);
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ [WasteDetectionService] Background detection failed: $e');
-      }
-      return detectWaste(cameraImage, controller, screenSize);
-    }
-  }
-
   Future<List<mlkit.DetectedObject>> _detectObjects(
     mlkit.InputImage inputImage,
   ) async {
@@ -311,8 +272,12 @@ class WasteDetectionService {
 
     final confidence = _calculateCombinedConfidence(mlObject, labels);
 
+    final trackingId =
+        mlObject.trackingId?.toString() ?? _generateTrackingId();
+    _captureSnapshot(trackingId, croppedImage);
+
     return DetectedObject(
-      trackingId: mlObject.trackingId?.toString() ?? _generateTrackingId(),
+      trackingId: trackingId,
       category: category.id,
       codeName: category.codeName,
       boundingBox: screenBoundingBox,
@@ -323,6 +288,31 @@ class WasteDetectionService {
       detectionSource: DetectionSource.combined,
       categorizationReasoning: _buildCategorizationReasoning(labels, category),
     );
+  }
+
+  /// Snapshot the cropped detection as JPEG for later VLM classification.
+  ///
+  /// Throttled per tracking ID to bound the JPEG-encoding cost while the
+  /// object stays in frame.
+  static const Duration _snapshotInterval = Duration(milliseconds: 500);
+  final Map<String, DateTime> _lastSnapshotAt = {};
+
+  void _captureSnapshot(String trackingId, mlkit.InputImage croppedImage) {
+    final now = DateTime.now();
+    final last = _lastSnapshotAt[trackingId];
+    if (last != null && now.difference(last) < _snapshotInterval) return;
+    _lastSnapshotAt[trackingId] = now;
+
+    final jpeg = ImageProcessingUtil.inputImageToJpeg(croppedImage);
+    if (jpeg != null) {
+      DetectionSnapshotCache.instance.put(trackingId, jpeg);
+    }
+
+    if (_lastSnapshotAt.length > 64) {
+      _lastSnapshotAt.removeWhere(
+        (_, at) => now.difference(at) > const Duration(seconds: 30),
+      );
+    }
   }
 
   Future<List<ImageLabel>> _labelImage(mlkit.InputImage inputImage) async {
@@ -384,41 +374,6 @@ class WasteDetectionService {
     return 'obj_${DateTime.now().millisecondsSinceEpoch}_$_frameCounter';
   }
 
-  Map<String, dynamic> _serializeCameraImage(CameraImage image) {
-    return {
-      'width': image.width,
-      'height': image.height,
-      'format': image.format.group.toString(),
-      'planes': image.planes
-          .map(
-            (plane) => {
-              'bytes': plane.bytes,
-              'bytesPerRow': plane.bytesPerRow,
-              'bytesPerPixel': plane.bytesPerPixel,
-            },
-          )
-          .toList(),
-    };
-  }
-
-  Map<String, dynamic> _serializeController(CameraController controller) {
-    return {
-      'sensorOrientation': controller.description.sensorOrientation,
-      'lensDirection': controller.description.lensDirection.toString(),
-    };
-  }
-
-  List<DetectedObject> _deserializeDetectedObjects(
-    Map<String, dynamic> result,
-  ) {
-    final objectsData = result['objects'] as List<dynamic>?;
-    if (objectsData == null) return [];
-
-    return objectsData
-        .map((data) => DetectedObject.fromJson(data as Map<String, dynamic>))
-        .toList();
-  }
-
   Future<void> dispose() async {
     if (kDebugMode) {
       print('🧹 [WasteDetectionService] Disposing...');
@@ -426,6 +381,7 @@ class WasteDetectionService {
 
     _isInitialized = false;
     _isProcessing = false;
+    _lastSnapshotAt.clear();
 
     try {
       if (_objectDetector != null) {
@@ -442,11 +398,6 @@ class WasteDetectionService {
         if (kDebugMode) {
           print('✅ [WasteDetectionService] Image labeler closed');
         }
-      }
-
-      await _backgroundProcessor.dispose();
-      if (kDebugMode) {
-        print('✅ [WasteDetectionService] Background processor disposed');
       }
 
       if (kDebugMode) {

@@ -182,15 +182,9 @@ CREATE INDEX idx_bin_locations_category ON bin_locations(category);
 CREATE INDEX idx_bin_locations_coordinates ON bin_locations(latitude, longitude);
 CREATE INDEX idx_bin_locations_active ON bin_locations(is_active);
 
--- Demo Data (for testing - remove in production)
--- Note: These are sample users with fake auth_ids for testing
-INSERT INTO users (id, auth_id, username, email, total_points, level, avatar_url, last_active_at) VALUES
-  ('550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'EcoWarrior', 'eco@example.com', 2500, 5, null, now() - interval '1 hour'),
-  ('550e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'GreenThumb', 'green@example.com', 1800, 4, null, now() - interval '2 hours'),
-  ('550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'RecycleKing', 'recycle@example.com', 1200, 3, null, now() - interval '3 hours'),
-  ('550e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440004', 'CleanQueen', 'clean@example.com', 950, 2, null, now() - interval '4 hours'),
-  ('550e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440005', 'EarthSaver', 'earth@example.com', 750, 2, null, now() - interval '5 hours')
-ON CONFLICT (id) DO NOTHING;
+-- NOTE: Do not seed demo users here. users.auth_id has a foreign key to
+-- auth.users, so rows can only be created for real authenticated users
+-- (the app creates the profile row on signup).
 
 -- Sample bin locations (for testing)
 INSERT INTO bin_locations (id, name, category, latitude, longitude, address, description) VALUES

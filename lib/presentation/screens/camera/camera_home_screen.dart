@@ -1,36 +1,42 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cleanclik/core/models/camera_models.dart';
 import 'package:cleanclik/core/models/location_models.dart';
 import 'package:cleanclik/core/models/user_models.dart';
 import 'package:cleanclik/core/providers/user_provider.dart';
 import 'package:cleanclik/core/providers/inventory_provider.dart';
+import 'package:cleanclik/core/routing/app_router.dart';
+import 'package:cleanclik/core/utils/haptics_util.dart';
 import 'package:cleanclik/presentation/screens/camera/ar_camera_screen.dart';
 import 'package:cleanclik/presentation/widgets/camera/camera_hud.dart';
+import 'package:cleanclik/presentation/widgets/inventory/inventory_display.dart';
 import 'package:cleanclik/presentation/widgets/overlays/pickup_confirmation_sheet.dart';
 import 'package:cleanclik/presentation/widgets/overlays/xp_reward_sheet.dart';
 import 'package:cleanclik/presentation/widgets/overlays/disposal_options_sheet.dart';
-import 'package:cleanclik/presentation/widgets/panels/map_slide_panel.dart';
-import 'package:cleanclik/presentation/widgets/panels/profile_slide_panel.dart';
-import 'package:cleanclik/presentation/widgets/panels/inventory_slide_panel.dart';
 
-/// Camera home screen with XP HUD and bottom sheets
+/// Camera-first home screen.
 ///
-/// Main entry point for the camera-first UX
+/// Layout contract (nothing else may draw chrome on this screen):
+/// - Top: [CameraHUD] — level badge (tap → profile) + XP bar.
+/// - Bottom: one dock — Map (push /map), Scan Bin (center CTA), Bag (sheet).
+/// - The embedded [ARCameraScreen] renders camera + AR overlays only
+///   (its built-in buttons are disabled via [ARCameraScreen.showBuiltInControls]).
 class CameraHomeScreen extends ConsumerStatefulWidget {
   const CameraHomeScreen({super.key});
 
   @override
-  ConsumerState<CameraHomeScreen> createState() =>
-      _CameraHomeScreenState();
+  ConsumerState<CameraHomeScreen> createState() => _CameraHomeScreenState();
 }
 
 class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
-  // Panel state
-  bool _showMapPanel = false;
-  bool _showProfilePanel = false;
-  bool _showInventoryPanel = false;
+  static const Color _brandGreen = Color(0xFF4CAF50);
+
+  final GlobalKey<ARCameraScreenState> _cameraKey =
+      GlobalKey<ARCameraScreenState>();
 
   // Bottom sheet state
   bool _showPickupSheet = false;
@@ -52,11 +58,10 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize tracking values
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userAsync = ref.read(syncedCurrentUserProvider);
       userAsync.whenData((user) {
-        if (user != null) {
+        if (user != null && mounted) {
           setState(() {
             _previousLevel = user.level;
             _previousPoints = user.totalPoints;
@@ -68,14 +73,10 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch user to detect XP/level changes
-    final userAsync = ref.watch(syncedCurrentUserProvider);
-
     // Listen for user changes to trigger XP animations
     ref.listen<AsyncValue<User?>>(syncedCurrentUserProvider, (previous, next) {
       next.whenData((user) {
         if (user != null && _previousPoints != null && mounted) {
-          // Check if points changed
           if (user.totalPoints > _previousPoints!) {
             final xpGained = user.totalPoints - _previousPoints!;
             final leveledUp = user.level > (_previousLevel ?? user.level);
@@ -86,14 +87,12 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
               _didLevelUp = leveledUp;
               _newLevel = leveledUp ? user.level : null;
               _showXPRewardSheet = true;
-              // Close pickup sheet if open
               _showPickupSheet = false;
               _pendingPickup = null;
             });
           }
         }
 
-        // Update previous values
         if (user != null) {
           _previousLevel = user.level;
           _previousPoints = user.totalPoints;
@@ -105,57 +104,42 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Camera view (persistent, full screen)
-          const Positioned.fill(
+          // 1. Camera view (persistent, full screen, no built-in chrome)
+          Positioned.fill(
             child: ARCameraScreen(
+              key: _cameraKey,
               initialMode: CameraMode.mlDetection,
+              showBuiltInControls: false,
             ),
           ),
 
-          // 2. Top HUD (XP bar, level) - always visible
-          const Positioned(
+          // 2. Top HUD (level → profile, XP bar)
+          Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: CameraHUD(),
+            child: CameraHUD(
+              onLevelTap: () {
+                HapticsUtil.selectionClick();
+                context.push(Routes.profile);
+              },
+            ),
           ),
 
-          // 3. Floating action buttons (bottom right)
+          // 3. Bottom dock — the only navigation on this screen
           Positioned(
-            bottom: 32,
-            right: 16,
-            child: _buildFloatingActions(),
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: _buildBottomDock(),
           ),
 
-          // 4. Slide panels (conditional, full screen overlays)
-          if (_showMapPanel)
-            Positioned.fill(
-              child: MapSlidePanel(
-                onClose: () => setState(() => _showMapPanel = false),
-              ),
-            ),
-
-          if (_showProfilePanel)
-            Positioned.fill(
-              child: ProfileSlidePanel(
-                onClose: () => setState(() => _showProfilePanel = false),
-              ),
-            ),
-
-          if (_showInventoryPanel)
-            Positioned.fill(
-              child: InventorySlidePanel(
-                onClose: () => setState(() => _showInventoryPanel = false),
-              ),
-            ),
-
-          // 5. Bottom sheets (conditional, rendered on top of panels)
+          // 4. Bottom sheets (conditional, on top of everything)
           if (_showPickupSheet && _pendingPickup != null)
             Positioned.fill(
               child: PickupConfirmationSheet(
                 detectedObject: _pendingPickup!,
                 onPickup: () {
-                  // Pickup will trigger user points change, which triggers XP sheet
                   setState(() {
                     _showPickupSheet = false;
                   });
@@ -174,16 +158,13 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
               child: DisposalOptionsSheet(
                 bin: _selectedBin!,
                 onDisposeAll: () async {
-                  // Dispose all items
                   final items = ref.read(inventoryItemsProvider);
                   if (items.isNotEmpty) {
-                    // Clear inventory and award XP
                     for (final item in items) {
-                      await ref.read(inventoryServiceProvider).removeItem(item.id);
+                      await ref
+                          .read(inventoryServiceProvider)
+                          .removeItem(item.id);
                     }
-
-                    // Award XP by manually updating user points
-                    // XP listener will automatically trigger reward sheet
                     setState(() {
                       _showDisposalSheet = false;
                       _selectedBin = null;
@@ -191,10 +172,10 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
                   }
                 },
                 onSelectItems: () {
-                  // TODO: Show item selection UI
                   setState(() {
                     _showDisposalSheet = false;
                   });
+                  _showInventorySheet();
                 },
                 onCancel: () {
                   setState(() {
@@ -226,54 +207,43 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
     );
   }
 
-  Widget _buildFloatingActions() {
+  // ---------------------------------------------------------------------------
+  // Bottom dock
+  // ---------------------------------------------------------------------------
+
+  Widget _buildBottomDock() {
+    final itemCount = ref.watch(inventoryItemsProvider).length;
+    final carrying = itemCount > 0;
+
     return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Map button with label
-          _buildFAB(
-            heroTag: 'map',
-            icon: Icons.map,
+          _DockButton(
+            icon: Icons.map_outlined,
             label: 'Map',
-            color: Colors.blue,
-            onPressed: () {
-              setState(() {
-                _showMapPanel = true;
-                _showProfilePanel = false;
-                _showInventoryPanel = false;
-              });
+            onTap: () {
+              HapticsUtil.selectionClick();
+              context.push(Routes.map);
             },
           ),
-          const SizedBox(height: 12),
-          // Inventory button with label
-          _buildFAB(
-            heroTag: 'inventory',
-            icon: Icons.inventory_2,
+          const SizedBox(width: 24),
+          _ScanBinButton(
+            active: carrying,
+            onTap: () {
+              HapticsUtil.mediumImpact();
+              _cameraKey.currentState?.startQRScanning();
+            },
+          ),
+          const SizedBox(width: 24),
+          _DockButton(
+            icon: Icons.backpack_outlined,
             label: 'Bag',
-            color: Colors.orange,
-            onPressed: () {
-              setState(() {
-                _showInventoryPanel = true;
-                _showMapPanel = false;
-                _showProfilePanel = false;
-              });
-            },
-          ),
-          const SizedBox(height: 12),
-          // Profile button with label
-          _buildFAB(
-            heroTag: 'profile',
-            icon: Icons.person,
-            label: 'Profile',
-            color: Colors.purple,
-            onPressed: () {
-              setState(() {
-                _showProfilePanel = true;
-                _showMapPanel = false;
-                _showInventoryPanel = false;
-              });
+            badgeCount: itemCount,
+            onTap: () {
+              HapticsUtil.selectionClick();
+              _showInventorySheet();
             },
           ),
         ],
@@ -281,38 +251,107 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
     );
   }
 
-  Widget _buildFAB({
-    required String heroTag,
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: FloatingActionButton.extended(
-        heroTag: heroTag,
-        onPressed: onPressed,
-        backgroundColor: color.withOpacity(0.95),
-        elevation: 0,
-        icon: Icon(icon, size: 20),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+  // ---------------------------------------------------------------------------
+  // Inventory sheet (standard modal — swipe down or tap outside to dismiss)
+  // ---------------------------------------------------------------------------
+
+  void _showInventorySheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final itemCount = ref.watch(inventoryItemsProvider).length;
+            return Container(
+              height: MediaQuery.of(sheetContext).size.height * 0.7,
+              decoration: const BoxDecoration(
+                color: Color(0xFF13141A),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.backpack_outlined,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Bag',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (itemCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _brandGreen.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$itemCount',
+                              style: const TextStyle(
+                                color: _brandGreen,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white54),
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                      child: InventoryDisplay(
+                        onItemsDispose: (ids) async {
+                          for (final id in ids) {
+                            await ref
+                                .read(inventoryServiceProvider)
+                                .removeItem(id);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -334,5 +373,168 @@ class _CameraHomeScreenState extends ConsumerState<CameraHomeScreen> {
         _showDisposalSheet = true;
       });
     }
+  }
+}
+
+/// Secondary dock button: frosted glass circle with a label below.
+class _DockButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final int badgeCount;
+
+  const _DockButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipOval(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.45),
+              shape: CircleBorder(
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+              child: InkWell(
+                onTap: onTap,
+                customBorder: const CircleBorder(),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 26),
+                      if (badgeCount > 0)
+                        Positioned(
+                          top: 8,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4CAF50),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: Colors.black,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Text(
+                              badgeCount > 99 ? '99+' : '$badgeCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.85),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+            shadows: const [Shadow(color: Colors.black87, blurRadius: 6)],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Primary dock CTA: scan a bin to dispose. Glows green while carrying items.
+class _ScanBinButton extends StatelessWidget {
+  final bool active;
+  final VoidCallback onTap;
+
+  const _ScanBinButton({required this.active, required this.onTap});
+
+  static const Color _brandGreen = Color(0xFF4CAF50);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: active
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [_brandGreen, Color(0xFF2E7D32)],
+                  )
+                : null,
+            color: active ? null : Colors.black.withValues(alpha: 0.55),
+            border: Border.all(
+              color: active
+                  ? Colors.white.withValues(alpha: 0.9)
+                  : Colors.white.withValues(alpha: 0.25),
+              width: 2,
+            ),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: _brandGreen.withValues(alpha: 0.55),
+                      blurRadius: 24,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : const [
+                    BoxShadow(color: Colors.black45, blurRadius: 12),
+                  ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const CircleBorder(),
+              child: const Icon(
+                Icons.qr_code_scanner,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          active ? 'Dispose' : 'Scan Bin',
+          style: TextStyle(
+            color: active ? _brandGreen : Colors.white.withValues(alpha: 0.85),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
+            shadows: const [Shadow(color: Colors.black87, blurRadius: 6)],
+          ),
+        ),
+      ],
+    );
   }
 }

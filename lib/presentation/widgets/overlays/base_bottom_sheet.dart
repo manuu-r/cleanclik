@@ -40,7 +40,7 @@ class BaseBottomSheet extends StatelessWidget {
               height: sheetHeight,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.9),
+                color: const Color(0xFF13141A).withOpacity(0.97),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),

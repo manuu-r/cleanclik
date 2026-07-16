@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cleanclik/core/theme/neon_colors.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
 import 'dart:math' as math;
 
 class HolographicMarker extends StatefulWidget {
@@ -86,37 +86,9 @@ class _HolographicMarkerState extends State<HolographicMarker>
     );
   }
 
-  Color _getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-        return NeonColors.electricGreen;
-      case 'organic':
-        return NeonColors.earthOrange;
-      case 'ewaste':
-        return NeonColors.oceanBlue;
-      case 'hazardous':
-        return NeonColors.toxicPurple;
-      case 'landfill':
-      default:
-        return Colors.grey;
-    }
-  }
+  Color _getCategoryColor(String category) => CategoryVisuals.color(category);
 
-  IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-        return Icons.recycling;
-      case 'organic':
-        return Icons.eco;
-      case 'ewaste':
-        return Icons.electrical_services;
-      case 'hazardous':
-        return Icons.warning;
-      case 'landfill':
-      default:
-        return Icons.delete;
-    }
-  }
+  IconData _getCategoryIcon(String category) => CategoryVisuals.icon(category);
 }
 
 class _HolographicPainter extends CustomPainter {

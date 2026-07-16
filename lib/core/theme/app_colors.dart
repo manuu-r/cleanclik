@@ -61,49 +61,4 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  /// Get category color by name
-  static Color getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-      case 'ecogems':
-        return ecoGems;
-      case 'organic':
-      case 'fuelshards':
-        return fuelShards;
-      case 'landfill':
-      case 'voiddust':
-        return voidDust;
-      case 'ewaste':
-      case 'sparkcores':
-        return sparkCores;
-      case 'hazardous':
-      case 'toxiccrystals':
-        return toxicCrystals;
-      default:
-        return outline;
-    }
-  }
-
-  /// Get category gradient by name
-  static LinearGradient getCategoryGradient(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-      case 'ecogems':
-        return ecoGemsGradient;
-      case 'organic':
-      case 'fuelshards':
-        return fuelShardsGradient;
-      case 'landfill':
-      case 'voiddust':
-        return voidDustGradient;
-      case 'ewaste':
-      case 'sparkcores':
-        return sparkCoresGradient;
-      case 'hazardous':
-      case 'toxiccrystals':
-        return toxicCrystalsGradient;
-      default:
-        return const LinearGradient(colors: [outline, outline]);
-    }
-  }
 }

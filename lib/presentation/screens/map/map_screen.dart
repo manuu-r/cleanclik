@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:cleanclik/presentation/widgets/map/holographic_marker.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:cleanclik/core/routing/app_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -8,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'dart:io' show Platform;
+import 'package:cleanclik/core/theme/category_visuals.dart';
 import 'package:cleanclik/core/theme/neon_colors.dart';
 import 'package:cleanclik/core/services/location/location_service.dart';
 import 'package:cleanclik/core/services/location/bin_location_service.dart';
@@ -587,72 +590,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
     }
   }
 
-  /// Test navigation to a known location (Bangalore City Center)
-  Future<void> _testNavigation() async {
-    const testLocation = LatLng(12.9716, 77.5946); // Bangalore city center
-    print('🧪 [MAP_SCREEN] Testing navigation to Bangalore city center');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Testing navigation to Bangalore city center...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-
-    await _navigateToLocation(testLocation);
-  }
-
-  /// Add a test bin near current location for debugging
-  Future<void> _addTestBin() async {
-    if (_currentLocation == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Location not available')));
-      return;
-    }
-
-    final binService = await ref.read(binLocationServiceProvider.future);
-
-    // Create a test bin 100m away from current location
-    final testLocation = LatLng(
-      _currentLocation!.position.latitude + 0.001, // ~100m north
-      _currentLocation!.position.longitude + 0.001, // ~100m east
-    );
-
-    final testBin = BinLocation(
-      id: 'test_bin_${DateTime.now().millisecondsSinceEpoch}',
-      geohash: GeohashUtils.encode(
-        testLocation.latitude,
-        testLocation.longitude,
-      ),
-      coordinates: testLocation,
-      category: 'recycle',
-      name: 'Test Recycle Bin',
-      timestamp: DateTime.now(),
-      metadata: {'source': 'test', 'description': 'Test bin for debugging'},
-    );
-
-    final added = await binService.addBin(testBin);
-    if (added) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Test bin added successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      print(
-        '✅ [MAP_SCREEN] Test bin added: ${testBin.name} at ${testBin.coordinates}',
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('⚠️ Test bin already exists nearby'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  }
-
   /// Show detailed bin information
   void _showBinInfo(BinLocation bin) {
     setState(() => _selectedDetailType = null);
@@ -886,40 +823,36 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   /// Get category color for bin markers
-  Color _getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-        return NeonColors.electricGreen;
-      case 'organic':
-        return NeonColors.earthOrange;
-      case 'ewaste':
-        return NeonColors.oceanBlue;
-      case 'hazardous':
-        return NeonColors.toxicPurple;
-      case 'landfill':
-      default:
-        return Colors.grey;
-    }
-  }
+  Color _getCategoryColor(String category) => CategoryVisuals.color(category);
 
   /// Get category icon for bin markers
-  IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'recycle':
-        return Icons.recycling;
-      case 'organic':
-        return Icons.eco;
-      case 'ewaste':
-        return Icons.electrical_services;
-      case 'hazardous':
-        return Icons.warning;
-      case 'landfill':
-      default:
-        return Icons.delete;
-    }
-  }
+  IconData _getCategoryIcon(String category) => CategoryVisuals.icon(category);
 
   /// Format timestamp for display
+  /// Glass back button, consistent with the home dock styling.
+  Widget _buildBackButton(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.black.withValues(alpha: 0.55),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: IconButton(
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/');
+          }
+        },
+        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
+        tooltip: 'Back',
+      ),
+    );
+  }
+
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
@@ -1209,36 +1142,31 @@ class _MapScreenState extends ConsumerState<MapScreen>
               MarkerLayer(markers: _markers),
             ],
           ),
-          // Left column - Map actions
+          // Left column - back + map actions
           Positioned(
-            top: 60,
+            top: 8,
             left: 16,
             child: SafeArea(
-              child: MapControlColumn(
-                items: [
-                  MapControlItem(
-                    icon: Icons.navigation,
-                    color: const Color(0xFFFFD700), // Bright gold
-                    onTap: _testNavigation,
-                    tooltip: 'Test Navigation',
-                  ),
-                  MapControlItem(
-                    icon: Icons.add_location,
-                    color: const Color(0xFFFF6B6B), // Bright red
-                    onTap: _addTestBin,
-                    tooltip: 'Add Test Bin',
-                  ),
-                  MapControlItem(
-                    icon: Icons.near_me,
-                    color: const Color(0xFF4ECDC4), // Bright teal
-                    onTap: _showNearestBin,
-                    tooltip: 'Nearest Bin',
-                  ),
-                  MapControlItem(
-                    icon: Icons.my_location,
-                    color: const Color(0xFF45B7D1), // Bright blue
-                    onTap: _goToCurrentLocation,
-                    tooltip: 'My Location',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildBackButton(context),
+                  const SizedBox(height: 16),
+                  MapControlColumn(
+                    items: [
+                      MapControlItem(
+                        icon: Icons.near_me,
+                        color: const Color(0xFF4ECDC4), // Bright teal
+                        onTap: _showNearestBin,
+                        tooltip: 'Nearest Bin',
+                      ),
+                      MapControlItem(
+                        icon: Icons.my_location,
+                        color: const Color(0xFF45B7D1), // Bright blue
+                        onTap: _goToCurrentLocation,
+                        tooltip: 'My Location',
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1285,6 +1213,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                       tooltip: 'Toggle Friends',
                       isActive: _showFriends,
                       count: MapDataService.getFriends().length,
+                    ),
+                    MapControlItem(
+                      icon: Icons.qr_code_2,
+                      color: Colors.white,
+                      onTap: () => context.push(Routes.qrGenerator),
+                      tooltip: 'Generate Bin QR',
                     ),
                   ],
                 ),
