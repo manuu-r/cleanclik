@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cleanclik/core/theme/app_colors.dart';
-import 'package:cleanclik/core/theme/ar_theme_extensions.dart';
-import 'package:cleanclik/core/theme/neon_colors.dart';
-import 'package:cleanclik/core/models/user_models.dart';
-import 'package:cleanclik/core/services/auth/auth_service.dart';
-import 'package:cleanclik/core/providers/user_provider.dart';
-import 'package:cleanclik/core/services/system/performance_service.dart';
-import 'package:cleanclik/core/theme/app_theme.dart';
 
-import 'package:cleanclik/presentation/widgets/common/glassmorphism_container.dart';
+import 'package:cleanclik/core/models/user_models.dart';
+import 'package:cleanclik/core/models/waste_models.dart';
+import 'package:cleanclik/core/providers/user_provider.dart';
+import 'package:cleanclik/core/services/auth/auth_service.dart';
+import 'package:cleanclik/core/theme/category_visuals.dart';
+
 import 'package:cleanclik/presentation/widgets/profile/achievements_display.dart';
 
-import 'package:cleanclik/presentation/widgets/animations/progress_ring.dart';
-import 'package:cleanclik/presentation/widgets/animations/breathing_widget.dart';
-import 'package:cleanclik/presentation/widgets/animations/particle_system.dart';
-
+/// Profile screen: identity + level card, lifetime stats, achievements,
+/// per-category breakdown, sign out. Pushed from the home HUD level badge.
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -24,132 +19,65 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _particleController;
-  bool _showCelebration = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _particleController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-  }
-
-  @override
-  void dispose() {
-    _particleController.dispose();
-    super.dispose();
-  }
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  static const Color _background = Color(0xFF0E0F12);
+  static const Color _surface = Color(0xFF13141A);
+  static const Color _brandGreen = Color(0xFF4CAF50);
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔵 [PROFILE_SCREEN] build() called');
-    final ref = this.ref;
-
-    debugPrint('🔵 [PROFILE_SCREEN] Watching authStateProvider...');
     final authStateAsync = ref.watch(authStateProvider);
 
-    debugPrint('🔵 [PROFILE_SCREEN] Watching performanceServiceProvider...');
-    final performanceService = ref.watch(performanceServiceProvider);
-
-    final theme = Theme.of(context);
-    final arTheme = theme.extension<ARThemeExtension>()!;
-
-    debugPrint('🔵 [PROFILE_SCREEN] Processing authStateAsync.when...');
-    // Watch auth state to get current user
     return authStateAsync.when(
       data: (authState) {
-        debugPrint(
-          '🔵 [PROFILE_SCREEN] authStateAsync.data - isAuthenticated: ${authState.isAuthenticated}, user: ${authState.user?.username}',
-        );
-
         if (!authState.isAuthenticated || authState.user == null) {
-          debugPrint(
-            '⚠️ [PROFILE_SCREEN] User not authenticated, redirecting to login',
-          );
-          // Redirect to login if not authenticated
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              context.go('/login');
-            }
+            if (mounted) context.go('/login');
           });
           return const Scaffold(
+            backgroundColor: _background,
             body: Center(child: CircularProgressIndicator()),
           );
         }
-
-        debugPrint(
-          '🔵 [PROFILE_SCREEN] Building profile content for user: ${authState.user!.username}',
-        );
-        // User is authenticated, build profile content
-        return _buildProfileContent(
-          context,
-          authState.user!,
-          authStateAsync,
-          performanceService,
-          theme,
-          arTheme,
-          ref,
-        );
+        return _buildProfileContent(context, authState.user!);
       },
-      loading: () {
-        debugPrint('🔵 [PROFILE_SCREEN] authStateAsync.loading');
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
-      },
-      error: (error, stack) {
-        debugPrint('❌ [PROFILE_SCREEN] authStateAsync.error: $error');
-        return Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 16),
-                Text('Error loading profile: $error'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => context.go('/login'),
-                  child: const Text('Go to Login'),
-                ),
-              ],
-            ),
+      loading: () => const Scaffold(
+        backgroundColor: _background,
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        backgroundColor: _background,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading profile',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('Go to Login'),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildProfileContent(
-    BuildContext context,
-    User currentUser,
-    AsyncValue<AuthState> authStateAsync,
-    PerformanceService performanceService,
-    ThemeData theme,
-    ARThemeExtension arTheme,
-    WidgetRef ref,
-  ) {
-    debugPrint(
-      '🔵 [PROFILE_SCREEN] _buildProfileContent() called for user: ${currentUser.username}',
-    );
-
-    // Get dashboard statistics from provider
-    debugPrint('🔵 [PROFILE_SCREEN] Watching dashboardStatsProvider...');
+  Widget _buildProfileContent(BuildContext context, User currentUser) {
     final dashboardStatsAsync = ref.watch(dashboardStatsProvider);
-    debugPrint(
-      '🔵 [PROFILE_SCREEN] dashboardStatsAsync state: ${dashboardStatsAsync.runtimeType}',
-    );
 
-    // Use dashboard stats or fallback to basic user data
     final userStats = dashboardStatsAsync.when(
       data: (dashboardStats) => <String, dynamic>{
         'totalPoints': dashboardStats.totalPoints,
         'totalItemsCollected': dashboardStats.totalItemsDisposed,
         'accountAge': DateTime.now().difference(currentUser.createdAt).inDays,
         'rank': dashboardStats.rank ?? 0,
-        'achievements': <String>[], // Keep simplified for now
         'categoryStats': dashboardStats.categoryBreakdown,
         'isStale': dashboardStats.isStale,
       },
@@ -158,26 +86,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         'totalItemsCollected': currentUser.totalItemsCollected,
         'accountAge': DateTime.now().difference(currentUser.createdAt).inDays,
         'rank': 0,
-        'achievements': <String>[],
         'categoryStats': currentUser.categoryStats,
         'isStale': false,
       },
-      error: (error, stack) {
-        debugPrint('❌ ProfileScreen: Dashboard stats error: $error');
-        return <String, dynamic>{
-          'totalPoints': currentUser.totalPoints,
-          'totalItemsCollected': currentUser.totalItemsCollected,
-          'accountAge': DateTime.now().difference(currentUser.createdAt).inDays,
-          'rank': 0,
-          'achievements': <String>[],
-          'categoryStats': currentUser.categoryStats,
-          'isStale': true, // Mark as stale due to error
-        };
+      error: (error, stack) => <String, dynamic>{
+        'totalPoints': currentUser.totalPoints,
+        'totalItemsCollected': currentUser.totalItemsCollected,
+        'accountAge': DateTime.now().difference(currentUser.createdAt).inDays,
+        'rank': 0,
+        'categoryStats': currentUser.categoryStats,
+        'isStale': true,
       },
     );
 
+    final categoryStats =
+        userStats['categoryStats'] as Map<String, dynamic>? ?? {};
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -186,555 +112,321 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           'Profile',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-      ),
-      body: Stack(
-        children: [
-          // Background gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black,
-                  NeonColors.toxicPurple.withAlpha((0.05 * 255).toInt()),
-                  Colors.black,
-                ],
+        actions: [
+          if (userStats['isStale'] == true)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                tooltip: 'Offline — tap to refresh',
+                icon: const Icon(Icons.wifi_off, color: Colors.orange, size: 20),
+                onPressed: () => ref.invalidate(dashboardStatsProvider),
               ),
             ),
-          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Identity + level card
+            _buildHeroCard(currentUser),
 
-          // Particle system for celebrations
-          if (_showCelebration)
-            ParticleSystem(
-              type: ParticleType.stars,
-              isActive: _showCelebration,
-              color: NeonColors.earthOrange,
-            ),
+            const SizedBox(height: 24),
 
-          // Main content
-          SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              UIConstants
-                  .spacing6, // Increased outer padding to match home screen
-              20, // Slightly increased top padding
-              UIConstants
-                  .spacing6, // Increased outer padding to match home screen
-              140,
-            ), // Bottom padding for floating hub
-            child: Column(
+            _sectionHeader('Stats'),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                // Profile Header with glassmorphism - Horizontal Layout
-                GlassmorphismContainer(
-                  borderRadius: BorderRadius.circular(
-                    UIConstants.radiusLarge,
-                  ), // Material 3 standard border radius
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    children: [
-                      // Avatar with neon glow
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: NeonColors.electricGreen.withAlpha(
-                            (0.2 * 255).toInt(),
-                          ),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: NeonColors.electricGreen,
-                            width: 2,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 40,
-                        ),
-                      ),
-
-                      const SizedBox(width: 20),
-
-                      // User Info with shader mask
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ShaderMask(
-                              shaderCallback: (bounds) =>
-                                  arTheme.neonGradient.createShader(bounds),
-                              child: Text(
-                                currentUser.username,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Level ${currentUser.level} Eco Warrior',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: NeonColors.electricGreen,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      // Level Progress Ring
-                      ProgressRing(
-                        progress: currentUser.levelProgress,
-                        size: 80,
-                        color: NeonColors.electricGreen,
-                        showGlow: performanceService.shouldShowAnimations,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Level',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.white.withOpacity(0.7),
-                              ),
-                            ),
-                            Text(
-                              '${currentUser.level}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                Expanded(
+                  child: _StatTile(
+                    label: 'Points',
+                    value: '${userStats['totalPoints'] ?? 0}',
+                    icon: Icons.star_rounded,
                   ),
                 ),
-
-                const SizedBox(height: 24),
-
-                // Level Progress and Stats Row
-                GlassmorphismContainer(
-                  borderRadius: BorderRadius.circular(UIConstants.radiusLarge),
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      // Level Progress
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${currentUser.pointsToNextLevel} pts to next level',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            LinearProgressIndicator(
-                              value: currentUser.levelProgress,
-                              backgroundColor: Colors.white.withOpacity(0.2),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                NeonColors.electricGreen,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatTile(
+                    label: 'Items',
+                    value: '${userStats['totalItemsCollected'] ?? 0}',
+                    icon: Icons.inventory_2_outlined,
                   ),
                 ),
-
-                const SizedBox(height: 32),
-
-                // Stats Overview with shader mask
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) =>
-                          arTheme.neonGradient.createShader(bounds),
-                      child: Text(
-                        'Eco Legacy',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    // Stale data indicator and refresh button
-                    if (userStats['isStale'] == true)
-                      Row(
-                        children: [
-                          Icon(Icons.wifi_off, color: Colors.orange, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Offline',
-                            style: TextStyle(
-                              color: Colors.orange,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () {
-                              // Refresh dashboard stats
-                              ref.invalidate(dashboardStatsProvider);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: NeonColors.electricGreen.withOpacity(
-                                  0.2,
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Icon(
-                                Icons.refresh,
-                                color: NeonColors.electricGreen,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // Show loading indicator when dashboard stats are loading
-                dashboardStatsAsync.when(
-                  data: (_) => const SizedBox.shrink(),
-                  loading: () => Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: NeonColors.electricGreen,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Loading dashboard...',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  error: (error, stack) => Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          color: Colors.orange,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Failed to load stats',
-                          style: TextStyle(color: Colors.orange, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Eco legacy cards matching eco score style
-                SizedBox(
-                  height: 120, // Increased height to fix 20px bottom overflow
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width:
-                              95, // Match eco score width to prevent overflow
-                          child: _ARStatCard(
-                            title: 'Points',
-                            value: userStats['totalPoints'] ?? 0,
-                            maxValue: 10000,
-                            icon: Icons.star,
-                            color: NeonColors.earthOrange,
-                            performanceService: performanceService,
-                          ),
-                        ),
-                        SizedBox(
-                          width: UIConstants.spacing3,
-                        ), // Match eco score spacing
-                        SizedBox(
-                          width:
-                              95, // Match eco score width to prevent overflow
-                          child: _ARStatCard(
-                            title: 'Items',
-                            value: userStats['totalItemsCollected'] ?? 0,
-                            maxValue: 100,
-                            icon: Icons.delete_outline,
-                            color: NeonColors.electricGreen,
-                            performanceService: performanceService,
-                          ),
-                        ),
-                        SizedBox(
-                          width: UIConstants.spacing3,
-                        ), // Match eco score spacing
-                        SizedBox(
-                          width:
-                              95, // Match eco score width to prevent overflow
-                          child: _ARStatCard(
-                            title: 'Days',
-                            value: userStats['accountAge'] ?? 0,
-                            maxValue: 365,
-                            icon: Icons.local_fire_department,
-                            color: NeonColors.toxicPurple,
-                            performanceService: performanceService,
-                          ),
-                        ),
-                        SizedBox(
-                          width: UIConstants.spacing3,
-                        ), // Match eco score spacing
-                        SizedBox(
-                          width:
-                              95, // Match eco score width to prevent overflow
-                          child: _ARStatCard(
-                            title: 'Rank',
-                            value: userStats['rank'] ?? 0,
-                            maxValue: 100,
-                            icon: Icons.emoji_events,
-                            color: NeonColors.oceanBlue,
-                            performanceService: performanceService,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Simplified Achievements Display
-                const AchievementsDisplay(),
-
-                const SizedBox(height: 24),
-
-                // Category Breakdown with shader mask
-                ShaderMask(
-                  shaderCallback: (bounds) =>
-                      arTheme.neonGradient.createShader(bounds),
-                  child: Text(
-                    'Loot Breakdown',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Loot breakdown without outer container
-                Column(
-                  children: [
-                    _CategoryBreakdown(
-                      category: 'EcoGems',
-                      count:
-                          (userStats['categoryStats']
-                                      as Map<String, dynamic>? ??
-                                  {})['recycle']
-                              as int? ??
-                          0,
-                      color: AppColors.ecoGems,
-                      icon: Icons.recycling,
-                    ),
-                    const SizedBox(height: 16),
-                    _CategoryBreakdown(
-                      category: 'FuelShards',
-                      count:
-                          (userStats['categoryStats']
-                                      as Map<String, dynamic>? ??
-                                  {})['organic']
-                              as int? ??
-                          0,
-                      color: AppColors.fuelShards,
-                      icon: Icons.eco,
-                    ),
-                    const SizedBox(height: 16),
-                    _CategoryBreakdown(
-                      category: 'VoidDust',
-                      count:
-                          (userStats['categoryStats']
-                                      as Map<String, dynamic>? ??
-                                  {})['landfill']
-                              as int? ??
-                          0,
-                      color: AppColors.voidDust,
-                      icon: Icons.delete,
-                    ),
-                    const SizedBox(height: 16),
-                    _CategoryBreakdown(
-                      category: 'SparkCores',
-                      count:
-                          (userStats['categoryStats']
-                                      as Map<String, dynamic>? ??
-                                  {})['ewaste']
-                              as int? ??
-                          0,
-                      color: AppColors.sparkCores,
-                      icon: Icons.electrical_services,
-                    ),
-                    const SizedBox(height: 16),
-                    _CategoryBreakdown(
-                      category: 'ToxicCrystals',
-                      count:
-                          (userStats['categoryStats']
-                                      as Map<String, dynamic>? ??
-                                  {})['hazardous']
-                              as int? ??
-                          0,
-                      color: AppColors.toxicCrystals,
-                      icon: Icons.warning,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 32),
-
-                // Simple Sign Out Button
-                Center(
-                  child: SizedBox(
-                    width: 200,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _handleLogout(context, ref),
-                      icon: const Icon(
-                        Icons.logout,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      label: const Text(
-                        'Sign Out',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: NeonColors.toxicPurple,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            UIConstants.radiusLarge,
-                          ),
-                        ),
-                        side: BorderSide(
-                          color: NeonColors.toxicPurple.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
               ],
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatTile(
+                    label: 'Days Active',
+                    value: '${userStats['accountAge'] ?? 0}',
+                    icon: Icons.calendar_today_outlined,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatTile(
+                    label: 'Rank',
+                    value: (userStats['rank'] ?? 0) > 0
+                        ? '#${userStats['rank']}'
+                        : '—',
+                    icon: Icons.emoji_events_outlined,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            const AchievementsDisplay(),
+
+            const SizedBox(height: 24),
+
+            _sectionHeader('Collection'),
+            const SizedBox(height: 12),
+            ..._buildCategoryRows(categoryStats),
+
+            const SizedBox(height: 32),
+
+            // Sign out
+            OutlinedButton.icon(
+              onPressed: () => _handleLogout(context),
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text(
+                'Sign Out',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFE57373),
+                side: BorderSide(
+                  color: const Color(0xFFE57373).withValues(alpha: 0.4),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroCard(User user) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Avatar
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [_brandGreen, Color(0xFF2E7D32)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _brandGreen.withValues(alpha: 0.35),
+                      blurRadius: 20,
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  user.username.isNotEmpty
+                      ? user.username[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.username,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _brandGreen.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Level ${user.level} · Eco Warrior',
+                        style: const TextStyle(
+                          color: _brandGreen,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // XP progress to next level
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Level ${user.level}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${user.pointsToNextLevel} XP to Level ${user.level + 1}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: user.levelProgress,
+                  minHeight: 8,
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(_brandGreen),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  Widget _sectionHeader(String title) {
+    return Text(
+      title.toUpperCase(),
+      style: TextStyle(
+        color: Colors.white.withValues(alpha: 0.5),
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.5,
+      ),
+    );
+  }
+
+  List<Widget> _buildCategoryRows(Map<String, dynamic> categoryStats) {
+    const categoryIds = ['recycle', 'organic', 'ewaste', 'hazardous', 'landfill'];
+
+    return [
+      for (final id in categoryIds) ...[
+        _CategoryRow(
+          categoryId: id,
+          name: WasteCategory.fromId(id)?.codeName ??
+              CategoryVisuals.displayName(id),
+          count: categoryStats[id] as int? ?? 0,
+        ),
+        if (id != categoryIds.last) const SizedBox(height: 10),
+      ],
+    ];
+  }
+
   /// Handle logout with confirmation dialog
-  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+  Future<void> _handleLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: ShaderMask(
-          shaderCallback: (bounds) => LinearGradient(
-            colors: [NeonColors.toxicPurple, NeonColors.electricGreen],
-          ).createShader(bounds),
-          child: const Text(
-            'Sign Out',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+        backgroundColor: const Color(0xFF1A1B22),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Sign Out',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to sign out? Your progress will be saved.',
-          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+          'Are you sure you want to sign out? Your progress is saved.',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.75)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: NeonColors.electricGreen),
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.white70),
+            child: const Text('Cancel'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              backgroundColor: NeonColors.toxicPurple.withAlpha(
-                (0.2 * 255).toInt(),
-              ),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFE57373),
             ),
-            child: const Text(
-              'Sign Out',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Sign Out'),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
+      if (!context.mounted) return;
       // Store navigator reference before async operations
       final navigator = Navigator.of(context);
       final router = GoRouter.of(context);
 
       try {
-        // Show loading indicator
         if (context.mounted) {
           showDialog(
             context: context,
             barrierDismissible: false,
             builder: (dialogContext) => Center(
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.grey[900],
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF1A1B22),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
+                child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: NeonColors.toxicPurple),
-                    const SizedBox(height: 16),
+                    CircularProgressIndicator(color: _brandGreen),
+                    SizedBox(height: 16),
                     Text(
-                      'Signing out...',
-                      style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                      'Signing out…',
+                      style: TextStyle(color: Colors.white70),
                     ),
                   ],
                 ),
@@ -743,13 +435,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           );
         }
 
-        // Get auth service reference before async operation
         final authService = await ref.read(authServiceProvider.future);
-
-        // Perform logout
         await authService.signOut();
 
-        // Force close all dialogs by popping until we can't pop anymore
         try {
           while (navigator.canPop()) {
             navigator.pop();
@@ -758,17 +446,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           debugPrint('Error closing dialogs: $e');
         }
 
-        // Only invalidate providers if widget is still mounted
         if (mounted) {
           ref.invalidate(authStateProvider);
         }
 
-        // Navigate to login screen using stored router reference
         router.go('/login');
       } catch (e) {
         debugPrint('Logout error: $e');
 
-        // Force close all dialogs
         try {
           while (navigator.canPop()) {
             navigator.pop();
@@ -777,285 +462,55 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           debugPrint('Error closing dialogs: $dialogError');
         }
 
-        // Force navigation to login even if logout failed
-        // This ensures the user isn't stuck in a loading state
+        // Ensure the user isn't stuck even if sign-out partially failed.
         router.go('/login');
-
-        // Show error as a snackbar instead of blocking dialog
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Logout completed with warnings. You have been signed out.',
-                style: TextStyle(color: Colors.white),
-              ),
-              backgroundColor: NeonColors.toxicPurple,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
       }
     }
   }
 }
 
-class _ARStatCard extends StatelessWidget {
-  final String title;
-  final int value;
-  final int maxValue;
+/// Compact stat tile: big numeral, muted label, small icon.
+class _StatTile extends StatelessWidget {
+  final String label;
+  final String value;
   final IconData icon;
-  final Color color;
-  final PerformanceService performanceService;
 
-  const _ARStatCard({
-    required this.title,
+  const _StatTile({
+    required this.label,
     required this.value,
-    required this.maxValue,
-    required this.icon,
-    required this.color,
-    required this.performanceService,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final progress = maxValue > 0 ? (value / maxValue).clamp(0.0, 1.0) : 0.0;
-
-    return GlassmorphismContainer(
-      borderRadius: BorderRadius.circular(
-        UIConstants.radiusLarge,
-      ), // Material 3 standard border radius
-      padding: EdgeInsets.all(
-        UIConstants.spacing2,
-      ), // Reduced padding to match HomeStatCard
-      child: Padding(
-        padding: EdgeInsets.all(UIConstants.spacing1), // Minimal inner padding
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ProgressRing(
-              progress: progress,
-              size: 40, // Reduced size to match HomeStatCard
-              color: color,
-              showGlow: performanceService.shouldShowAnimations,
-              child: Icon(
-                icon,
-                size: 18,
-                color: Colors.white,
-              ), // Reduced icon size
-            ),
-            SizedBox(height: UIConstants.spacing2), // Reduced spacing
-            Text(
-              '$value',
-              style: theme.textTheme.titleMedium?.copyWith(
-                // Smaller text style
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 2), // Minimal spacing
-            Text(
-              title,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 10, // Smaller font size
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2, // Allow wrapping
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ARAchievementItem extends StatelessWidget {
-  final String title;
-  final String description;
-  final IconData icon;
-  final bool isUnlocked;
-  final double progress;
-  final Color color;
-  final PerformanceService performanceService;
-
-  const _ARAchievementItem({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.isUnlocked,
-    required this.progress,
-    required this.color,
-    required this.performanceService,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    Widget achievementWidget = Row(
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: isUnlocked
-                ? color.withAlpha((0.3 * 255).toInt())
-                : Colors.grey.withAlpha((0.2 * 255).toInt()),
-            shape: BoxShape.circle, // Circular border for achievement icons
-            border: Border.all(
-              color: isUnlocked
-                  ? color
-                  : Colors.grey.withAlpha((0.5 * 255).toInt()),
-              width: 2, // Thicker border for better visibility
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: isUnlocked ? color : Colors.grey,
-            size: 26,
-          ), // Slightly larger icon
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isUnlocked
-                      ? Colors.white
-                      : Colors.white.withOpacity(0.6),
-                ),
-              ),
-              Text(
-                description,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isUnlocked
-                      ? Colors.white.withOpacity(0.8)
-                      : Colors.white.withOpacity(0.5),
-                ),
-              ),
-              if (!isUnlocked && progress > 0) ...[
-                const SizedBox(height: 8),
-                ProgressRing(
-                  progress: progress,
-                  size: 24,
-                  strokeWidth: 2,
-                  color: color,
-                  showGlow: false,
-                ),
-              ],
-            ],
-          ),
-        ),
-        if (isUnlocked) Icon(Icons.check_circle, color: color, size: 24),
-      ],
-    );
-
-    if (isUnlocked && performanceService.shouldShowAnimations) {
-      achievementWidget = BreathingWidget(child: achievementWidget);
-    }
-
-    return achievementWidget;
-  }
-}
-
-class _CategoryBreakdown extends StatelessWidget {
-  final String category;
-  final int count;
-  final Color color;
-  final IconData icon;
-
-  const _CategoryBreakdown({
-    required this.category,
-    required this.count,
-    required this.color,
     required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.all(
-        20,
-      ), // Increased padding for Material 3 expressive
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withAlpha((0.05 * 255).toInt()),
-        borderRadius: BorderRadius.circular(
-          UIConstants.radiusXLarge,
-        ), // Material 3 expressive border radius
-        border: Border.all(
-          color: color.withAlpha((0.3 * 255).toInt()),
-          width: 2, // Thicker border for Material 3 expressive
-        ),
+        color: const Color(0xFF13141A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: color.withAlpha((0.2 * 255).toInt()),
-              shape: BoxShape.circle, // Circular icon container
-              border: Border.all(
-                color: color.withAlpha((0.5 * 255).toInt()),
-                width: 2, // Thicker border for circular icon
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withAlpha((0.3 * 255).toInt()),
-                  blurRadius: 8,
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Icon(icon, color: color, size: 26), // Slightly larger icon
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  category,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Collected items',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withOpacity(0.7),
-                  ),
-                ),
-              ],
+          Icon(icon, color: const Color(0xFF4CAF50), size: 20),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$count',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                'items',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: color.withAlpha((0.8 * 255).toInt()),
-                ),
-              ),
-            ],
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.55),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -1063,66 +518,77 @@ class _CategoryBreakdown extends StatelessWidget {
   }
 }
 
-class _ARActionButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final IconData icon;
-  final String label;
-  final Color color;
-  final bool isPrimary;
+/// One row in the per-category collection breakdown.
+class _CategoryRow extends StatelessWidget {
+  final String categoryId;
+  final String name;
+  final int count;
 
-  const _ARActionButton({
-    required this.onPressed,
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.isPrimary,
+  const _CategoryRow({
+    required this.categoryId,
+    required this.name,
+    required this.count,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final color = CategoryVisuals.color(categoryId);
 
     return Container(
-      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: isPrimary
-            ? LinearGradient(
-                colors: [color, color.withAlpha((0.7 * 255).toInt())],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        border: isPrimary
-            ? null
-            : Border.all(color: color.withAlpha((0.5 * 255).toInt()), width: 2),
-        boxShadow: isPrimary
-            ? NeonColors.createNeonGlow(color, intensity: 0.6)
-            : null,
+        color: const Color(0xFF13141A),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              CategoryVisuals.icon(categoryId),
+              color: color,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, color: Colors.white, size: 24),
-                const SizedBox(width: 12),
                 Text(
-                  label,
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  name,
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  CategoryVisuals.displayName(categoryId),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+          Text(
+            '$count',
+            style: TextStyle(
+              color: count > 0 ? color : Colors.white.withValues(alpha: 0.35),
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
